@@ -175,18 +175,12 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
 
   String _getMoodLabel(String mood) {
     switch (mood) {
-      case '😄':
-        return 'Happy';
-      case '🙂':
-        return 'Positive';
-      case '😐':
-        return 'Neutral';
-      case '😟':
-        return 'Worried';
-      case '😢':
-        return 'Sad';
-      default:
-        return 'Unknown';
+      case '😄': return 'Happy';
+      case '🙂': return 'Positive';
+      case '😐': return 'Neutral';
+      case '😟': return 'Worried';
+      case '😢': return 'Sad';
+      default: return 'Unknown';
     }
   }
 
@@ -224,18 +218,26 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
                   });
                   await _calculateMoodSummary(selected);
                 },
-              ),
-              const SizedBox(height: 12),
-              Center(
-                child: ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      _focusedDay = DateTime.now();
-                      _selectedDay = DateTime.now();
-                    });
-                  },
-                  child: const Text('Today'),
+                headerStyle: HeaderStyle(
+                  formatButtonVisible: true,
+                  titleCentered: true,
+                  formatButtonShowsNext: false,
                 ),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.today, color: Colors.deepPurple),
+                    tooltip: 'Go to Today',
+                    onPressed: () {
+                      setState(() {
+                        _focusedDay = DateTime.now();
+                        _selectedDay = DateTime.now();
+                      });
+                    },
+                  ),
+                ],
               ),
               const SizedBox(height: 24),
               const Text("Record Today's Mood",
