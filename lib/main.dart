@@ -19,8 +19,6 @@ void main() async {
   runApp(const SafeSpaceApp());
 }
 
-// change 1
-// Change 2
 class SafeSpaceApp extends StatelessWidget {
   const SafeSpaceApp({super.key});
 
