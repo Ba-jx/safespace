@@ -2,62 +2,68 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-class MoodHistoryScreen extends StatelessWidget {
+class MoodHistoryScreen extends StatefulWidget {
   const MoodHistoryScreen({super.key});
 
-  bool isSameDay(DateTime? day1, DateTime? day2) {
-    if (day1 == null || day2 == null) return false;
-    return day1.year == day2.year &&
-        day1.month == day2.month &&
-        day1.day == day2.day;
+  @override
+  State<MoodHistoryScreen> createState() => _MoodHistoryScreenState();
+}
+
+class _MoodHistoryScreenState extends State<MoodHistoryScreen> {
+  List<Map<String, dynamic>> _moodEntries = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchMoodLogs();
+  }
+
+  Future<void> _fetchMoodLogs() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('symptom_logs')
+        .orderBy('timestamp', descending: true)
+        .get();
+
+    final logs = snapshot.docs.map((doc) => doc.data()).toList();
+
+    setState(() {
+      _moodEntries = logs;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-
     return Scaffold(
-      appBar: AppBar(title: const Text('All Mood History')),
-      body: StreamBuilder<QuerySnapshot>(
-        stream:
-            FirebaseFirestore.instance
-                .collection('symptom_logs')
-                .where('uid', isEqualTo: uid)
-                .orderBy('timestamp', descending: true)
-                .snapshots(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      appBar: AppBar(title: const Text('Mood History')),
+      body: _moodEntries.isEmpty
+          ? const Center(child: Text('No mood history found.'))
+          : ListView.builder(
+              itemCount: _moodEntries.length,
+              itemBuilder: (context, index) {
+                final entry = _moodEntries[index];
+                final mood = entry['mood'] ?? '';
+                final note = entry['note'] ?? '';
+                final timestamp = (entry['timestamp'] as Timestamp?)?.toDate();
 
-          final entries = snapshot.data!.docs;
-
-          if (entries.isEmpty) {
-            return const Center(child: Text('No mood entries found.'));
-          }
-
-          return ListView.builder(
-            itemCount: entries.length,
-            itemBuilder: (context, index) {
-              final entry = entries[index];
-              final mood = entry['mood'];
-              final note = entry['note'];
-              final timestamp = (entry['timestamp'] as Timestamp?)?.toDate();
-
-              return ListTile(
-                leading: Text(mood, style: const TextStyle(fontSize: 32)),
-                title: Text(note ?? 'No note'),
-                subtitle:
+                return ListTile(
+                  leading: Text(
+                    mood,
+                    style: const TextStyle(fontSize: 28),
+                  ),
+                  title: Text(
                     timestamp != null
-                        ? Text(
-                          '${timestamp.day}/${timestamp.month}/${timestamp.year} at ${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}',
-                        )
-                        : null,
-              );
-            },
-          );
-        },
-      ),
+                        ? '${timestamp.year}-${timestamp.month.toString().padLeft(2, '0')}-${timestamp.day.toString().padLeft(2, '0')}'
+                        : 'Unknown date',
+                  ),
+                  subtitle: note.isNotEmpty ? Text(note) : null,
+                );
+              },
+            ),
     );
   }
 }
