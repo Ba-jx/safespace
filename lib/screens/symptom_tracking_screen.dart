@@ -103,7 +103,7 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
             .get();
 
     if (snapshot.docs.isNotEmpty) {
-      // Document exists, update it
+      // Document exists -> update
       final docId = snapshot.docs.first.id;
 
       await FirebaseFirestore.instance
@@ -125,7 +125,7 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
         ),
       );
     } else {
-      // Create new document
+      // No mood for today -> create new
       await FirebaseFirestore.instance.collection('symptom_logs').add({
         'uid': uid,
         'mood': _selectedMood,
@@ -145,6 +145,13 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
     }
 
     _noteController.clear();
+
+    // Force refresh calendar and mood summary
+    setState(() {
+      _selectedDay = DateTime.now();
+      _focusedDay = DateTime.now();
+    });
+
     await _loadEvents();
     await _calculateMoodSummary(_selectedDay!);
     await _prefillTodayMood();

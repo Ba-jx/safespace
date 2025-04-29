@@ -19,7 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
 
-  Future<void> _submit(BuildContext context) async {
+  Future<void> _submit(context) async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 

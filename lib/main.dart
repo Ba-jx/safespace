@@ -13,8 +13,6 @@ import 'screens/real_time_monitor_screen.dart';
 import 'screens/doctor_communication_screen.dart';
 import 'screens/settings_screen.dart';
 
-import 'widgets/custom_drawer.dart';
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
