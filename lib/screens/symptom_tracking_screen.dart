@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -34,8 +35,9 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
     if (uid == null) return;
 
     final snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
         .collection('symptom_logs')
-        .where('uid', isEqualTo: uid)
         .get();
 
     final Map<DateTime, List<Map<String, dynamic>>> newEvents = {};
@@ -62,8 +64,9 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
     final todayStart = DateTime(today.year, today.month, today.day);
 
     final snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
         .collection('symptom_logs')
-        .where('uid', isEqualTo: uid)
         .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(todayStart))
         .limit(1)
         .get();
@@ -84,17 +87,19 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
     final now = DateTime.now();
     final todayStart = DateTime(now.year, now.month, now.day);
 
-    final snapshot = await FirebaseFirestore.instance
-        .collection('symptom_logs')
-        .where('uid', isEqualTo: uid)
+    final logsRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('symptom_logs');
+
+    final snapshot = await logsRef
         .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(todayStart))
         .limit(1)
         .get();
 
     if (snapshot.docs.isNotEmpty) {
-      // Update existing entry
       final docId = snapshot.docs.first.id;
-      await FirebaseFirestore.instance.collection('symptom_logs').doc(docId).update({
+      await logsRef.doc(docId).update({
         'mood': _selectedMood,
         'note': _noteController.text.trim(),
         'timestamp': FieldValue.serverTimestamp(),
@@ -109,9 +114,7 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
         ),
       );
     } else {
-      // Add new entry — creates the collection if needed
-      await FirebaseFirestore.instance.collection('symptom_logs').add({
-        'uid': uid,
+      await logsRef.add({
         'mood': _selectedMood,
         'note': _noteController.text.trim(),
         'timestamp': FieldValue.serverTimestamp(),
@@ -128,7 +131,6 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
     }
 
     _noteController.clear();
-
     setState(() {
       _focusedDay = DateTime.now();
       _selectedDay = DateTime.now();
@@ -144,8 +146,9 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
     if (uid == null) return;
 
     final snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
         .collection('symptom_logs')
-        .where('uid', isEqualTo: uid)
         .get();
 
     final moodsToday = snapshot.docs.where((doc) {
@@ -179,18 +182,12 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
 
   String _getMoodLabel(String mood) {
     switch (mood) {
-      case '😄':
-        return 'Happy';
-      case '🙂':
-        return 'Positive';
-      case '😐':
-        return 'Neutral';
-      case '😟':
-        return 'Worried';
-      case '😢':
-        return 'Sad';
-      default:
-        return 'Unknown';
+      case '😄': return 'Happy';
+      case '🙂': return 'Positive';
+      case '😐': return 'Neutral';
+      case '😟': return 'Worried';
+      case '😢': return 'Sad';
+      default: return 'Unknown';
     }
   }
 
@@ -218,43 +215,12 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
                     const SizedBox(height: 16),
                   ],
                 ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        _focusedDay = DateTime.now();
-                        _selectedDay = DateTime.now();
-                      });
-                    },
-                    icon: const Icon(Icons.today),
-                    label: const Text('Today'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepPurple,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
               TableCalendar(
-                firstDay: DateTime.utc(2022, 1, 1),
+                firstDay: DateTime.utc(2020, 1, 1),
                 lastDay: DateTime.utc(2030, 12, 31),
                 focusedDay: _focusedDay,
                 calendarFormat: CalendarFormat.week,
-                availableCalendarFormats: const {
-                  CalendarFormat.week: 'Week',
-                },
                 selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                eventLoader: (day) {
-                  final d = DateTime(day.year, day.month, day.day);
-                  return _events[d] ?? [];
-                },
                 onDaySelected: (selected, focused) async {
                   setState(() {
                     _focusedDay = focused;
@@ -262,26 +228,9 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
                   });
                   await _calculateMoodSummary(selected);
                 },
-                onPageChanged: (focused) => _focusedDay = focused,
-                calendarBuilders: CalendarBuilders(
-                  defaultBuilder: (context, day, _) {
-                    final d = DateTime(day.year, day.month, day.day);
-                    final events = _events[d] ?? [];
-                    return Center(
-                      child: Text(events.isNotEmpty ? events.first['mood'] : '${day.day}',
-                          style: const TextStyle(fontSize: 16)),
-                    );
-                  },
-                ),
-                calendarStyle: const CalendarStyle(
-                  todayDecoration:
-                      BoxDecoration(color: Colors.purpleAccent, shape: BoxShape.circle),
-                  selectedDecoration:
-                      BoxDecoration(color: Colors.deepPurple, shape: BoxShape.circle),
-                ),
               ),
               const SizedBox(height: 24),
-              const Text('Record Today\'s Mood',
+              const Text("Record Today's Mood",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
               Row(
@@ -319,16 +268,6 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
                 child: ElevatedButton(
                   onPressed: _saveMood,
                   child: const Text('Save Mood'),
-                ),
-              ),
-              const Divider(height: 32),
-              Center(
-                child: TextButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const MoodHistoryScreen()),
-                  ),
-                  child: const Text('View All Mood History'),
                 ),
               ),
             ],
