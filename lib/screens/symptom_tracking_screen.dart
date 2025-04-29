@@ -221,6 +221,8 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
                 headerStyle: const HeaderStyle(
                   formatButtonVisible: false,
                   titleCentered: true,
+                  leftChevronVisible: false,
+                  rightChevronVisible: false,
                 ),
                 calendarBuilders: CalendarBuilders(
                   headerTitleBuilder: (context, day) {
@@ -235,13 +237,8 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
                             });
                           },
                         ),
-                        Text(
-                          '${day.month}/${day.year}',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        Text('${day.month}/${day.year}',
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                         Row(
                           children: [
                             IconButton(
