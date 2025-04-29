@@ -83,49 +83,43 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
-    final now = DateTime.now();
-    final todayStart = DateTime(now.year, now.month, now.day);
-
+    final todayStart = DateTime.now();
     final logsRef = FirebaseFirestore.instance
         .collection('users')
         .doc(uid)
         .collection('symptom_logs');
 
     final snapshot = await logsRef
-        .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(todayStart))
+        .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(
+          DateTime(todayStart.year, todayStart.month, todayStart.day)))
         .limit(1)
         .get();
 
-    if (snapshot.docs.isNotEmpty) {
-      final docId = snapshot.docs.first.id;
-      await logsRef.doc(docId).update({
-        'mood': _selectedMood,
-        'note': _noteController.text.trim(),
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-
-      if (!mounted) return;
+    try {
+      if (snapshot.docs.isNotEmpty) {
+        final docId = snapshot.docs.first.id;
+        await logsRef.doc(docId).update({
+          'mood': _selectedMood,
+          'note': _noteController.text.trim(),
+          'timestamp': FieldValue.serverTimestamp(),
+          'edited': true,
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✅ Mood entry updated!')),
+        );
+      } else {
+        await logsRef.add({
+          'mood': _selectedMood,
+          'note': _noteController.text.trim(),
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('🎉 Mood saved successfully!')),
+        );
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('✅ Mood entry updated!'),
-          backgroundColor: Colors.blueAccent,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    } else {
-      await logsRef.add({
-        'mood': _selectedMood,
-        'note': _noteController.text.trim(),
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('🎉 Mood saved successfully!'),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-        ),
+        SnackBar(content: Text('Error saving mood: $e')),
       );
     }
 
@@ -181,12 +175,18 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
 
   String _getMoodLabel(String mood) {
     switch (mood) {
-      case '😄': return 'Happy';
-      case '🙂': return 'Positive';
-      case '😐': return 'Neutral';
-      case '😟': return 'Worried';
-      case '😢': return 'Sad';
-      default: return 'Unknown';
+      case '😄':
+        return 'Happy';
+      case '🙂':
+        return 'Positive';
+      case '😐':
+        return 'Neutral';
+      case '😟':
+        return 'Worried';
+      case '😢':
+        return 'Sad';
+      default:
+        return 'Unknown';
     }
   }
 
@@ -203,17 +203,14 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (_summaryMood != null)
-                Column(
-                  children: [
-                    const Text('Mood Summary',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    Text(_summaryMood!, style: const TextStyle(fontSize: 48)),
-                    Text(_summaryLabel),
-                    const SizedBox(height: 16),
-                  ],
-                ),
+              if (_summaryMood != null) ...[
+                const Text('Mood Summary',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Text(_summaryMood!, style: const TextStyle(fontSize: 48)),
+                Text(_summaryLabel),
+                const SizedBox(height: 16),
+              ],
               TableCalendar(
                 firstDay: DateTime.utc(2020, 1, 1),
                 lastDay: DateTime.utc(2030, 12, 31),
@@ -227,6 +224,18 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
                   });
                   await _calculateMoodSummary(selected);
                 },
+              ),
+              const SizedBox(height: 12),
+              Center(
+                child: ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _focusedDay = DateTime.now();
+                      _selectedDay = DateTime.now();
+                    });
+                  },
+                  child: const Text('Today'),
+                ),
               ),
               const SizedBox(height: 24),
               const Text("Record Today's Mood",
