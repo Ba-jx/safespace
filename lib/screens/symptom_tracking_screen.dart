@@ -218,26 +218,59 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
                   });
                   await _calculateMoodSummary(selected);
                 },
-                headerStyle: HeaderStyle(
-                  formatButtonVisible: true,
+                headerStyle: const HeaderStyle(
+                  formatButtonVisible: false,
                   titleCentered: true,
-                  formatButtonShowsNext: false,
                 ),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.today, color: Colors.deepPurple),
-                    tooltip: 'Go to Today',
-                    onPressed: () {
-                      setState(() {
-                        _focusedDay = DateTime.now();
-                        _selectedDay = DateTime.now();
-                      });
-                    },
-                  ),
-                ],
+                headerVisible: true,
+                calendarBuilders: CalendarBuilders(
+                  headerTitleBuilder: (context, day) {
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.chevron_left, color: Colors.deepPurple),
+                          onPressed: () {
+                            setState(() {
+                              _focusedDay = DateTime(
+                                _focusedDay.year, _focusedDay.month - 1, _focusedDay.day);
+                            });
+                          },
+                        ),
+                        Text(
+                          '${day.month}/${day.year}',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.today, color: Colors.deepPurple),
+                              tooltip: 'Today',
+                              onPressed: () {
+                                setState(() {
+                                  _focusedDay = DateTime.now();
+                                  _selectedDay = DateTime.now();
+                                });
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.chevron_right, color: Colors.deepPurple),
+                              onPressed: () {
+                                setState(() {
+                                  _focusedDay = DateTime(
+                                    _focusedDay.year, _focusedDay.month + 1, _focusedDay.day);
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    );
+                  },
+                ),
               ),
               const SizedBox(height: 24),
               const Text("Record Today's Mood",
