@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -268,6 +267,18 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
                 child: ElevatedButton(
                   onPressed: _saveMood,
                   child: const Text('Save Mood'),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Center(
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const MoodHistoryScreen()),
+                    );
+                  },
+                  child: const Text('View All Mood History'),
                 ),
               ),
             ],
