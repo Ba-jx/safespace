@@ -222,7 +222,6 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
                   formatButtonVisible: false,
                   titleCentered: true,
                 ),
-                headerVisible: true,
                 calendarBuilders: CalendarBuilders(
                   headerTitleBuilder: (context, day) {
                     return Row(
@@ -232,8 +231,7 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
                           icon: const Icon(Icons.chevron_left, color: Colors.deepPurple),
                           onPressed: () {
                             setState(() {
-                              _focusedDay = DateTime(
-                                _focusedDay.year, _focusedDay.month - 1, _focusedDay.day);
+                              _focusedDay = _focusedDay.subtract(const Duration(days: 7));
                             });
                           },
                         ),
@@ -260,8 +258,7 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
                               icon: const Icon(Icons.chevron_right, color: Colors.deepPurple),
                               onPressed: () {
                                 setState(() {
-                                  _focusedDay = DateTime(
-                                    _focusedDay.year, _focusedDay.month + 1, _focusedDay.day);
+                                  _focusedDay = _focusedDay.add(const Duration(days: 7));
                                 });
                               },
                             ),
