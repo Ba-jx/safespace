@@ -206,7 +206,7 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
                 const SizedBox(height: 16),
               ],
               SizedBox(
-                height: 140,
+                height: 180,
                 child: TableCalendar(
                   firstDay: DateTime.utc(2020, 1, 1),
                   lastDay: DateTime.utc(2030, 12, 31),
