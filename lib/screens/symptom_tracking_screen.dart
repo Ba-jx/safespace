@@ -205,85 +205,88 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
                 Text(_summaryLabel),
                 const SizedBox(height: 16),
               ],
-              TableCalendar(
-                firstDay: DateTime.utc(2020, 1, 1),
-                lastDay: DateTime.utc(2030, 12, 31),
-                focusedDay: _focusedDay,
-                calendarFormat: CalendarFormat.week,
-                selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                onDaySelected: (selected, focused) async {
-                  setState(() {
-                    _focusedDay = focused;
-                    _selectedDay = selected;
-                  });
-                  await _calculateMoodSummary(selected);
-                },
-                eventLoader: (day) {
-                  final key = DateTime(day.year, day.month, day.day);
-                  return _events[key] ?? [];
-                },
-                headerStyle: const HeaderStyle(
-                  formatButtonVisible: false,
-                  titleCentered: true,
-                  leftChevronVisible: false,
-                  rightChevronVisible: false,
-                ),
-                calendarBuilders: CalendarBuilders(
-                  headerTitleBuilder: (context, day) {
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.chevron_left, color: Colors.deepPurple),
-                          onPressed: () {
-                            setState(() {
-                              _focusedDay = _focusedDay.subtract(const Duration(days: 7));
-                            });
-                          },
-                        ),
-                        Text('${day.month}/${day.year}',
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.today, color: Colors.deepPurple),
-                              tooltip: 'Today',
-                              onPressed: () {
-                                setState(() {
-                                  _focusedDay = DateTime.now();
-                                  _selectedDay = DateTime.now();
-                                });
-                              },
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.chevron_right, color: Colors.deepPurple),
-                              onPressed: () {
-                                setState(() {
-                                  _focusedDay = _focusedDay.add(const Duration(days: 7));
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                      ],
-                    );
+              SizedBox(
+                height: 140,
+                child: TableCalendar(
+                  firstDay: DateTime.utc(2020, 1, 1),
+                  lastDay: DateTime.utc(2030, 12, 31),
+                  focusedDay: _focusedDay,
+                  calendarFormat: CalendarFormat.week,
+                  selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                  onDaySelected: (selected, focused) async {
+                    setState(() {
+                      _focusedDay = focused;
+                      _selectedDay = selected;
+                    });
+                    await _calculateMoodSummary(selected);
                   },
-                  markerBuilder: (context, date, events) {
-                    if (events.isNotEmpty) {
-                      return Positioned(
-                        bottom: 1,
-                        child: Container(
-                          width: 6,
-                          height: 6,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.deepPurple,
+                  eventLoader: (day) {
+                    final key = DateTime(day.year, day.month, day.day);
+                    return _events[key] ?? [];
+                  },
+                  headerStyle: const HeaderStyle(
+                    formatButtonVisible: false,
+                    titleCentered: true,
+                    leftChevronVisible: false,
+                    rightChevronVisible: false,
+                  ),
+                  calendarBuilders: CalendarBuilders(
+                    headerTitleBuilder: (context, day) {
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.chevron_left, color: Colors.deepPurple),
+                            onPressed: () {
+                              setState(() {
+                                _focusedDay = _focusedDay.subtract(const Duration(days: 7));
+                              });
+                            },
                           ),
-                        ),
+                          Text('${day.month}/${day.year}',
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.today, color: Colors.deepPurple),
+                                tooltip: 'Today',
+                                onPressed: () {
+                                  setState(() {
+                                    _focusedDay = DateTime.now();
+                                    _selectedDay = DateTime.now();
+                                  });
+                                },
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.chevron_right, color: Colors.deepPurple),
+                                onPressed: () {
+                                  setState(() {
+                                    _focusedDay = _focusedDay.add(const Duration(days: 7));
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                        ],
                       );
-                    }
-                    return const SizedBox.shrink();
-                  },
+                    },
+                    markerBuilder: (context, date, events) {
+                      if (events.isNotEmpty) {
+                        return Positioned(
+                          bottom: 1,
+                          child: Container(
+                            width: 6,
+                            height: 6,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.deepPurple,
+                            ),
+                          ),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
