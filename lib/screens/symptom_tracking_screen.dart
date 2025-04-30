@@ -197,16 +197,16 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (_summaryMood != null) ...[
+              _summaryMood != null ? [
                 const Text('Mood Summary',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 Text(_summaryMood!, style: const TextStyle(fontSize: 48)),
                 Text(_summaryLabel),
                 const SizedBox(height: 16),
-              ],
+              ] : [SizedBox(height: 100)],
               SizedBox(
-                height: 180,
+                height: 140,
                 child: TableCalendar(
                   firstDay: DateTime.utc(2020, 1, 1),
                   lastDay: DateTime.utc(2030, 12, 31),
@@ -265,9 +265,9 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
                                   });
                                 },
                               ),
-                            ],
+                            ] : [SizedBox(height: 100)],
                           ),
-                        ],
+                        ] : [SizedBox(height: 100)],
                       );
                     },
                     markerBuilder: (context, date, events) {
@@ -342,7 +342,7 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
                   child: const Text('View All Mood History'),
                 ),
               ),
-            ],
+            ] : [SizedBox(height: 100)],
           ),
         ),
       ),
