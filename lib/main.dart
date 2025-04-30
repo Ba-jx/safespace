@@ -7,7 +7,6 @@ import 'providers/device_provider.dart';
 import 'providers/theme_provider.dart';
 
 import 'screens/home_screen.dart';
-import 'screens/login_screen.dart';
 import 'screens/symptom_tracking_screen.dart';
 import 'screens/real_time_monitor_screen.dart';
 import 'screens/doctor_communication_screen.dart';
@@ -61,6 +60,7 @@ class SafeSpaceApp extends StatelessWidget {
         themeMode: ThemeMode.system,
         initialRoute: '/login',
         routes: {
+          '/': (_) => const RoleSelectionScreen(),
           '/login': (_) => const PatientLoginScreen(),
           '/doctor/login': (_) => const DoctorLoginScreen(),
           '/home': (_) => const HomeScreen(),
