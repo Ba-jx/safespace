@@ -218,6 +218,10 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
                   });
                   await _calculateMoodSummary(selected);
                 },
+                eventLoader: (day) {
+                  final key = DateTime(day.year, day.month, day.day);
+                  return _events[key] ?? [];
+                },
                 headerStyle: const HeaderStyle(
                   formatButtonVisible: false,
                   titleCentered: true,
@@ -263,6 +267,22 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
                         ),
                       ],
                     );
+                  },
+                  markerBuilder: (context, date, events) {
+                    if (events.isNotEmpty) {
+                      return Positioned(
+                        bottom: 1,
+                        child: Container(
+                          width: 6,
+                          height: 6,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.deepPurple,
+                          ),
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
                   },
                 ),
               ),
