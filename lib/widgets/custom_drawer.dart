@@ -14,13 +14,33 @@ class CustomDrawer extends StatelessWidget {
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          UserAccountsDrawerHeader(
-            decoration: const BoxDecoration(color: Color(0xFFD8BFD8)),
-            accountName: Text(userName.isNotEmpty ? userName : 'User'),
-            accountEmail: const Text(''), // or show email if available
-            currentAccountPicture: const CircleAvatar(
-              backgroundColor: Colors.white,
-              child: Icon(Icons.person, color: Color(0xFFD8BFD8)),
+          DrawerHeader(
+            decoration: const BoxDecoration(
+              color: Color(0xFFD8BFD8), // lilac
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const CircleAvatar(
+                  radius: 30,
+                  backgroundColor: Colors.white,
+                  child: Icon(Icons.person, size: 36, color: Color(0xFFD8BFD8)),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  userName.isNotEmpty ? userName : 'Welcome',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Safe Space User',
+                  style: TextStyle(color: Colors.white70),
+                ),
+              ],
             ),
           ),
           ListTile(
