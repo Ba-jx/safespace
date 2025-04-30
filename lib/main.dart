@@ -12,6 +12,8 @@ import 'screens/symptom_tracking_screen.dart';
 import 'screens/real_time_monitor_screen.dart';
 import 'screens/doctor_communication_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/appointment_booking_screen.dart';
+import 'screens/appointment_list_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -79,6 +81,8 @@ class SafeSpaceApp extends StatelessWidget {
           '/real-time-monitor': (_) => const RealTimeMonitorScreen(),
           '/doctor-communication': (_) => const DoctorCommunicationScreen(),
           '/settings': (_) => const SettingsScreen(),
+           '/appointments/book': (_) => const AppointmentBookingScreen(),
+              '/appointments/list': (_) => const AppointmentListScreen(),
         },
       ),
     );
