@@ -6,66 +6,90 @@ class RoleSelectionScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F3F8),
+      backgroundColor: const Color(0xFFF8F4FB),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            children: [
-              const SizedBox(height: 40),
-              Center(
-                child: Column(
-                  children: [
-                    Image.asset(
-                      'assets/images/safe_space_logo.jpg',
-                      height: 120,
+        child: Column(
+          children: [
+            const SizedBox(height: 40),
+            Center(
+              child: Column(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 10,
+                          offset: Offset(0, 4),
+                        )
+                      ],
                     ),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'Welcome to Safe Space',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.deepPurple,
+                    padding: const EdgeInsets.all(12),
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/images/safe_space_logo.jpg',
+                        height: 100,
+                        width: 100,
+                        fit: BoxFit.cover,
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Choose your portal to begin',
-                      style: TextStyle(fontSize: 16, color: Colors.black87),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Welcome to Safe Space',
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF6A4C93),
                     ),
-                  ],
-                ),
-              ),
-              const Spacer(),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.person),
-                label: const Text('I am a Patient'),
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 55),
-                  backgroundColor: Colors.purple.shade400,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
                   ),
-                ),
-                onPressed: () => Navigator.pushNamed(context, '/login'),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.medical_services),
-                label: const Text('I am a Doctor'),
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 55),
-                  backgroundColor: Colors.deepPurple,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Please choose your portal',
+                    style: TextStyle(fontSize: 16, color: Color(0xFF4D4D4D)),
                   ),
-                ),
-                onPressed: () => Navigator.pushNamed(context, '/doctor/login'),
+                ],
               ),
-              const SizedBox(height: 30),
-            ],
-          ),
+            ),
+            const Spacer(),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Column(
+                children: [
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.person, color: Colors.white),
+                    label: const Text('I am a Patient'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFC9B6E4),
+                      minimumSize: const Size(double.infinity, 50),
+                      textStyle: const TextStyle(fontSize: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () => Navigator.pushNamed(context, '/login'),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.medical_services, color: Colors.white),
+                    label: const Text('I am a Doctor'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF9F86C0),
+                      minimumSize: const Size(double.infinity, 50),
+                      textStyle: const TextStyle(fontSize: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () => Navigator.pushNamed(context, '/doctor/login'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 40),
+          ],
         ),
       ),
     );
