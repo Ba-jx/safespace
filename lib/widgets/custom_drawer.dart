@@ -1,100 +1,46 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import '../providers/user_provider.dart';
+import '../utils/logout_helper.dart';
 
 class CustomDrawer extends StatelessWidget {
   const CustomDrawer({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final userName = Provider.of<UserProvider>(context).userName;
+
     return Drawer(
-      child: Column(
+      child: ListView(
+        padding: EdgeInsets.zero,
         children: [
           UserAccountsDrawerHeader(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFFB497BD), Color(0xFFD8BFD8)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            accountName: const Text("Safe Space User"),
-            accountEmail: Text(FirebaseAuth.instance.currentUser?.email ?? ''),
+            decoration: const BoxDecoration(color: Color(0xFFD8BFD8)),
+            accountName: Text(userName.isNotEmpty ? userName : 'User'),
+            accountEmail: const Text(''), // or show email if available
             currentAccountPicture: const CircleAvatar(
               backgroundColor: Colors.white,
-              child: Icon(Icons.person, color: Colors.deepPurple),
+              child: Icon(Icons.person, color: Color(0xFFD8BFD8)),
             ),
           ),
-          Expanded(
-            child: ListView(
-              children: [
-                _drawerItem(
-                  context,
-                  icon: Icons.home,
-                  text: 'Home',
-                  route: '/home',
-                ),
-                _drawerItem(
-                  context,
-                  icon: Icons.mood,
-                  text: 'Symptom Tracking',
-                  route: '/symptom-tracking',
-                ),
-                _drawerItem(
-                  context,
-                  icon: Icons.monitor_heart,
-                  text: 'Real-Time Monitor',
-                  route: '/real-time-monitor',
-                ),
-                _drawerItem(
-                  context,
-                  icon: Icons.chat,
-                  text: 'Doctor Communication',
-                  route: '/doctor-communication',
-                ),
-                _drawerItem(
-                  context,
-                  icon: Icons.settings,
-                  text: 'Settings',
-                  route: '/settings',
-                ),
-                const Divider(),
-                _drawerItem(
-                  context,
-                  icon: Icons.add_circle_outline,
-                  text: 'Book Appointment',
-                  route: '/appointments/book',
-                ),
-                _drawerItem(
-                  context,
-                  icon: Icons.calendar_month,
-                  text: 'My Appointments',
-                  route: '/appointments/list',
-                ),
-              ],
-            ),
+          ListTile(
+            leading: const Icon(Icons.home),
+            title: const Text('Home'),
+            onTap: () => Navigator.pushNamed(context, '/home'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.settings),
+            title: const Text('Settings'),
+            onTap: () => Navigator.pushNamed(context, '/settings'),
           ),
           const Divider(),
           ListTile(
-            leading: const Icon(Icons.logout, color: Colors.redAccent),
-            title: const Text('Logout', style: TextStyle(color: Colors.redAccent)),
-            onTap: () async {
-              await FirebaseAuth.instance.signOut();
-              Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-            },
+            leading: const Icon(Icons.logout),
+            title: const Text('Logout'),
+            onTap: () => confirmLogout(context),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _drawerItem(BuildContext context,
-      {required IconData icon, required String text, required String route}) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.deepPurple),
-      title: Text(text),
-      onTap: () {
-        Navigator.pushNamed(context, route);
-      },
     );
   }
 }
