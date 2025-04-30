@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:table_calendar/table_calendar.dart';
+
 import 'mood_history_screen.dart';
 
 class SymptomTrackingScreen extends StatefulWidget {
@@ -33,11 +34,12 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
-    final snapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('symptom_logs')
-        .get();
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .collection('symptom_logs')
+            .get();
 
     final Map<DateTime, List<Map<String, dynamic>>> newEvents = {};
 
@@ -62,13 +64,17 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
     final today = DateTime.now();
     final todayStart = DateTime(today.year, today.month, today.day);
 
-    final snapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('symptom_logs')
-        .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(todayStart))
-        .limit(1)
-        .get();
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .collection('symptom_logs')
+            .where(
+              'timestamp',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(todayStart),
+            )
+            .limit(1)
+            .get();
 
     if (snapshot.docs.isNotEmpty) {
       final data = snapshot.docs.first.data();
@@ -89,11 +95,16 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
         .doc(uid)
         .collection('symptom_logs');
 
-    final snapshot = await logsRef
-        .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(
-          DateTime(todayStart.year, todayStart.month, todayStart.day)))
-        .limit(1)
-        .get();
+    final snapshot =
+        await logsRef
+            .where(
+              'timestamp',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(
+                DateTime(todayStart.year, todayStart.month, todayStart.day),
+              ),
+            )
+            .limit(1)
+            .get();
 
     try {
       if (snapshot.docs.isNotEmpty) {
@@ -104,9 +115,9 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
           'timestamp': FieldValue.serverTimestamp(),
           'edited': true,
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Mood entry updated!')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('✅ Mood entry updated!')));
       } else {
         await logsRef.add({
           'mood': _selectedMood,
@@ -118,9 +129,9 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error saving mood: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error saving mood: $e')));
     }
 
     _noteController.clear();
@@ -138,19 +149,24 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
-    final snapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('symptom_logs')
-        .get();
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .collection('symptom_logs')
+            .get();
 
-    final moodsToday = snapshot.docs.where((doc) {
-      final timestamp = (doc['timestamp'] as Timestamp?)?.toDate();
-      return timestamp != null &&
-          timestamp.year == day.year &&
-          timestamp.month == day.month &&
-          timestamp.day == day.day;
-    }).map((doc) => doc['mood'] as String).toList();
+    final moodsToday =
+        snapshot.docs
+            .where((doc) {
+              final timestamp = (doc['timestamp'] as Timestamp?)?.toDate();
+              return timestamp != null &&
+                  timestamp.year == day.year &&
+                  timestamp.month == day.month &&
+                  timestamp.day == day.day;
+            })
+            .map((doc) => doc['mood'] as String)
+            .toList();
 
     if (moodsToday.isEmpty) {
       setState(() {
@@ -165,7 +181,8 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
       moodCounts[mood] = (moodCounts[mood] ?? 0) + 1;
     }
 
-    final mostCommonMood = moodCounts.entries.reduce((a, b) => a.value > b.value ? a : b).key;
+    final mostCommonMood =
+        moodCounts.entries.reduce((a, b) => a.value > b.value ? a : b).key;
 
     setState(() {
       _summaryMood = mostCommonMood;
@@ -175,12 +192,18 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
 
   String _getMoodLabel(String mood) {
     switch (mood) {
-      case '😄': return 'Happy';
-      case '🙂': return 'Positive';
-      case '😐': return 'Neutral';
-      case '😟': return 'Worried';
-      case '😢': return 'Sad';
-      default: return 'Unknown';
+      case '😄':
+        return 'Happy';
+      case '🙂':
+        return 'Positive';
+      case '😐':
+        return 'Neutral';
+      case '😟':
+        return 'Worried';
+      case '😢':
+        return 'Sad';
+      default:
+        return 'Unknown';
     }
   }
 
@@ -198,8 +221,10 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (_summaryMood != null) ...[
-                const Text('Mood Summary',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text(
+                  'Mood Summary',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 8),
                 Text(_summaryMood!, style: const TextStyle(fontSize: 48)),
                 Text(_summaryLabel),
@@ -236,19 +261,32 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.chevron_left, color: Colors.deepPurple),
+                            icon: const Icon(
+                              Icons.chevron_left,
+                              color: Colors.deepPurple,
+                            ),
                             onPressed: () {
                               setState(() {
-                                _focusedDay = _focusedDay.subtract(const Duration(days: 7));
+                                _focusedDay = _focusedDay.subtract(
+                                  const Duration(days: 7),
+                                );
                               });
                             },
                           ),
-                          Text('${day.month}/${day.year}',
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          Text(
+                            '${day.month}/${day.year}',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                           Row(
                             children: [
                               IconButton(
-                                icon: const Icon(Icons.today, color: Colors.deepPurple),
+                                icon: const Icon(
+                                  Icons.today,
+                                  color: Colors.deepPurple,
+                                ),
                                 tooltip: 'Today',
                                 onPressed: () {
                                   setState(() {
@@ -258,10 +296,15 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
                                 },
                               ),
                               IconButton(
-                                icon: const Icon(Icons.chevron_right, color: Colors.deepPurple),
+                                icon: const Icon(
+                                  Icons.chevron_right,
+                                  color: Colors.deepPurple,
+                                ),
                                 onPressed: () {
                                   setState(() {
-                                    _focusedDay = _focusedDay.add(const Duration(days: 7));
+                                    _focusedDay = _focusedDay.add(
+                                      const Duration(days: 7),
+                                    );
                                   });
                                 },
                               ),
@@ -290,29 +333,35 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              const Text("Record Today's Mood",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text(
+                "Record Today's Mood",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: ['😄', '🙂', '😐', '😟', '😢'].map((mood) {
-                  final selected = _selectedMood == mood;
-                  return GestureDetector(
-                    onTap: () => setState(() => _selectedMood = mood),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: selected ? Colors.deepPurple.shade100 : null,
-                        border: Border.all(
-                          color: selected ? Colors.deepPurple : Colors.grey,
-                          width: selected ? 2 : 1,
+                children:
+                    ['😄', '🙂', '😐', '😟', '😢'].map((mood) {
+                      final selected = _selectedMood == mood;
+                      return GestureDetector(
+                        onTap: () => setState(() => _selectedMood = mood),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: selected ? Colors.deepPurple.shade100 : null,
+                            border: Border.all(
+                              color: selected ? Colors.deepPurple : Colors.grey,
+                              width: selected ? 2 : 1,
+                            ),
+                          ),
+                          child: Text(
+                            mood,
+                            style: const TextStyle(fontSize: 32),
+                          ),
                         ),
-                      ),
-                      child: Text(mood, style: const TextStyle(fontSize: 32)),
-                    ),
-                  );
-                }).toList(),
+                      );
+                    }).toList(),
               ),
               const SizedBox(height: 16),
               TextField(
@@ -336,7 +385,9 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const MoodHistoryScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const MoodHistoryScreen(),
+                      ),
                     );
                   },
                   child: const Text('View All Mood History'),
