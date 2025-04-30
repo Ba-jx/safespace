@@ -11,6 +11,7 @@ import 'screens/symptom_tracking_screen.dart';
 import 'screens/real_time_monitor_screen.dart';
 import 'screens/doctor_communication_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/role_selection_screen.dart';
 
 import 'screens/appointment_booking_screen.dart';
 import 'screens/appointment_list_screen.dart';
