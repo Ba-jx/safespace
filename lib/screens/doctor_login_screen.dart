@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class DoctorLoginScreen extends StatefulWidget {
   const DoctorLoginScreen({super.key});
@@ -20,11 +21,28 @@ class _DoctorLoginScreenState extends State<DoctorLoginScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-      Navigator.pushReplacementNamed(context, '/doctor/dashboard');
+
+      final uid = credential.user?.uid;
+      if (uid == null) throw Exception('Missing user UID');
+
+      final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      if (!doc.exists) throw Exception('No user record found');
+
+      final data = doc.data();
+      final role = data?['role'];
+
+      if (role == 'doctor') {
+        Navigator.pushReplacementNamed(context, '/doctor/dashboard');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Access denied: Not a doctor')),
+        );
+        await FirebaseAuth.instance.signOut();
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Login failed: $e')),
