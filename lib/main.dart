@@ -11,14 +11,13 @@ import 'screens/symptom_tracking_screen.dart';
 import 'screens/real_time_monitor_screen.dart';
 import 'screens/doctor_communication_screen.dart';
 import 'screens/settings_screen.dart';
-import 'screens/role_selection_screen.dart';
-
 import 'screens/appointment_booking_screen.dart';
 import 'screens/appointment_list_screen.dart';
 
 import 'screens/doctor_dashboard_screen.dart';
 import 'screens/doctor_login_screen.dart';
 import 'screens/patient_login_screen.dart';
+import 'screens/role_selection_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,7 +58,7 @@ class SafeSpaceApp extends StatelessWidget {
           ),
         ),
         themeMode: ThemeMode.system,
-        initialRoute: '/login',
+        initialRoute: '/',
         routes: {
           '/': (_) => const RoleSelectionScreen(),
           '/login': (_) => const PatientLoginScreen(),
