@@ -16,56 +16,87 @@ class HomeScreen extends StatelessWidget {
         title: const Text('Home'),
       ),
       drawer: const CustomDrawer(),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Hello, $userName!',
+              'Welcome, $userName!',
               style: const TextStyle(
-                fontSize: 26,
+                fontSize: 28,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             const Text(
-              'What would you like to do today?',
-              style: TextStyle(fontSize: 18),
+              'Your Safe Space dashboard',
+              style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
-            const SizedBox(height: 24),
-            Wrap(
-              spacing: 16,
-              runSpacing: 16,
+            const SizedBox(height: 32),
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              mainAxisSpacing: 16,
+              crossAxisSpacing: 16,
+              childAspectRatio: 1,
               children: [
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.monitor_heart),
-                  label: const Text('Real-Time Monitor'),
-                  onPressed: () => Navigator.pushNamed(context, '/real-time-monitor'),
+                _buildFeatureCard(
+                  context,
+                  icon: Icons.monitor_heart,
+                  label: 'Real-Time Monitor',
+                  route: '/real-time-monitor',
                 ),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.mood),
-                  label: const Text('Symptom Tracking'),
-                  onPressed: () => Navigator.pushNamed(context, '/symptom-tracking'),
+                _buildFeatureCard(
+                  context,
+                  icon: Icons.mood,
+                  label: 'Symptom Tracking',
+                  route: '/symptom-tracking',
                 ),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.chat),
-                  label: const Text('Contact Doctor'),
-                  onPressed: () => Navigator.pushNamed(context, '/doctor-communication'),
+                _buildFeatureCard(
+                  context,
+                  icon: Icons.chat,
+                  label: 'Contact Doctor',
+                  route: '/doctor-communication',
                 ),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.add_circle_outline),
-                  label: const Text('Book Appointment'),
-                  onPressed: () => Navigator.pushNamed(context, '/appointments/book'),
+                _buildFeatureCard(
+                  context,
+                  icon: Icons.add_circle_outline,
+                  label: 'Book Appointment',
+                  route: '/appointments/book',
                 ),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.calendar_today),
-                  label: const Text('View Appointments'),
-                  onPressed: () => Navigator.pushNamed(context, '/appointments/list'),
+                _buildFeatureCard(
+                  context,
+                  icon: Icons.calendar_today,
+                  label: 'View Appointments',
+                  route: '/appointments/list',
                 ),
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeatureCard(BuildContext context,
+      {required IconData icon, required String label, required String route}) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 4,
+      child: InkWell(
+        onTap: () => Navigator.pushNamed(context, route),
+        borderRadius: BorderRadius.circular(16),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 40, color: Colors.deepPurple),
+              const SizedBox(height: 12),
+              Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16)),
+            ],
+          ),
         ),
       ),
     );
