@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 
 class CustomDrawer extends StatelessWidget {
@@ -10,54 +11,44 @@ class CustomDrawer extends StatelessWidget {
         padding: EdgeInsets.zero,
         children: [
           const DrawerHeader(
-            decoration: BoxDecoration(color: Color(0xFFD8BFD8)),
-            child: Text(
-              'Safe Space',
-              style: TextStyle(color: Colors.white, fontSize: 24),
-            ),
+            decoration: BoxDecoration(color: Colors.deepPurple),
+            child: Text('Safe Space', style: TextStyle(color: Colors.white, fontSize: 24)),
           ),
           ListTile(
             leading: const Icon(Icons.home),
             title: const Text('Home'),
-            onTap: () => Navigator.pushReplacementNamed(context, '/home'),
+            onTap: () => Navigator.pushNamed(context, '/home'),
           ),
           ListTile(
-            leading: const Icon(Icons.favorite),
+            leading: const Icon(Icons.mood),
             title: const Text('Symptom Tracking'),
-            onTap:
-                () => Navigator.pushReplacementNamed(
-                  context,
-                  '/symptom-tracking',
-                ),
+            onTap: () => Navigator.pushNamed(context, '/symptom-tracking'),
           ),
           ListTile(
             leading: const Icon(Icons.monitor_heart),
             title: const Text('Real-Time Monitor'),
-            onTap:
-                () => Navigator.pushReplacementNamed(
-                  context,
-                  '/real-time-monitor',
-                ),
+            onTap: () => Navigator.pushNamed(context, '/real-time-monitor'),
           ),
           ListTile(
-            leading: const Icon(Icons.medical_services),
+            leading: const Icon(Icons.chat),
             title: const Text('Doctor Communication'),
-            onTap:
-                () => Navigator.pushReplacementNamed(
-                  context,
-                  '/doctor-communication',
-                ),
+            onTap: () => Navigator.pushNamed(context, '/doctor-communication'),
           ),
           ListTile(
             leading: const Icon(Icons.settings),
             title: const Text('Settings'),
-            onTap: () => Navigator.pushReplacementNamed(context, '/settings'),
+            onTap: () => Navigator.pushNamed(context, '/settings'),
           ),
           const Divider(),
           ListTile(
-            leading: const Icon(Icons.logout),
-            title: const Text('Logout'),
-            onTap: () => Navigator.pushReplacementNamed(context, '/login'),
+            leading: const Icon(Icons.add_circle_outline),
+            title: const Text('Book Appointment'),
+            onTap: () => Navigator.pushNamed(context, '/appointments/book'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.calendar_month),
+            title: const Text('My Appointments'),
+            onTap: () => Navigator.pushNamed(context, '/appointments/list'),
           ),
         ],
       ),
