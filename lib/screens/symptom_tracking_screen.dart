@@ -197,25 +197,7 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              
-              Widget summarySection;
-              if (_summaryMood != null) {
-                summarySection = Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Mood Summary',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    Text(_summaryMood!, style: const TextStyle(fontSize: 48)),
-                    Text(_summaryLabel),
-                    const SizedBox(height: 16),
-                  ],
-                );
-              } else {
-                summarySection = const SizedBox(height: 100);
-              }
-              summarySection,
-
+              if (_summaryMood != null) ...[
                 const Text('Mood Summary',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
