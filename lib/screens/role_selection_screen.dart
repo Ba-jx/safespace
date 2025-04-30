@@ -40,15 +40,22 @@ class RoleSelectionScreen extends StatelessWidget {
                   const Text(
                     'Welcome to Safe Space',
                     style: TextStyle(
-                      fontSize: 26,
+                      fontSize: 28,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF6A4C93),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Please choose your portal',
-                    style: TextStyle(fontSize: 16, color: Color(0xFF4D4D4D)),
+                  const SizedBox(height: 10),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 32),
+                    child: Text(
+                      'Your companion for managing PTSD with real-time support, symptom tracking, and doctor connection.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Colors.black54,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -60,13 +67,13 @@ class RoleSelectionScreen extends StatelessWidget {
                 children: [
                   ElevatedButton.icon(
                     icon: const Icon(Icons.person, color: Colors.white),
-                    label: const Text('I am a Patient'),
+                    label: const Text('Patient Portal'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFC9B6E4),
-                      minimumSize: const Size(double.infinity, 50),
+                      minimumSize: const Size(double.infinity, 52),
                       textStyle: const TextStyle(fontSize: 16),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(14),
                       ),
                     ),
                     onPressed: () => Navigator.pushNamed(context, '/login'),
@@ -74,13 +81,13 @@ class RoleSelectionScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
                     icon: const Icon(Icons.medical_services, color: Colors.white),
-                    label: const Text('I am a Doctor'),
+                    label: const Text('Doctor Portal'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF9F86C0),
-                      minimumSize: const Size(double.infinity, 50),
+                      minimumSize: const Size(double.infinity, 52),
                       textStyle: const TextStyle(fontSize: 16),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(14),
                       ),
                     ),
                     onPressed: () => Navigator.pushNamed(context, '/doctor/login'),
