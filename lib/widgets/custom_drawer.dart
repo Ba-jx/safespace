@@ -1,63 +1,69 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../providers/user_provider.dart';
-import '../utils/logout_helper.dart';
 
 class CustomDrawer extends StatelessWidget {
   const CustomDrawer({super.key});
+
+  Future<void> _handleHomeNavigation(BuildContext context) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+
+    if (uid != null) {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final role = doc.data()?['role'];
+
+      if (role == 'doctor') {
+        Navigator.pushReplacementNamed(context, '/doctor/dashboard');
+      } else {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    } else {
+      Navigator.pushReplacementNamed(context, '/');
+    }
+  }
+
+  Future<void> _logout(BuildContext context) async {
+    await FirebaseAuth.instance.signOut();
+    Provider.of<UserProvider>(context, listen: false).setUserName('');
+    Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+  }
 
   @override
   Widget build(BuildContext context) {
     final userName = Provider.of<UserProvider>(context).userName;
 
     return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
+      child: Column(
         children: [
-          DrawerHeader(
+          UserAccountsDrawerHeader(
             decoration: const BoxDecoration(
-              color: Color(0xFFD8BFD8), // lilac
+              color: Color(0xFFD8BFD8),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const CircleAvatar(
-                  radius: 30,
-                  backgroundColor: Colors.white,
-                  child: Icon(Icons.person, size: 36, color: Color(0xFFD8BFD8)),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  userName.isNotEmpty ? userName : 'Welcome',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Safe Space User',
-                  style: TextStyle(color: Colors.white70),
-                ),
-              ],
+            accountName: Text(userName.isNotEmpty ? userName : 'Safe Space User'),
+            accountEmail: const Text(''),
+            currentAccountPicture: const CircleAvatar(
+              backgroundColor: Colors.white,
+              child: Icon(Icons.person, size: 40, color: Color(0xFF6A4C93)),
             ),
           ),
           ListTile(
             leading: const Icon(Icons.home),
             title: const Text('Home'),
-            onTap: () => Navigator.pushNamed(context, '/home'),
+            onTap: () => _handleHomeNavigation(context),
           ),
           ListTile(
             leading: const Icon(Icons.settings),
             title: const Text('Settings'),
             onTap: () => Navigator.pushNamed(context, '/settings'),
           ),
-          const Divider(),
+          const Spacer(),
           ListTile(
             leading: const Icon(Icons.logout),
             title: const Text('Logout'),
-            onTap: () => confirmLogout(context),
+            onTap: () => _logout(context),
           ),
         ],
       ),
