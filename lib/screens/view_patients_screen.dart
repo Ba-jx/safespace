@@ -64,9 +64,19 @@ class ViewPatientsScreen extends StatelessWidget {
                     ),
                     title: Text(name),
                     subtitle: Text(email),
-                    onTap: () {
-                      // Navigate to patient profile/logs
-                    },
+                   onTap: () {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => PatientDetailScreen(
+        patientId: userId,
+        name: name,
+        email: email,
+      ),
+    ),
+  );
+},
+
                   );
                 },
               );
