@@ -44,7 +44,7 @@ class DoctorDashboardScreen extends StatelessWidget {
                   icon: Icons.people,
                   label: 'Patients',
                   onTap: () {
-                    // Navigate to patient list
+                    Navigator.pushNamed(context, '/doctor/patients');
                   },
                 ),
                 _buildCard(
