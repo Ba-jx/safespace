@@ -60,6 +60,7 @@ class PatientDetailScreen extends StatelessWidget {
 
                       final heartRate = log['heartRate'];
                       final temperature = log['temperature'];
+                      final oxygen = log['oxygenLevel'];
                       final note = log['note'];
 
                       return Card(
@@ -78,7 +79,10 @@ class PatientDetailScreen extends StatelessWidget {
                                 Text('Heart Rate: $heartRate bpm'),
                               if (temperature != null)
                                 Text('Temperature: $temperature °C'),
-                              if (note != null) Text('Note: $note'),
+                              if (oxygen != null)
+                                Text('Oxygen Level: $oxygen%'),
+                              if (note != null && note.toString().isNotEmpty)
+                                Text('Note: $note'),
                             ],
                           ),
                         ),
