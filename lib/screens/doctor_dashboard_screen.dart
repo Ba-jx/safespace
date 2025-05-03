@@ -1,95 +1,69 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import '../widgets/custom_drawer.dart';
+import 'patient_detail_screen.dart';
 
 class DoctorDashboardScreen extends StatelessWidget {
   const DoctorDashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final currentDoctorId = FirebaseAuth.instance.currentUser?.uid;
+
+    if (currentDoctorId == null) {
+      return const Scaffold(
+        body: Center(child: Text('Not authenticated')),
+      );
+    }
+
     return Scaffold(
-      drawer: const CustomDrawer(),
-      appBar: AppBar(
-        title: const Text('Doctor Dashboard'),
-        centerTitle: true,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: GridView.count(
-          crossAxisCount: 2,
-          crossAxisSpacing: 20,
-          mainAxisSpacing: 20,
-          children: [
-            _DashboardTile(
-              icon: Icons.people,
-              label: 'View Patients',
-              onTap: () => Navigator.pushNamed(context, '/doctor/patients'),
-            ),
-            _DashboardTile(
-              icon: Icons.calendar_today,
-              label: 'Manage Appointments',
-              onTap: () => Navigator.pushNamed(context, '/doctor/appointments'),
-            ),
-            _DashboardTile(
-              icon: Icons.chat,
-              label: 'Communicate',
-              onTap: () => Navigator.pushNamed(context, '/doctor/communication'),
-            ),
-            _DashboardTile(
-              icon: Icons.settings,
-              label: 'Settings',
-              onTap: () => Navigator.pushNamed(context, '/settings'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+      appBar: AppBar(title: const Text('Doctor Dashboard')),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('users')
+            .where('role', isEqualTo: 'patient')
+            .where('doctorId', isEqualTo: currentDoctorId)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return const Center(child: Text('Error loading patients.'));
+          }
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-class _DashboardTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
+          final patients = snapshot.data!.docs;
 
-  const _DashboardTile({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
+          if (patients.isEmpty) {
+            return const Center(child: Text('No assigned patients.'));
+          }
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+          return ListView.builder(
+            itemCount: patients.length,
+            itemBuilder: (context, index) {
+              final data = patients[index].data() as Map<String, dynamic>;
+              final id = patients[index].id;
+              final name = data['name'] ?? 'Unnamed';
+              final email = data['email'] ?? 'No email';
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF2A2640) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            if (!isDark)
-              BoxShadow(
-                color: Colors.grey.shade300,
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-          ],
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 40, color: theme.colorScheme.primary),
-            const SizedBox(height: 12),
-            Text(
-              label,
-              style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+              return ListTile(
+                leading: const Icon(Icons.person),
+                title: Text(name),
+                subtitle: Text(email),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => PatientDetailScreen(
+                      patientId: id,
+                      name: name,
+                      email: email,
+                    ),
+                  ),
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }
