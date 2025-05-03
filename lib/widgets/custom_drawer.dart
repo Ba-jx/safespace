@@ -25,10 +25,30 @@ class CustomDrawer extends StatelessWidget {
     }
   }
 
-  Future<void> _logout(BuildContext context) async {
-    await FirebaseAuth.instance.signOut();
-    Provider.of<UserProvider>(context, listen: false).setUserName('');
-    Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+  Future<void> _confirmAndLogout(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Logout'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await FirebaseAuth.instance.signOut();
+      Provider.of<UserProvider>(context, listen: false).setUserName('');
+      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+    }
   }
 
   @override
@@ -63,7 +83,7 @@ class CustomDrawer extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.logout),
             title: const Text('Logout'),
-            onTap: () => _logout(context),
+            onTap: () => _confirmAndLogout(context),
           ),
         ],
       ),
