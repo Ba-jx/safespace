@@ -52,24 +52,24 @@ class PatientDetailScreen extends StatelessWidget {
                     itemCount: logs.length,
                     itemBuilder: (context, index) {
                       final log = logs[index].data() as Map<String, dynamic>;
-                      final mood = log['mood'] ?? '❓';
-                      final date = log['date']?.toDate();
+                      final date = (log['date'] as Timestamp?)?.toDate();
                       final formatted = date != null
                           ? DateFormat('MMM dd, yyyy – hh:mm a').format(date)
                           : 'Unknown date';
 
+                      final mood = log['mood'] ?? '❓';
                       final heartRate = log['heartRate'];
                       final temperature = log['temperature'];
-                      final oxygen = log['oxygenLevel'];
+                      final oxygenLevel = log['oxygenLevel'];
                       final note = log['note'];
 
                       return Card(
                         margin: const EdgeInsets.symmetric(vertical: 8),
-                        elevation: 2,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: ListTile(
+                          contentPadding: const EdgeInsets.all(12),
                           leading: Text(mood, style: const TextStyle(fontSize: 28)),
                           title: Text(formatted),
                           subtitle: Column(
@@ -79,9 +79,9 @@ class PatientDetailScreen extends StatelessWidget {
                                 Text('Heart Rate: $heartRate bpm'),
                               if (temperature != null)
                                 Text('Temperature: $temperature °C'),
-                              if (oxygen != null)
-                                Text('Oxygen Level: $oxygen%'),
-                              if (note != null && note.toString().isNotEmpty)
+                              if (oxygenLevel != null)
+                                Text('Oxygen Level: $oxygenLevel%'),
+                              if (note != null && note.toString().trim().isNotEmpty)
                                 Text('Note: $note'),
                             ],
                           ),
