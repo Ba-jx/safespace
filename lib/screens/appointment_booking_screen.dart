@@ -1,5 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -64,19 +64,15 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
       final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
       final userDoc = await docRef.get();
       final assignedDoctorId = userDoc.data()?['doctorId'];
-
-      if (assignedDoctorId == null) {
-        throw Exception("No assigned doctor found.");
-      }
+      final patientName = userDoc.data()?['name'];
 
       await docRef.collection('appointments').add({
-        'date': Timestamp.fromDate(dateTime),
-        'timestamp': Timestamp.now(),
+        'dateTime': Timestamp.fromDate(dateTime),
         'note': _noteController.text.trim(),
+        'createdAt': Timestamp.now(),
         'doctorId': assignedDoctorId,
-        'patientId': user.uid,
+        'patientName': patientName,
         'status': 'pending',
-        'reason': _noteController.text.trim(),
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -90,7 +86,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error booking appointment: $e')),
+        SnackBar(content: Text('Error booking appointment: \$e')),
       );
     } finally {
       setState(() => _isSubmitting = false);
@@ -127,7 +123,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
             TextField(
               controller: _noteController,
               decoration: const InputDecoration(
-                labelText: 'Reason or Notes',
+                labelText: 'Additional Notes',
                 border: OutlineInputBorder(),
               ),
               maxLines: 3,
