@@ -38,21 +38,23 @@ class ManageAppointmentsScreen extends StatelessWidget {
               final doc = appointments[index];
               final data = doc.data() as Map<String, dynamic>;
 
-              final dateTime = (data['dateTime'] as Timestamp?)?.toDate();
+              final dateTime = (data['dateTime'] ?? data['date']) as Timestamp?;
               final formatted = dateTime != null
-                  ? DateFormat('MMM dd, yyyy – hh:mm a').format(dateTime)
+                  ? DateFormat('MMM dd, yyyy – hh:mm a').format(dateTime.toDate())
                   : 'No Date';
 
               final note = data['note'] ?? '';
               final status = data['status'] ?? 'pending';
+              final patientName = data['patientName'] ?? 'Unknown';
 
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: ListTile(
-                  title: Text(formatted),
+                  title: Text(patientName),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Text('Date: $formatted'),
                       if (note.isNotEmpty) Text('Note: $note'),
                       Text('Status: $status'),
                     ],
@@ -61,8 +63,9 @@ class ManageAppointmentsScreen extends StatelessWidget {
                     onSelected: (value) => _updateStatus(doc, value),
                     itemBuilder: (context) => [
                       const PopupMenuItem(value: 'pending', child: Text('Pending')),
-                      const PopupMenuItem(value: 'approved', child: Text('Approved')),
-                      const PopupMenuItem(value: 'declined', child: Text('Declined')),
+                      const PopupMenuItem(value: 'confirmed', child: Text('Confirmed')),
+                      const PopupMenuItem(value: 'completed', child: Text('Completed')),
+                      const PopupMenuItem(value: 'cancelled', child: Text('Cancelled')),
                     ],
                     icon: const Icon(Icons.more_vert),
                   ),
