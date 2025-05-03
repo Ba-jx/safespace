@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -16,6 +17,8 @@ class PatientDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('Loading symptom logs for patientId: \$patientId');
+    
     return Scaffold(
       appBar: AppBar(title: Text(name)),
       body: Padding(
@@ -40,7 +43,7 @@ class PatientDetailScreen extends StatelessWidget {
                     .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.hasError) {
-                    return const Center(child: Text('Error loading mood logs'));
+                    return Center(child: Text('Error: \${snapshot.error}'));
                   }
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                     return const Center(child: Text('No mood logs found.'));
@@ -76,13 +79,13 @@ class PatientDetailScreen extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               if (heartRate != null)
-                                Text('Heart Rate: $heartRate bpm'),
+                                Text('Heart Rate: \$heartRate bpm'),
                               if (temperature != null)
-                                Text('Temperature: $temperature °C'),
+                                Text('Temperature: \$temperature °C'),
                               if (oxygenLevel != null)
-                                Text('Oxygen Level: $oxygenLevel%'),
+                                Text('Oxygen Level: \$oxygenLevel%'),
                               if (note != null && note.toString().trim().isNotEmpty)
-                                Text('Note: $note'),
+                                Text('Note: \$note'),
                             ],
                           ),
                         ),
