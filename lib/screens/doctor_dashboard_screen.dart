@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
+import '../providers/user_provider.dart';
 import 'patient_detail_screen.dart';
 
 class DoctorDashboardScreen extends StatelessWidget {
@@ -10,7 +12,12 @@ class DoctorDashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Doctor Dashboard')),
+      appBar: AppBar(
+        title: Consumer<UserProvider>(
+          builder: (context, userProvider, _) =>
+              Text('Welcome, ${userProvider.userName}!'),
+        ),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
