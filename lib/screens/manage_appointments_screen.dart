@@ -31,6 +31,7 @@ class ManageAppointmentsScreen extends StatelessWidget {
               .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.hasError) {
+              print('Error: ${snapshot.error}');
               return const Center(child: Text('Error loading appointments.'));
             }
             if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
