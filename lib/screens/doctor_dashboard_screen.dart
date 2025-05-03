@@ -1,86 +1,92 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../widgets/custom_drawer.dart';
-import 'patient_detail_screen.dart';
 
 class DoctorDashboardScreen extends StatelessWidget {
   const DoctorDashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final currentDoctorId = FirebaseAuth.instance.currentUser?.uid;
-
     return Scaffold(
-      appBar: AppBar(title: const Text('Doctor Dashboard')),
       drawer: const CustomDrawer(),
+      appBar: AppBar(
+        title: const Text('Doctor Dashboard'),
+        centerTitle: true,
+      ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.all(20),
+        child: GridView.count(
+          crossAxisCount: 2,
+          crossAxisSpacing: 20,
+          mainAxisSpacing: 20,
           children: [
-            const Text(
-              'Your Patients',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            _DashboardTile(
+              icon: Icons.people,
+              label: 'View Patients',
+              onTap: () => Navigator.pushNamed(context, '/doctor/patients'),
             ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('users')
-                    .where('role', isEqualTo: 'patient')
-                    .where('doctorId', isEqualTo: currentDoctorId)
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    return const Center(child: Text('Error loading patients.'));
-                  }
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return const Center(child: Text('No assigned patients.'));
-                  }
+            _DashboardTile(
+              icon: Icons.calendar_today,
+              label: 'Manage Appointments',
+              onTap: () => Navigator.pushNamed(context, '/doctor/appointments'),
+            ),
+            _DashboardTile(
+              icon: Icons.chat,
+              label: 'Communicate',
+              onTap: () => Navigator.pushNamed(context, '/doctor/communication'),
+            ),
+            _DashboardTile(
+              icon: Icons.settings,
+              label: 'Settings',
+              onTap: () => Navigator.pushNamed(context, '/settings'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
-                  final patients = snapshot.data!.docs;
+class _DashboardTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
 
-                  return ListView.builder(
-                    itemCount: patients.length,
-                    itemBuilder: (context, index) {
-                      final data = patients[index].data() as Map<String, dynamic>;
-                      final id = patients[index].id;
-                      final name = data['name'] ?? 'Unnamed';
-                      final email = data['email'] ?? 'No email';
+  const _DashboardTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
-                      return Card(
-                        margin: const EdgeInsets.symmetric(vertical: 8),
-                        child: ListTile(
-                          leading: const Icon(Icons.person),
-                          title: Text(name),
-                          subtitle: Text(email),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => PatientDetailScreen(
-                                  patientId: id,
-                                  name: name,
-                                  email: email,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      );
-                    },
-                  );
-                },
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF2A2640) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            if (!isDark)
+              BoxShadow(
+                color: Colors.grey.shade300,
+                blurRadius: 8,
+                offset: const Offset(0, 4),
               ),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.calendar_today),
-              label: const Text('Manage Appointments'),
-              onPressed: () {
-                Navigator.pushNamed(context, '/manage-appointments');
-              },
+          ],
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 40, color: theme.colorScheme.primary),
+            const SizedBox(height: 12),
+            Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
