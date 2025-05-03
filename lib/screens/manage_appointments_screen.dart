@@ -20,11 +20,11 @@ class ManageAppointmentsScreen extends StatelessWidget {
         stream: FirebaseFirestore.instance
             .collectionGroup('appointments')
             .where('doctorId', isEqualTo: currentDoctorId)
-            .orderBy('dateTime')
+            .orderBy('dateTime', descending: false)
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return const Center(child: Text('Error loading appointments'));
+            return Center(child: Text('Error: \${snapshot.error}'));
           }
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return const Center(child: Text('No appointments found'));
