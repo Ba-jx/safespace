@@ -18,7 +18,9 @@ class DoctorDashboardScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Doctor Dashboard')),
+      appBar: AppBar(
+        title: const Text('Doctor Dashboard'),
+      ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('users')
@@ -27,7 +29,7 @@ class DoctorDashboardScreen extends StatelessWidget {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return const Center(child: Text('Error loading patients.'));
+            return const Center(child: Text('Error loading assigned patients.'));
           }
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
@@ -36,7 +38,7 @@ class DoctorDashboardScreen extends StatelessWidget {
           final patients = snapshot.data!.docs;
 
           if (patients.isEmpty) {
-            return const Center(child: Text('No assigned patients.'));
+            return const Center(child: Text('No patients assigned to you.'));
           }
 
           return ListView.builder(
@@ -47,17 +49,21 @@ class DoctorDashboardScreen extends StatelessWidget {
               final name = data['name'] ?? 'Unnamed';
               final email = data['email'] ?? 'No email';
 
-              return ListTile(
-                leading: const Icon(Icons.person),
-                title: Text(name),
-                subtitle: Text(email),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => PatientDetailScreen(
-                      patientId: id,
-                      name: name,
-                      email: email,
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: ListTile(
+                  leading: const Icon(Icons.person),
+                  title: Text(name),
+                  subtitle: Text(email),
+                  trailing: const Icon(Icons.arrow_forward_ios),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PatientDetailScreen(
+                        patientId: id,
+                        name: name,
+                        email: email,
+                      ),
                     ),
                   ),
                 ),
