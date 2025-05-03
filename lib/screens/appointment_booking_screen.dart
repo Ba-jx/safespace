@@ -65,11 +65,18 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
       final userDoc = await docRef.get();
       final assignedDoctorId = userDoc.data()?['doctorId'];
 
+      if (assignedDoctorId == null) {
+        throw Exception("No assigned doctor found.");
+      }
+
       await docRef.collection('appointments').add({
-        'dateTime': Timestamp.fromDate(dateTime),
+        'date': Timestamp.fromDate(dateTime),
+        'timestamp': Timestamp.now(),
         'note': _noteController.text.trim(),
-        'createdAt': Timestamp.now(),
         'doctorId': assignedDoctorId,
+        'patientId': user.uid,
+        'status': 'pending',
+        'reason': _noteController.text.trim(),
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -83,7 +90,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error booking appointment: \$e')),
+        SnackBar(content: Text('Error booking appointment: $e')),
       );
     } finally {
       setState(() => _isSubmitting = false);
@@ -120,7 +127,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
             TextField(
               controller: _noteController,
               decoration: const InputDecoration(
-                labelText: 'Additional Notes',
+                labelText: 'Reason or Notes',
                 border: OutlineInputBorder(),
               ),
               maxLines: 3,
