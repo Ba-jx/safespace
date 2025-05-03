@@ -10,6 +10,19 @@ class ManageAppointmentsScreen extends StatelessWidget {
     await doc.reference.update({'status': newStatus});
   }
 
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'confirmed':
+        return Colors.blueAccent;
+      case 'completed':
+        return Colors.green;
+      case 'cancelled':
+        return Colors.redAccent;
+      default:
+        return Colors.orangeAccent;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentDoctorId = FirebaseAuth.instance.currentUser?.uid ?? '';
@@ -49,14 +62,36 @@ class ManageAppointmentsScreen extends StatelessWidget {
 
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 4,
                 child: ListTile(
-                  title: Text(patientName),
+                  title: Text(
+                    patientName,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Date: $formatted'),
                       if (note.isNotEmpty) Text('Note: $note'),
-                      Text('Status: $status'),
+                      Row(
+                        children: [
+                          const Text('Status: '),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: _getStatusColor(status),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              status.toUpperCase(),
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                   trailing: PopupMenuButton<String>(
@@ -67,7 +102,7 @@ class ManageAppointmentsScreen extends StatelessWidget {
                       const PopupMenuItem(value: 'completed', child: Text('Completed')),
                       const PopupMenuItem(value: 'cancelled', child: Text('Cancelled')),
                     ],
-                    icon: const Icon(Icons.more_vert),
+                    icon: const Icon(Icons.edit),
                   ),
                 ),
               );
