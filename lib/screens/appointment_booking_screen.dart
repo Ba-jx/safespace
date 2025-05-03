@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AppointmentBookingScreen extends StatefulWidget {
@@ -10,57 +11,21 @@ class AppointmentBookingScreen extends StatefulWidget {
 }
 
 class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
-  final TextEditingController _reasonController = TextEditingController();
-  DateTime? _selectedDate;
-  TimeOfDay? _selectedTime;
-  String _selectedDoctor = 'Dr. Smith';
-
-  final List<String> _doctors = ['Dr. Smith', 'Dr. Johnson', 'Dr. Lee'];
-
-  Future<void> _submitAppointment() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null || _selectedDate == null || _selectedTime == null) return;
-
-    final appointmentDate = DateTime(
-      _selectedDate!.year,
-      _selectedDate!.month,
-      _selectedDate!.day,
-      _selectedTime!.hour,
-      _selectedTime!.minute,
-    );
-
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('appointments')
-        .add({
-      'doctor': _selectedDoctor,
-      'date': appointmentDate,
-      'reason': _reasonController.text.trim(),
-      'status': 'pending',
-      'timestamp': FieldValue.serverTimestamp(),
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Appointment requested!')),
-    );
-
-    _reasonController.clear();
-    setState(() {
-      _selectedDate = null;
-      _selectedTime = null;
-    });
-  }
+  DateTime? selectedDate;
+  TimeOfDay? selectedTime;
+  final TextEditingController _noteController = TextEditingController();
+  bool _isSubmitting = false;
 
   Future<void> _pickDate() async {
+    final today = DateTime.now();
     final picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now().add(const Duration(days: 1)),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      initialDate: today,
+      firstDate: today,
+      lastDate: today.add(const Duration(days: 30)),
     );
     if (picked != null) {
-      setState(() => _selectedDate = picked);
+      setState(() => selectedDate = picked);
     }
   }
 
@@ -70,66 +35,102 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
       initialTime: TimeOfDay.now(),
     );
     if (picked != null) {
-      setState(() => _selectedTime = picked);
+      setState(() => selectedTime = picked);
+    }
+  }
+
+  Future<void> _submitAppointment() async {
+    if (selectedDate == null || selectedTime == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select both date and time.')),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception("User not logged in");
+
+      final DateTime dateTime = DateTime(
+        selectedDate!.year,
+        selectedDate!.month,
+        selectedDate!.day,
+        selectedTime!.hour,
+        selectedTime!.minute,
+      );
+
+      final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+      final userDoc = await docRef.get();
+      final assignedDoctorId = userDoc.data()?['doctorId'];
+
+      await docRef.collection('appointments').add({
+        'dateTime': Timestamp.fromDate(dateTime),
+        'note': _noteController.text.trim(),
+        'createdAt': Timestamp.now(),
+        'doctorId': assignedDoctorId,
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Appointment booked successfully')),
+      );
+
+      setState(() {
+        selectedDate = null;
+        selectedTime = null;
+        _noteController.clear();
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error booking appointment: \$e')),
+      );
+    } finally {
+      setState(() => _isSubmitting = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final formattedDate = selectedDate != null
+        ? DateFormat('yyyy-MM-dd').format(selectedDate!)
+        : 'Select Date';
+    final formattedTime = selectedTime != null
+        ? selectedTime!.format(context)
+        : 'Select Time';
+
     return Scaffold(
       appBar: AppBar(title: const Text('Book Appointment')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            DropdownButtonFormField<String>(
-              value: _selectedDoctor,
-              items: _doctors
-                  .map((doc) => DropdownMenuItem(value: doc, child: Text(doc)))
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) setState(() => _selectedDoctor = value);
-              },
-              decoration: const InputDecoration(
-                labelText: 'Select Doctor',
-                border: OutlineInputBorder(),
-              ),
+            ListTile(
+              title: const Text('Date'),
+              subtitle: Text(formattedDate),
+              trailing: const Icon(Icons.calendar_today),
+              onTap: _pickDate,
             ),
-            const SizedBox(height: 16),
+            ListTile(
+              title: const Text('Time'),
+              subtitle: Text(formattedTime),
+              trailing: const Icon(Icons.access_time),
+              onTap: _pickTime,
+            ),
             TextField(
-              controller: _reasonController,
+              controller: _noteController,
               decoration: const InputDecoration(
-                labelText: 'Reason for Visit',
+                labelText: 'Additional Notes',
                 border: OutlineInputBorder(),
               ),
-              maxLines: 2,
+              maxLines: 3,
             ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: _pickDate,
-                    child: Text(_selectedDate == null
-                        ? 'Select Date'
-                        : '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}'),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: _pickTime,
-                    child: Text(_selectedTime == null
-                        ? 'Select Time'
-                        : _selectedTime!.format(context)),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _submitAppointment,
-              child: const Text('Request Appointment'),
+              onPressed: _isSubmitting ? null : _submitAppointment,
+              child: _isSubmitting
+                  ? const CircularProgressIndicator()
+                  : const Text('Book Appointment'),
             ),
           ],
         ),
