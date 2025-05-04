@@ -1,14 +1,10 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'chat_screen.dart';
 
 class DoctorCommunicationScreen extends StatelessWidget {
   const DoctorCommunicationScreen({super.key});
-
-  String _getChatId(String user1, String user2) {
-    return user1.hashCode <= user2.hashCode ? '${user1}${user2}' : '${user2}${user1}';
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +34,10 @@ class DoctorCommunicationScreen extends StatelessWidget {
               final patient = patients[index];
               final patientName = patient['name'];
               final patientId = patient.id;
-              final chatId = _getChatId(doctorId, patientId);
+
+              final chatId = doctorId.hashCode <= patientId.hashCode
+                  ? '${doctorId}_$patientId'
+                  : '${patientId}_$doctorId';
 
               return StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
@@ -58,10 +57,13 @@ class DoctorCommunicationScreen extends StatelessWidget {
                         ? CircleAvatar(
                             radius: 12,
                             backgroundColor: Colors.red,
-                            child: Text('$unreadCount',
-                                style: const TextStyle(fontSize: 12, color: Colors.white)),
+                            child: Text(
+                              '$unreadCount',
+                              style: const TextStyle(fontSize: 12, color: Colors.white),
+                            ),
                           )
                         : null,
+                    leading: const Icon(Icons.person),
                     onTap: () {
                       Navigator.push(
                         context,
