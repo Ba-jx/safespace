@@ -67,7 +67,7 @@ class DoctorCommunicationScreen extends StatelessWidget {
                           builder: (_) => ChatScreen(
                             patientId: patientId,
                             doctorId: doctorId,
-                            peerName: patientName,
+                            patientName: patientName,
                             isPatient: false,
                           ),
                         ),
