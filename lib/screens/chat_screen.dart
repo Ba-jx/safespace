@@ -23,48 +23,20 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-
-  late String currentUserId;
-  late String peerId;
-  late String chatId;
+  late final String currentUserId;
+  late final String chatId;
 
   @override
   void initState() {
     super.initState();
     currentUserId = FirebaseAuth.instance.currentUser!.uid;
-    peerId = widget.isPatient ? widget.doctorId : widget.patientId;
     chatId = _getChatId(widget.patientId, widget.doctorId);
+
     _markMessagesAsRead();
   }
 
   String _getChatId(String user1, String user2) {
     return user1.hashCode <= user2.hashCode ? '${user1}$user2' : '${user2}$user1';
-  }
-
-  Future<void> _sendMessage() async {
-    final text = _controller.text.trim();
-    if (text.isEmpty) return;
-
-    final timestamp = FieldValue.serverTimestamp();
-
-    await FirebaseFirestore.instance
-        .collection('messages')
-        .doc(chatId)
-        .collection('chats')
-        .add({
-      'senderId': currentUserId,
-      'receiverId': peerId,
-      'message': text,
-      'timestamp': timestamp,
-      'isRead': false,
-    });
-
-    _controller.clear();
-    _scrollController.animateTo(
-      _scrollController.position.maxScrollExtent + 80,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOut,
-    );
   }
 
   Future<void> _markMessagesAsRead() async {
@@ -76,16 +48,50 @@ class _ChatScreenState extends State<ChatScreen> {
         .where('isRead', isEqualTo: false)
         .get();
 
-    for (final msg in messages.docs) {
-      msg.reference.update({'isRead': true});
+    for (var doc in messages.docs) {
+      doc.reference.update({'isRead': true});
     }
+  }
+
+  Future<void> _sendMessage() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
+
+    final message = {
+      'senderId': currentUserId,
+      'receiverId': widget.isPatient ? widget.doctorId : widget.patientId,
+      'message': text,
+      'timestamp': FieldValue.serverTimestamp(),
+      'isRead': false,
+    };
+
+    await FirebaseFirestore.instance
+        .collection('messages')
+        .doc(chatId)
+        .collection('chats')
+        .add(message);
+
+    _controller.clear();
+    _scrollToBottom();
+  }
+
+  void _scrollToBottom() {
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent + 100,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.patientName),
+        title: Text(widget.isPatient ? 'Your Doctor' : widget.patientName),
       ),
       body: Column(
         children: [
@@ -98,20 +104,21 @@ class _ChatScreenState extends State<ChatScreen> {
                   .orderBy('timestamp')
                   .snapshots(),
               builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return const Center(child: Text('Error loading messages'));
+                }
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
                 final messages = snapshot.data!.docs;
 
-                WidgetsBinding.instance.addPostFrameCallback((_) => _markMessagesAsRead());
-
                 return ListView.builder(
                   controller: _scrollController,
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
-                    final data = messages[index].data() as Map<String, dynamic>;
-                    final isMe = data['senderId'] == currentUserId;
+                    final msg = messages[index].data() as Map<String, dynamic>;
+                    final isMe = msg['senderId'] == currentUserId;
 
                     return Align(
                       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
@@ -122,23 +129,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           color: isMe ? Colors.purple[200] : Colors.grey[300],
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(data['message'] ?? ''),
-                            if (isMe && data['isRead'] == true)
-                              Align(
-                                alignment: Alignment.bottomRight,
-                                child: Text(
-                                  '✓ Read',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: Colors.grey.shade700,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
+                        child: Text(msg['message'] ?? ''),
                       ),
                     );
                   },
@@ -157,6 +148,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       hintText: 'Type your message...',
                       border: OutlineInputBorder(),
                     ),
+                    onSubmitted: (_) => _sendMessage(),
                   ),
                 ),
                 const SizedBox(width: 8),
