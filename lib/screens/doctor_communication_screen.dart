@@ -8,17 +8,20 @@ class DoctorCommunicationScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final doctorId = FirebaseAuth.instance.currentUser!.uid;
+    final currentDoctorId = FirebaseAuth.instance.currentUser!.uid;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Communicate with Patients')),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('users')
-            .where('doctorId', isEqualTo: doctorId)
+            .where('doctorId', isEqualTo: currentDoctorId)
             .where('role', isEqualTo: 'patient')
             .snapshots(),
         builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return const Center(child: Text('Error loading patients'));
+          }
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return const Center(child: Text('No assigned patients'));
           }
@@ -29,36 +32,30 @@ class DoctorCommunicationScreen extends StatelessWidget {
             itemCount: patients.length,
             itemBuilder: (context, index) {
               final patient = patients[index];
-              final patientId = patient.id;
               final patientName = patient['name'];
-              final chatId = patientId.hashCode <= doctorId.hashCode
-                  ? '${patientId}_$doctorId'
-                  : '${doctorId}_$patientId';
+              final patientId = patient.id;
 
               return StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
                     .collection('messages')
-                    .doc(chatId)
+                    .doc(patientId + currentDoctorId)
                     .collection('chats')
-                    .where('receiverId', isEqualTo: doctorId)
+                    .where('receiverId', isEqualTo: currentDoctorId)
                     .where('isRead', isEqualTo: false)
                     .snapshots(),
-                builder: (context, unreadSnapshot) {
-                  int unread = unreadSnapshot.data?.docs.length ?? 0;
-
+                builder: (context, unreadSnap) {
+                  int unreadCount = unreadSnap.data?.docs.length ?? 0;
                   return ListTile(
                     leading: const Icon(Icons.person),
                     title: Text(patientName),
                     subtitle: Text(patient['email']),
-                    trailing: unread > 0
+                    trailing: unreadCount > 0
                         ? CircleAvatar(
                             radius: 12,
                             backgroundColor: Colors.red,
-                            child: Text(
-                              '$unread',
-                              style: const TextStyle(
-                                  color: Colors.white, fontSize: 12),
-                            ),
+                            child: Text('$unreadCount',
+                                style: const TextStyle(
+                                    fontSize: 12, color: Colors.white)),
                           )
                         : null,
                     onTap: () {
@@ -67,7 +64,7 @@ class DoctorCommunicationScreen extends StatelessWidget {
                         MaterialPageRoute(
                           builder: (_) => ChatScreen(
                             patientId: patientId,
-                            doctorId: doctorId,
+                            doctorId: currentDoctorId,
                             patientName: patientName,
                             isPatient: false,
                           ),
