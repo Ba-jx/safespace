@@ -1,25 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
+// Providers
 import 'providers/user_provider.dart';
 import 'providers/device_provider.dart';
 import 'providers/theme_provider.dart';
 
+// Screens
 import 'screens/home_screen.dart';
 import 'screens/symptom_tracking_screen.dart';
 import 'screens/real_time_monitor_screen.dart';
 import 'screens/doctor_communication_screen.dart';
+import 'screens/patient_communication_screen.dart';
+import 'screens/chat_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/appointment_booking_screen.dart';
 import 'screens/appointment_list_screen.dart';
-
 import 'screens/doctor_dashboard_screen.dart';
 import 'screens/doctor_login_screen.dart';
 import 'screens/patient_login_screen.dart';
 import 'screens/role_selection_screen.dart';
-import 'screens/manage_appointments_screen.dart';
 import 'screens/view_patients_screen.dart';
+import 'screens/manage_appointments_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -69,12 +73,13 @@ class SafeSpaceApp extends StatelessWidget {
           '/symptom-tracking': (_) => const SymptomTrackingScreen(),
           '/real-time-monitor': (_) => const RealTimeMonitorScreen(),
           '/doctor-communication': (_) => const DoctorCommunicationScreen(),
+          '/patient/communication': (_) => const PatientCommunicationScreen(),
           '/settings': (_) => const SettingsScreen(),
           '/appointments/book': (_) => const AppointmentBookingScreen(),
           '/appointments/list': (_) => const AppointmentListScreen(),
           '/doctor/dashboard': (_) => const DoctorDashboardScreen(),
-          '/doctor/appointments': (_) => const ManageAppointmentsScreen(),
           '/doctor/patients': (_) => const ViewPatientsScreen(),
+          '/doctor/appointments': (_) => const ManageAppointmentsScreen(),
         },
       ),
     );
