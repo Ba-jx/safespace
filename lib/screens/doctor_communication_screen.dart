@@ -8,13 +8,7 @@ class DoctorCommunicationScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final doctorId = FirebaseAuth.instance.currentUser?.uid;
-
-    if (doctorId == null) {
-      return const Scaffold(
-        body: Center(child: Text('Doctor not logged in.')),
-      );
-    }
+    final doctorId = FirebaseAuth.instance.currentUser!.uid;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Communicate with Patients')),
@@ -38,52 +32,25 @@ class DoctorCommunicationScreen extends StatelessWidget {
             itemCount: patients.length,
             itemBuilder: (context, index) {
               final patient = patients[index];
-              final patientName = patient['name'] ?? 'Unknown';
-              final patientEmail = patient['email'] ?? '';
               final patientId = patient.id;
-              final chatId = _getChatId(doctorId, patientId);
+              final patientName = patient['name'];
+              final patientEmail = patient['email'] ?? '';
 
-              return StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('messages')
-                    .doc(chatId)
-                    .collection('chats')
-                    .where('receiverId', isEqualTo: doctorId)
-                    .where('isRead', isEqualTo: false)
-                    .snapshots(),
-                builder: (context, unreadSnapshot) {
-                  final unreadCount = unreadSnapshot.data?.docs.length ?? 0;
-
-                  return ListTile(
-                    leading: const Icon(Icons.person),
-                    title: Text(patientName),
-                    subtitle: Text(patientEmail),
-                    trailing: unreadCount > 0
-                        ? CircleAvatar(
-                            radius: 12,
-                            backgroundColor: Colors.red,
-                            child: Text(
-                              '$unreadCount',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                              ),
-                            ),
-                          )
-                        : null,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ChatScreen(
-                            patientId: patientId,
-                            doctorId: doctorId,
-                            patientName: patientName,
-                            isPatient: false,
-                          ),
-                        ),
-                      );
-                    },
+              return ListTile(
+                title: Text(patientName),
+                subtitle: Text(patientEmail),
+                leading: const Icon(Icons.person),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ChatScreen(
+                        patientId: patientId,
+                        doctorId: doctorId,
+                        patientName: patientName,
+                        isPatient: false,
+                      ),
+                    ),
                   );
                 },
               );
@@ -92,9 +59,5 @@ class DoctorCommunicationScreen extends StatelessWidget {
         },
       ),
     );
-  }
-
-  String _getChatId(String user1, String user2) {
-    return user1.hashCode <= user2.hashCode ? '${user1}$user2' : '${user2}$user1';
   }
 }
