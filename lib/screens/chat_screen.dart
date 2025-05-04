@@ -1,3 +1,4 @@
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -31,15 +32,16 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     currentUserId = FirebaseAuth.instance.currentUser!.uid;
     chatId = _getChatId(widget.patientId, widget.doctorId);
+
     _markMessagesAsRead();
   }
 
   String _getChatId(String user1, String user2) {
-    return user1.hashCode <= user2.hashCode ? '${user1}${user2}' : '${user2}${user1}';
+    return user1.hashCode <= user2.hashCode ? '${user1}_$user2' : '${user2}_$user1';
   }
 
   Future<void> _markMessagesAsRead() async {
-    final unread = await FirebaseFirestore.instance
+    final messages = await FirebaseFirestore.instance
         .collection('messages')
         .doc(chatId)
         .collection('chats')
@@ -47,7 +49,7 @@ class _ChatScreenState extends State<ChatScreen> {
         .where('isRead', isEqualTo: false)
         .get();
 
-    for (final doc in unread.docs) {
+    for (var doc in messages.docs) {
       doc.reference.update({'isRead': true});
     }
   }
@@ -56,31 +58,37 @@ class _ChatScreenState extends State<ChatScreen> {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
 
-    await FirebaseFirestore.instance
-        .collection('messages')
-        .doc(chatId)
-        .collection('chats')
-        .add({
+    final message = {
       'senderId': currentUserId,
       'receiverId': widget.isPatient ? widget.doctorId : widget.patientId,
       'message': text,
       'timestamp': FieldValue.serverTimestamp(),
       'isRead': false,
-    });
-
-    _controller.clear();
-    _scrollToBottom();
+    };
 
     await FirebaseFirestore.instance
         .collection('messages')
         .doc(chatId)
-        .set({'typing': false}, SetOptions(merge: true));
+        .collection('chats')
+        .add(message);
+
+    await FirebaseFirestore.instance
+        .collection('messages')
+        .doc(chatId)
+        .set({'typing_${currentUserId}': false}, SetOptions(merge: true));
+
+    _controller.clear();
+    _scrollToBottom();
   }
 
   void _scrollToBottom() {
-    Future.delayed(const Duration(milliseconds: 300), () {
+    Future.delayed(const Duration(milliseconds: 100), () {
       if (_scrollController.hasClients) {
-        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent + 100,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
       }
     });
   }
@@ -88,28 +96,28 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.patientName)),
+      appBar: AppBar(
+        title: Text(widget.isPatient ? 'Your Doctor' : widget.patientName),
+      ),
       body: Column(
         children: [
-          // Typing indicator
           StreamBuilder<DocumentSnapshot>(
             stream: FirebaseFirestore.instance.collection('messages').doc(chatId).snapshots(),
             builder: (context, snapshot) {
               if (snapshot.hasData && snapshot.data!.data() is Map<String, dynamic>) {
                 final data = snapshot.data!.data() as Map<String, dynamic>;
-                final typing = data['typing'] == true && !widget.isPatient;
+                final typingKey = widget.isPatient ? widget.doctorId : widget.patientId;
+                final typing = data['typing_$typingKey'] == true;
                 return typing
                     ? const Padding(
-                        padding: EdgeInsets.only(bottom: 4),
-                        child: Text('Doctor is typing...', style: TextStyle(fontStyle: FontStyle.italic)),
+                        padding: EdgeInsets.only(top: 4),
+                        child: Text('Typing...', style: TextStyle(fontStyle: FontStyle.italic)),
                       )
                     : const SizedBox.shrink();
               }
               return const SizedBox.shrink();
             },
           ),
-
-          // Message list
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -119,8 +127,12 @@ class _ChatScreenState extends State<ChatScreen> {
                   .orderBy('timestamp')
                   .snapshots(),
               builder: (context, snapshot) {
-                if (snapshot.hasError) return const Center(child: Text('Error loading messages'));
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                if (snapshot.hasError) {
+                  return const Center(child: Text('Error loading messages'));
+                }
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
                 final messages = snapshot.data!.docs;
 
@@ -148,8 +160,6 @@ class _ChatScreenState extends State<ChatScreen> {
               },
             ),
           ),
-
-          // Input field
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Row(
@@ -165,7 +175,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       FirebaseFirestore.instance
                           .collection('messages')
                           .doc(chatId)
-                          .set({'typing': text.isNotEmpty}, SetOptions(merge: true));
+                          .set({'typing_$currentUserId': text.isNotEmpty}, SetOptions(merge: true));
                     },
                     onSubmitted: (_) => _sendMessage(),
                   ),
@@ -174,6 +184,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 IconButton(
                   onPressed: _sendMessage,
                   icon: const Icon(Icons.send),
+                  color: Theme.of(context).primaryColor,
                 ),
               ],
             ),
