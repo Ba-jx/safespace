@@ -1,5 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'chat_screen.dart';
 
@@ -8,7 +8,13 @@ class DoctorCommunicationScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final doctorId = FirebaseAuth.instance.currentUser!.uid;
+    final doctorId = FirebaseAuth.instance.currentUser?.uid;
+
+    if (doctorId == null) {
+      return const Scaffold(
+        body: Center(child: Text('Doctor not logged in.')),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(title: const Text('Communicate with Patients')),
@@ -32,33 +38,35 @@ class DoctorCommunicationScreen extends StatelessWidget {
             itemCount: patients.length,
             itemBuilder: (context, index) {
               final patient = patients[index];
-              final patientName = patient['name'];
+              final patientName = patient['name'] ?? 'Unknown';
+              final patientEmail = patient['email'] ?? '';
               final patientId = patient.id;
+              final chatId = _getChatId(doctorId, patientId);
 
               return StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
                     .collection('messages')
-                    .doc('${doctorId}_$patientId')
+                    .doc(chatId)
                     .collection('chats')
                     .where('receiverId', isEqualTo: doctorId)
-                    .where('read', isEqualTo: false)
+                    .where('isRead', isEqualTo: false)
                     .snapshots(),
                 builder: (context, unreadSnapshot) {
-                  int unreadCount = unreadSnapshot.data?.docs.length ?? 0;
+                  final unreadCount = unreadSnapshot.data?.docs.length ?? 0;
 
                   return ListTile(
-                    title: Text(patientName),
-                    subtitle: Text(patient['email']),
                     leading: const Icon(Icons.person),
+                    title: Text(patientName),
+                    subtitle: Text(patientEmail),
                     trailing: unreadCount > 0
                         ? CircleAvatar(
+                            radius: 12,
                             backgroundColor: Colors.red,
-                            radius: 10,
                             child: Text(
-                              unreadCount.toString(),
+                              '$unreadCount',
                               style: const TextStyle(
-                                fontSize: 12,
                                 color: Colors.white,
+                                fontSize: 12,
                               ),
                             ),
                           )
@@ -84,5 +92,9 @@ class DoctorCommunicationScreen extends StatelessWidget {
         },
       ),
     );
+  }
+
+  String _getChatId(String user1, String user2) {
+    return user1.hashCode <= user2.hashCode ? '${user1}$user2' : '${user2}$user1';
   }
 }
