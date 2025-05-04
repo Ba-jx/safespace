@@ -5,14 +5,14 @@ import 'package:flutter/material.dart';
 class ChatScreen extends StatefulWidget {
   final String patientId;
   final String doctorId;
-  final String peerName;
+  final String patientName;
   final bool isPatient;
 
   const ChatScreen({
     super.key,
     required this.patientId,
     required this.doctorId,
-    required this.peerName,
+    required this.patientName,
     required this.isPatient,
   });
 
@@ -34,8 +34,9 @@ class _ChatScreenState extends State<ChatScreen> {
     _markMessagesAsRead();
   }
 
-  String _getChatId(String a, String b) =>
-      a.hashCode <= b.hashCode ? '${a}_$b' : '${b}_$a';
+  String _getChatId(String user1, String user2) {
+    return user1.hashCode <= user2.hashCode ? '${user1}_$user2' : '${user2}_$user1';
+  }
 
   Future<void> _markMessagesAsRead() async {
     final messages = await FirebaseFirestore.instance
@@ -46,8 +47,8 @@ class _ChatScreenState extends State<ChatScreen> {
         .where('isRead', isEqualTo: false)
         .get();
 
-    for (var msg in messages.docs) {
-      msg.reference.update({'isRead': true});
+    for (var doc in messages.docs) {
+      doc.reference.update({'isRead': true});
     }
   }
 
@@ -74,10 +75,10 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _scrollToBottom() {
-    Future.delayed(const Duration(milliseconds: 300), () {
+    Future.delayed(const Duration(milliseconds: 100), () {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
+          _scrollController.position.maxScrollExtent + 100,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
@@ -85,10 +86,54 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
+  Widget _buildMessageBubble(Map<String, dynamic> msg, bool isMe) {
+    final alignment = isMe ? Alignment.centerRight : Alignment.centerLeft;
+    final bubbleColor = isMe ? Colors.deepPurple[200] : Colors.grey[300];
+    final textColor = isMe ? Colors.white : Colors.black87;
+
+    return Align(
+      alignment: alignment,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+        constraints: const BoxConstraints(maxWidth: 260),
+        decoration: BoxDecoration(
+          color: bubbleColor,
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(16),
+            topRight: const Radius.circular(16),
+            bottomLeft: Radius.circular(isMe ? 16 : 0),
+            bottomRight: Radius.circular(isMe ? 0 : 16),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment:
+              isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          children: [
+            Text(
+              msg['message'] ?? '',
+              style: TextStyle(color: textColor),
+            ),
+            if (isMe && msg['isRead'] == true)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  'Read',
+                  style: TextStyle(fontSize: 10, color: textColor.withOpacity(0.7)),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.peerName)),
+      appBar: AppBar(
+        title: Text(widget.isPatient ? widget.patientName : 'Your Patient'),
+      ),
       body: Column(
         children: [
           Expanded(
@@ -115,32 +160,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   itemBuilder: (context, index) {
                     final msg = messages[index].data() as Map<String, dynamic>;
                     final isMe = msg['senderId'] == currentUserId;
-
-                    return Align(
-                      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: isMe ? Colors.purple[200] : Colors.grey[300],
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(msg['message'] ?? ''),
-                            if (isMe)
-                              Align(
-                                alignment: Alignment.bottomRight,
-                                child: Text(
-                                  msg['isRead'] == true ? '✓✓' : '✓',
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    );
+                    return _buildMessageBubble(msg, isMe);
                   },
                 );
               },
