@@ -10,7 +10,9 @@ class PatientCommunicationScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
-      return const Scaffold(body: Center(child: Text('User not logged in.')));
+      return const Scaffold(
+        body: Center(child: Text('User not logged in.')),
+      );
     }
 
     final userDoc = FirebaseFirestore.instance.collection('users').doc(currentUser.uid);
@@ -22,47 +24,47 @@ class PatientCommunicationScreen extends StatelessWidget {
           return const Scaffold(body: Center(child: Text('User data not found.')));
         }
 
-        final data = snapshot.data!.data() as Map<String, dynamic>;
-        final doctorId = data['doctorId'];
+        final userData = snapshot.data!.data() as Map<String, dynamic>;
+        final doctorId = userData['doctorId'];
+
+        if (doctorId == null || doctorId.isEmpty) {
+          return const Scaffold(body: Center(child: Text('No assigned doctor found.')));
+        }
 
         return FutureBuilder<DocumentSnapshot>(
           future: FirebaseFirestore.instance.collection('users').doc(doctorId).get(),
-          builder: (context, docSnap) {
-            if (!docSnap.hasData || !docSnap.data!.exists) {
-              return const Scaffold(body: Center(child: Text('Doctor not found.')));
+          builder: (context, doctorSnap) {
+            if (!doctorSnap.hasData || !doctorSnap.data!.exists) {
+              return const Scaffold(body: Center(child: Text('Assigned doctor not found.')));
             }
 
-            final doctorData = docSnap.data!.data() as Map<String, dynamic>;
+            final doctorData = doctorSnap.data!.data() as Map<String, dynamic>;
             final doctorName = doctorData['name'] ?? 'Doctor';
-            final chatId = currentUser.uid.hashCode <= doctorId.hashCode
-                ? '${currentUser.uid}_$doctorId'
-                : '${doctorId}_${currentUser.uid}';
 
             return StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('messages')
-                  .doc(chatId)
+                  .doc(currentUser.uid + doctorId)
                   .collection('chats')
                   .where('receiverId', isEqualTo: currentUser.uid)
                   .where('isRead', isEqualTo: false)
                   .snapshots(),
-              builder: (context, unreadSnapshot) {
-                int unread = unreadSnapshot.data?.docs.length ?? 0;
+              builder: (context, unreadSnap) {
+                int unreadCount = unreadSnap.data?.docs.length ?? 0;
 
                 return Scaffold(
                   appBar: AppBar(title: const Text('Chat with Your Doctor')),
                   body: ListTile(
                     leading: const Icon(Icons.person),
                     title: Text(doctorName),
-                    subtitle: Text(doctorData['email']),
-                    trailing: unread > 0
+                    subtitle: Text(doctorData['email'] ?? ''),
+                    trailing: unreadCount > 0
                         ? CircleAvatar(
                             radius: 12,
                             backgroundColor: Colors.red,
-                            child: Text(
-                              '$unread',
-                              style: const TextStyle(color: Colors.white, fontSize: 12),
-                            ),
+                            child: Text('$unreadCount',
+                                style: const TextStyle(
+                                    fontSize: 12, color: Colors.white)),
                           )
                         : null,
                     onTap: () {
