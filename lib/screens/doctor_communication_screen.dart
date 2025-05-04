@@ -1,11 +1,14 @@
-
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'chat_screen.dart';
 
 class DoctorCommunicationScreen extends StatelessWidget {
   const DoctorCommunicationScreen({super.key});
+
+  String _getChatId(String user1, String user2) {
+    return user1.hashCode <= user2.hashCode ? '${user1}${user2}' : '${user2}${user1}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,10 +38,7 @@ class DoctorCommunicationScreen extends StatelessWidget {
               final patient = patients[index];
               final patientName = patient['name'];
               final patientId = patient.id;
-
-              final chatId = doctorId.hashCode <= patientId.hashCode
-                  ? '${doctorId}_$patientId'
-                  : '${patientId}_$doctorId';
+              final chatId = _getChatId(doctorId, patientId);
 
               return StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
@@ -49,20 +49,17 @@ class DoctorCommunicationScreen extends StatelessWidget {
                     .where('isRead', isEqualTo: false)
                     .snapshots(),
                 builder: (context, unreadSnapshot) {
-                  int unreadCount = unreadSnapshot.data?.docs.length ?? 0;
+                  final unreadCount = unreadSnapshot.data?.docs.length ?? 0;
 
                   return ListTile(
                     title: Text(patientName),
                     subtitle: Text(patient['email']),
-                    leading: const Icon(Icons.person),
                     trailing: unreadCount > 0
                         ? CircleAvatar(
                             radius: 12,
                             backgroundColor: Colors.red,
-                            child: Text(
-                              '$unreadCount',
-                              style: const TextStyle(fontSize: 12, color: Colors.white),
-                            ),
+                            child: Text('$unreadCount',
+                                style: const TextStyle(fontSize: 12, color: Colors.white)),
                           )
                         : null,
                     onTap: () {
