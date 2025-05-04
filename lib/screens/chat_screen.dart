@@ -35,7 +35,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   String _getChatId(String a, String b) =>
-      a.hashCode <= b.hashCode ? '${a}$b' : '${b}$a';
+      a.hashCode <= b.hashCode ? '${a}_$b' : '${b}_$a';
 
   Future<void> _markMessagesAsRead() async {
     final messages = await FirebaseFirestore.instance
@@ -125,7 +125,20 @@ class _ChatScreenState extends State<ChatScreen> {
                           color: isMe ? Colors.purple[200] : Colors.grey[300],
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Text(msg['message'] ?? ''),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(msg['message'] ?? ''),
+                            if (isMe)
+                              Align(
+                                alignment: Alignment.bottomRight,
+                                child: Text(
+                                  msg['isRead'] == true ? '✓✓' : '✓',
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
                     );
                   },
