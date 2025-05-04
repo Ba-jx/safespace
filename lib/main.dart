@@ -72,7 +72,7 @@ class SafeSpaceApp extends StatelessWidget {
           '/home': (_) => const HomeScreen(),
           '/symptom-tracking': (_) => const SymptomTrackingScreen(),
           '/real-time-monitor': (_) => const RealTimeMonitorScreen(),
-          '/doctor-communication': (_) => const DoctorCommunicationScreen(),
+          '/doctor/communication': (_) => const DoctorCommunicationScreen(),
           '/patient/communication': (_) => const PatientCommunicationScreen(),
           '/settings': (_) => const SettingsScreen(),
           '/appointments/book': (_) => const AppointmentBookingScreen(),
