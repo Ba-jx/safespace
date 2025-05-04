@@ -34,8 +34,8 @@ class _ChatScreenState extends State<ChatScreen> {
     _markMessagesAsRead();
   }
 
-  String _getChatId(String user1, String user2) {
-    return user1.compareTo(user2) <= 0 ? '${user1}$user2' : '${user2}$user1';
+  String _getChatId(String uid1, String uid2) {
+    return uid1.compareTo(uid2) < 0 ? '${uid1}${uid2}' : '${uid2}${uid1}';
   }
 
   Future<void> _markMessagesAsRead() async {
