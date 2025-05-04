@@ -87,15 +87,24 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildMessageBubble(Map<String, dynamic> msg, bool isMe) {
+    final alignment = isMe ? Alignment.centerRight : Alignment.centerLeft;
+    final bubbleColor = isMe ? Colors.deepPurple[200] : Colors.grey[300];
+    final textColor = isMe ? Colors.white : Colors.black87;
+
     return Align(
-      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+      alignment: alignment,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
         constraints: const BoxConstraints(maxWidth: 260),
         decoration: BoxDecoration(
-          color: isMe ? Colors.purple[200] : Colors.grey[300],
-          borderRadius: BorderRadius.circular(12),
+          color: bubbleColor,
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(16),
+            topRight: const Radius.circular(16),
+            bottomLeft: Radius.circular(isMe ? 16 : 0),
+            bottomRight: Radius.circular(isMe ? 0 : 16),
+          ),
         ),
         child: Column(
           crossAxisAlignment:
@@ -103,14 +112,14 @@ class _ChatScreenState extends State<ChatScreen> {
           children: [
             Text(
               msg['message'] ?? '',
-              style: TextStyle(color: isMe ? Colors.white : Colors.black87),
+              style: TextStyle(color: textColor),
             ),
             if (isMe && msg['isRead'] == true)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
                   'Read',
-                  style: TextStyle(fontSize: 10, color: Colors.white70),
+                  style: TextStyle(fontSize: 10, color: textColor.withOpacity(0.7)),
                 ),
               ),
           ],
