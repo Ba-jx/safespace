@@ -33,19 +33,22 @@ class DoctorCommunicationScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               final patient = patients[index];
               final patientName = patient['name'];
+              final patientEmail = patient['email'];
               final patientId = patient.id;
 
               return ListTile(
-                title: Text(patientName),
-                subtitle: Text(patient['email']),
                 leading: const Icon(Icons.person),
+                title: Text(patientName),
+                subtitle: Text(patientEmail),
                 onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => ChatScreen(
                         patientId: patientId,
+                        doctorId: doctorId,
                         patientName: patientName,
+                        isPatient: false, // doctor is the sender
                       ),
                     ),
                   );
