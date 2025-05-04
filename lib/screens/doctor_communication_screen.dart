@@ -1,33 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 import '../widgets/custom_drawer.dart';
 
 class DoctorCommunicationScreen extends StatefulWidget {
-  final String patientId; // 🔹 Pass this from the patient list screen
-
-  const DoctorCommunicationScreen({super.key, required this.patientId});
+  const DoctorCommunicationScreen({super.key});
 
   @override
   State<DoctorCommunicationScreen> createState() =>
       _DoctorCommunicationScreenState();
 }
 
-class _DoctorCommunicationScreenState
-    extends State<DoctorCommunicationScreen> {
+class _DoctorCommunicationScreenState extends State<DoctorCommunicationScreen> {
   final TextEditingController _messageController = TextEditingController();
 
   void _sendMessage() async {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
 
-    final currentDoctor = FirebaseAuth.instance.currentUser;
-
     await FirebaseFirestore.instance.collection('chat_messages').add({
-      'sender': 'doctor',
-      'senderId': currentDoctor?.uid,
-      'patientId': widget.patientId, // 🔹 Save patient ID with message
+      'sender': 'patient',
       'message': text,
       'timestamp': FieldValue.serverTimestamp(),
     });
@@ -44,11 +36,11 @@ class _DoctorCommunicationScreenState
         children: [
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('chat_messages')
-                  .where('patientId', isEqualTo: widget.patientId)
-                  .orderBy('timestamp', descending: false)
-                  .snapshots(),
+              stream:
+                  FirebaseFirestore.instance
+                      .collection('chat_messages')
+                      .orderBy('timestamp', descending: false)
+                      .snapshots(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
@@ -61,11 +53,12 @@ class _DoctorCommunicationScreenState
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
                     final msg = messages[index];
-                    final isDoctor = msg['sender'] == 'doctor';
+                    final isPatient = msg['sender'] == 'patient';
                     return Align(
-                      alignment: isDoctor
-                          ? Alignment.centerLeft
-                          : Alignment.centerRight,
+                      alignment:
+                          isPatient
+                              ? Alignment.centerRight
+                              : Alignment.centerLeft,
                       child: Container(
                         margin: const EdgeInsets.symmetric(vertical: 4),
                         padding: const EdgeInsets.symmetric(
@@ -73,28 +66,11 @@ class _DoctorCommunicationScreenState
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: isDoctor ? Colors.blue[100] : Colors.purple[100],
+                          color:
+                              isPatient ? Colors.purple[100] : Colors.grey[300],
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(msg['message']),
-                            if (msg['timestamp'] != null)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 4),
-                                child: Text(
-                                  (msg['timestamp'] as Timestamp)
-                                      .toDate()
-                                      .toLocal()
-                                      .toString()
-                                      .substring(0, 16),
-                                  style: TextStyle(
-                                      fontSize: 10, color: Colors.grey[700]),
-                                ),
-                              ),
-                          ],
-                        ),
+                        child: Text(msg['message']),
                       ),
                     );
                   },
@@ -110,7 +86,7 @@ class _DoctorCommunicationScreenState
                   child: TextField(
                     controller: _messageController,
                     decoration: const InputDecoration(
-                      hintText: 'Type your reply...',
+                      hintText: 'Type your message...',
                       border: OutlineInputBorder(),
                     ),
                   ),
