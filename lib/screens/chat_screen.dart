@@ -35,7 +35,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   String _getChatId(String user1, String user2) {
-    return user1.hashCode <= user2.hashCode ? '${user1}_$user2' : '${user2}_$user1';
+    return user1.hashCode <= user2.hashCode ? '${user1}$user2' : '${user2}$user1';
   }
 
   Future<void> _markMessagesAsRead() async {
@@ -87,24 +87,15 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildMessageBubble(Map<String, dynamic> msg, bool isMe) {
-    final alignment = isMe ? Alignment.centerRight : Alignment.centerLeft;
-    final bubbleColor = isMe ? Colors.deepPurple[200] : Colors.grey[300];
-    final textColor = isMe ? Colors.white : Colors.black87;
-
     return Align(
-      alignment: alignment,
+      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
         constraints: const BoxConstraints(maxWidth: 260),
         decoration: BoxDecoration(
-          color: bubbleColor,
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(16),
-            topRight: const Radius.circular(16),
-            bottomLeft: Radius.circular(isMe ? 16 : 0),
-            bottomRight: Radius.circular(isMe ? 0 : 16),
-          ),
+          color: isMe ? Colors.purple[200] : Colors.grey[300],
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
           crossAxisAlignment:
@@ -112,14 +103,14 @@ class _ChatScreenState extends State<ChatScreen> {
           children: [
             Text(
               msg['message'] ?? '',
-              style: TextStyle(color: textColor),
+              style: TextStyle(color: isMe ? Colors.white : Colors.black87),
             ),
             if (isMe && msg['isRead'] == true)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
                   'Read',
-                  style: TextStyle(fontSize: 10, color: textColor.withOpacity(0.7)),
+                  style: TextStyle(fontSize: 10, color: Colors.white70),
                 ),
               ),
           ],
