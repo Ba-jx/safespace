@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class ChatScreen extends StatefulWidget {
   final String patientId;
@@ -31,11 +32,12 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     currentUserId = FirebaseAuth.instance.currentUser!.uid;
     chatId = _getChatId(widget.patientId, widget.doctorId);
+
     _markMessagesAsRead();
   }
 
   String _getChatId(String user1, String user2) {
-    return user1.hashCode <= user2.hashCode ? '${user1}_$user2' : '${user2}_$user1';
+    return user1.hashCode <= user2.hashCode ? '${user1}$user2' : '${user2}$user1';
   }
 
   Future<void> _markMessagesAsRead() async {
@@ -48,7 +50,10 @@ class _ChatScreenState extends State<ChatScreen> {
         .get();
 
     for (var doc in messages.docs) {
-      doc.reference.update({'isRead': true});
+      doc.reference.update({
+        'isRead': true,
+        'readAt': FieldValue.serverTimestamp(),
+      });
     }
   }
 
@@ -69,11 +74,6 @@ class _ChatScreenState extends State<ChatScreen> {
         .doc(chatId)
         .collection('chats')
         .add(message);
-
-    await FirebaseFirestore.instance
-        .collection('messages')
-        .doc(chatId)
-        .set({'typing': false}, SetOptions(merge: true));
 
     _controller.clear();
     _scrollToBottom();
@@ -99,22 +99,6 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       body: Column(
         children: [
-          StreamBuilder<DocumentSnapshot>(
-            stream: FirebaseFirestore.instance.collection('messages').doc(chatId).snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.hasData && snapshot.data!.data() is Map<String, dynamic>) {
-                final typing = snapshot.data!.get('typing') == true &&
-                    (widget.isPatient ? false : true);
-                return typing
-                    ? const Padding(
-                        padding: EdgeInsets.only(top: 4),
-                        child: Text('Typing...', style: TextStyle(fontStyle: FontStyle.italic)),
-                      )
-                    : const SizedBox.shrink();
-              }
-              return const SizedBox.shrink();
-            },
-          ),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -139,6 +123,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   itemBuilder: (context, index) {
                     final msg = messages[index].data() as Map<String, dynamic>;
                     final isMe = msg['senderId'] == currentUserId;
+                    final isRead = msg['isRead'] == true;
+                    final readAt = (msg['readAt'] as Timestamp?)?.toDate();
 
                     return Align(
                       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
@@ -149,7 +135,17 @@ class _ChatScreenState extends State<ChatScreen> {
                           color: isMe ? Colors.purple[200] : Colors.grey[300],
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Text(msg['message'] ?? ''),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(msg['message'] ?? ''),
+                            if (isMe && isRead && readAt != null)
+                              Text(
+                                'Read: ${DateFormat('MMM dd, yyyy – hh:mm a').format(readAt)}',
+                                style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                              ),
+                          ],
+                        ),
                       ),
                     );
                   },
@@ -168,12 +164,6 @@ class _ChatScreenState extends State<ChatScreen> {
                       hintText: 'Type your message...',
                       border: OutlineInputBorder(),
                     ),
-                    onChanged: (text) {
-                      FirebaseFirestore.instance
-                          .collection('messages')
-                          .doc(chatId)
-                          .set({'typing': text.isNotEmpty}, SetOptions(merge: true));
-                    },
                     onSubmitted: (_) => _sendMessage(),
                   ),
                 ),
