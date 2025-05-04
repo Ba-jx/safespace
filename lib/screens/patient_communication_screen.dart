@@ -47,31 +47,53 @@ class PatientCommunicationScreen extends StatelessWidget {
 
             final doctorData = doctorSnap.data!.data() as Map<String, dynamic>;
             final doctorName = doctorData['name'] ?? 'Doctor';
-
             final chatId = currentUser.uid.hashCode <= doctorId.hashCode
                 ? '${currentUser.uid}_$doctorId'
                 : '${doctorId}_${currentUser.uid}';
 
-            return Scaffold(
-              appBar: AppBar(title: const Text('Chat with Your Doctor')),
-              body: ListTile(
-                leading: const Icon(Icons.person),
-                title: Text(doctorName),
-                subtitle: Text(doctorData['email'] ?? ''),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ChatScreen(
-                        patientId: currentUser.uid,
-                        doctorId: doctorId,
-                        patientName: doctorName,
-                        isPatient: true,
-                      ),
-                    ),
-                  );
-                },
-              ),
+            return StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('messages')
+                  .doc(chatId)
+                  .collection('chats')
+                  .where('receiverId', isEqualTo: currentUser.uid)
+                  .where('isRead', isEqualTo: false)
+                  .snapshots(),
+              builder: (context, unreadSnapshot) {
+                final unreadCount = unreadSnapshot.data?.docs.length ?? 0;
+
+                return Scaffold(
+                  appBar: AppBar(title: const Text('Chat with Your Doctor')),
+                  body: ListTile(
+                    leading: const Icon(Icons.person),
+                    title: Text(doctorName),
+                    subtitle: Text(doctorData['email'] ?? ''),
+                    trailing: unreadCount > 0
+                        ? CircleAvatar(
+                            radius: 12,
+                            backgroundColor: Colors.red,
+                            child: Text(
+                              '$unreadCount',
+                              style: const TextStyle(fontSize: 12, color: Colors.white),
+                            ),
+                          )
+                        : null,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ChatScreen(
+                            patientId: currentUser.uid,
+                            doctorId: doctorId,
+                            patientName: doctorName,
+                            isPatient: true,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
             );
           },
         );
