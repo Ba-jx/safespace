@@ -1,15 +1,15 @@
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 class ChatScreen extends StatefulWidget {
-  final String patientId;
-  final String patientName;
-  final bool isPatient;
-  final String doctorId;
+  final String peerId;
+  final String peerName;
 
   const ChatScreen({
     super.key,
-    required this.patientId,
-    required this.patientName,
-    required this.isPatient,
-    required this.doctorId,
+    required this.peerId,
+    required this.peerName,
   });
 
   @override
@@ -18,63 +18,93 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
-  late final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
+  final ScrollController _scrollController = ScrollController();
 
-  String get chatId {
-    final ids = [widget.patientId, widget.doctorId]..sort();
-    return ids.join('_');
+  late String currentUserId;
+
+  @override
+  void initState() {
+    super.initState();
+    currentUserId = FirebaseAuth.instance.currentUser!.uid;
   }
 
-  void _sendMessage() {
+  String _getChatId(String user1, String user2) {
+    return user1.hashCode <= user2.hashCode
+        ? '${user1}_$user2'
+        : '${user2}_$user1';
+  }
+
+  Future<void> _sendMessage() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
 
-    final receiverId = widget.isPatient ? widget.doctorId : widget.patientId;
+    final chatId = _getChatId(currentUserId, widget.peerId);
 
-    FirebaseFirestore.instance.collection('messages/$chatId/chat').add({
-      'text': text,
+    await FirebaseFirestore.instance
+        .collection('messages')
+        .doc(chatId)
+        .collection('chats')
+        .add({
       'senderId': currentUserId,
-      'receiverId': receiverId,
+      'receiverId': widget.peerId,
+      'message': text,
       'timestamp': FieldValue.serverTimestamp(),
-      'isRead': false,
-      'type': 'text',
     });
 
     _controller.clear();
+    _scrollController.animateTo(
+      _scrollController.position.maxScrollExtent + 80,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final chatId = _getChatId(currentUserId, widget.peerId);
+
     return Scaffold(
-      appBar: AppBar(title: Text(widget.patientName)),
+      appBar: AppBar(
+        title: Text(widget.peerName),
+      ),
       body: Column(
         children: [
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
-                  .collection('messages/$chatId/chat')
+                  .collection('messages')
+                  .doc(chatId)
+                  .collection('chats')
                   .orderBy('timestamp')
                   .snapshots(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                if (snapshot.hasError) {
+                  return const Center(child: Text('Error loading messages'));
+                }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(child: Text('No messages yet.'));
+                }
 
                 final messages = snapshot.data!.docs;
+
                 return ListView.builder(
+                  controller: _scrollController,
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
                     final msg = messages[index];
-                    final isMe = msg['senderId'] == currentUserId;
+                    final data = msg.data() as Map<String, dynamic>;
+                    final isMe = data['senderId'] == currentUserId;
 
                     return Align(
                       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
                       child: Container(
-                        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                        padding: const EdgeInsets.all(10),
+                        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: isMe ? Colors.deepPurple[100] : Colors.grey[300],
+                          color: isMe ? Colors.purple[200] : Colors.grey[300],
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Text(msg['text']),
+                        child: Text(data['message'] ?? ''),
                       ),
                     );
                   },
@@ -82,7 +112,6 @@ class _ChatScreenState extends State<ChatScreen> {
               },
             ),
           ),
-          const Divider(height: 1),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Row(
@@ -90,16 +119,21 @@ class _ChatScreenState extends State<ChatScreen> {
                 Expanded(
                   child: TextField(
                     controller: _controller,
-                    decoration: const InputDecoration(hintText: 'Type a message'),
+                    decoration: const InputDecoration(
+                      hintText: 'Type your message...',
+                      border: OutlineInputBorder(),
+                    ),
                   ),
                 ),
+                const SizedBox(width: 8),
                 IconButton(
-                  icon: const Icon(Icons.send),
                   onPressed: _sendMessage,
+                  icon: const Icon(Icons.send),
+                  color: Theme.of(context).primaryColor,
                 ),
               ],
             ),
-          )
+          ),
         ],
       ),
     );
