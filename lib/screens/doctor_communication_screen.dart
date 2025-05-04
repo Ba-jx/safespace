@@ -43,20 +43,21 @@ class DoctorCommunicationScreen extends StatelessWidget {
                     .where('receiverId', isEqualTo: doctorId)
                     .where('isRead', isEqualTo: false)
                     .snapshots(),
-                builder: (context, unreadSnap) {
-                  final unreadCount = unreadSnap.data?.docs.length ?? 0;
+                builder: (context, unreadSnapshot) {
+                  int unread = unreadSnapshot.data?.docs.length ?? 0;
 
                   return ListTile(
                     leading: const Icon(Icons.person),
                     title: Text(patientName),
                     subtitle: Text(patient['email']),
-                    trailing: unreadCount > 0
+                    trailing: unread > 0
                         ? CircleAvatar(
                             radius: 12,
                             backgroundColor: Colors.red,
                             child: Text(
-                              '$unreadCount',
-                              style: const TextStyle(fontSize: 12, color: Colors.white),
+                              '$unread',
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 12),
                             ),
                           )
                         : null,
