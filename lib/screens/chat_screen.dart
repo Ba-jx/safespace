@@ -1,18 +1,18 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 
 class ChatScreen extends StatefulWidget {
   final String patientId;
   final String doctorId;
-  final String patientName;
+  final String peerName;
   final bool isPatient;
 
   const ChatScreen({
     super.key,
     required this.patientId,
     required this.doctorId,
-    required this.patientName,
+    required this.peerName,
     required this.isPatient,
   });
 
@@ -48,7 +48,7 @@ class _ChatScreenState extends State<ChatScreen> {
         .get();
 
     for (var doc in unread.docs) {
-      await doc.reference.update({'isRead': true});
+      doc.reference.update({'isRead': true});
     }
   }
 
@@ -56,24 +56,19 @@ class _ChatScreenState extends State<ChatScreen> {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
 
-    final receiverId = widget.isPatient ? widget.doctorId : widget.patientId;
+    final message = {
+      'senderId': currentUserId,
+      'receiverId': widget.isPatient ? widget.doctorId : widget.patientId,
+      'message': text,
+      'timestamp': FieldValue.serverTimestamp(),
+      'isRead': false,
+    };
 
     await FirebaseFirestore.instance
         .collection('messages')
         .doc(chatId)
         .collection('chats')
-        .add({
-      'senderId': currentUserId,
-      'receiverId': receiverId,
-      'message': text,
-      'timestamp': FieldValue.serverTimestamp(),
-      'isRead': false,
-    });
-
-    await FirebaseFirestore.instance
-        .collection('messages')
-        .doc(chatId)
-        .set({'typing': false}, SetOptions(merge: true));
+        .add(message);
 
     _controller.clear();
     _scrollToBottom();
@@ -94,25 +89,11 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.isPatient ? widget.patientName : 'Your Patient')),
+      appBar: AppBar(
+        title: Text(widget.peerName),
+      ),
       body: Column(
         children: [
-          StreamBuilder<DocumentSnapshot>(
-            stream: FirebaseFirestore.instance.collection('messages').doc(chatId).snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.hasData && snapshot.data?.data() is Map<String, dynamic>) {
-                final typing = (snapshot.data!.data() as Map<String, dynamic>)['typing'] == true;
-                final show = widget.isPatient ? typing : false;
-                return show
-                    ? const Padding(
-                        padding: EdgeInsets.only(bottom: 4),
-                        child: Text('Typing...', style: TextStyle(fontStyle: FontStyle.italic)),
-                      )
-                    : const SizedBox.shrink();
-              }
-              return const SizedBox.shrink();
-            },
-          ),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -125,8 +106,8 @@ class _ChatScreenState extends State<ChatScreen> {
                 if (snapshot.hasError) {
                   return const Center(child: Text('Error loading messages'));
                 }
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(child: Text('No messages found.'));
                 }
 
                 final messages = snapshot.data!.docs;
@@ -145,22 +126,24 @@ class _ChatScreenState extends State<ChatScreen> {
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: isMe ? Colors.purple[200] : Colors.grey[300],
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        constraints: BoxConstraints(
+                          maxWidth: MediaQuery.of(context).size.width * 0.75,
                         ),
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment: isMe
+                              ? CrossAxisAlignment.end
+                              : CrossAxisAlignment.start,
                           children: [
-                            Text(msg['message'] ?? ''),
+                            Text(
+                              msg['message'] ?? '',
+                              style: const TextStyle(fontSize: 16),
+                            ),
                             if (isMe && msg['isRead'] == true)
-                              const Align(
-                                alignment: Alignment.bottomRight,
-                                child: Padding(
-                                  padding: EdgeInsets.only(top: 4),
-                                  child: Text(
-                                    '✓✓ Read',
-                                    style: TextStyle(fontSize: 10, color: Colors.black54),
-                                  ),
-                                ),
+                              const Text(
+                                'Read',
+                                style: TextStyle(fontSize: 10, color: Colors.grey),
                               ),
                           ],
                         ),
@@ -178,22 +161,17 @@ class _ChatScreenState extends State<ChatScreen> {
                 Expanded(
                   child: TextField(
                     controller: _controller,
-                    onChanged: (text) {
-                      FirebaseFirestore.instance
-                          .collection('messages')
-                          .doc(chatId)
-                          .set({'typing': text.isNotEmpty}, SetOptions(merge: true));
-                    },
                     decoration: const InputDecoration(
-                      hintText: 'Type your message...',
+                      hintText: 'Type a message...',
                       border: OutlineInputBorder(),
                     ),
+                    onSubmitted: (_) => _sendMessage(),
                   ),
                 ),
                 const SizedBox(width: 8),
                 IconButton(
-                  onPressed: _sendMessage,
                   icon: const Icon(Icons.send),
+                  onPressed: _sendMessage,
                   color: Theme.of(context).primaryColor,
                 ),
               ],
