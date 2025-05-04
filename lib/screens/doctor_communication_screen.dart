@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'chat_screen.dart';
 
@@ -32,25 +33,51 @@ class DoctorCommunicationScreen extends StatelessWidget {
             itemCount: patients.length,
             itemBuilder: (context, index) {
               final patient = patients[index];
-              final patientId = patient.id;
               final patientName = patient['name'];
-              final patientEmail = patient['email'] ?? '';
+              final patientId = patient.id;
 
-              return ListTile(
-                title: Text(patientName),
-                subtitle: Text(patientEmail),
-                leading: const Icon(Icons.person),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ChatScreen(
-                        patientId: patientId,
-                        doctorId: doctorId,
-                        patientName: patientName,
-                        isPatient: false,
-                      ),
-                    ),
+              final chatId = doctorId.hashCode <= patientId.hashCode
+                  ? '${doctorId}_$patientId'
+                  : '${patientId}_$doctorId';
+
+              return StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('messages')
+                    .doc(chatId)
+                    .collection('chats')
+                    .where('receiverId', isEqualTo: doctorId)
+                    .where('isRead', isEqualTo: false)
+                    .snapshots(),
+                builder: (context, unreadSnapshot) {
+                  int unreadCount = unreadSnapshot.data?.docs.length ?? 0;
+
+                  return ListTile(
+                    title: Text(patientName),
+                    subtitle: Text(patient['email']),
+                    leading: const Icon(Icons.person),
+                    trailing: unreadCount > 0
+                        ? CircleAvatar(
+                            radius: 12,
+                            backgroundColor: Colors.red,
+                            child: Text(
+                              '$unreadCount',
+                              style: const TextStyle(fontSize: 12, color: Colors.white),
+                            ),
+                          )
+                        : null,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ChatScreen(
+                            patientId: patientId,
+                            doctorId: doctorId,
+                            patientName: patientName,
+                            isPatient: false,
+                          ),
+                        ),
+                      );
+                    },
                   );
                 },
               );
