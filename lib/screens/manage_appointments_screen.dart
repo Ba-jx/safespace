@@ -20,6 +20,7 @@ class ManageAppointmentsScreen extends StatelessWidget {
         stream: FirebaseFirestore.instance
             .collectionGroup('appointments')
             .where('doctorId', isEqualTo: currentDoctorId)
+            .orderBy('dateTime') // Added to match Firestore index
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
