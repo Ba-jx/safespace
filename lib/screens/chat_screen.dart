@@ -5,11 +5,17 @@ import 'package:firebase_auth/firebase_auth.dart';
 class ChatScreen extends StatefulWidget {
   final String peerId;
   final String peerName;
+  final String patientId;
+  final String doctorId;
+  final bool isPatient;
 
   const ChatScreen({
     super.key,
     required this.peerId,
     required this.peerName,
+    required this.patientId,
+    required this.doctorId,
+    required this.isPatient,
   });
 
   @override
@@ -19,8 +25,7 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-
-  late String currentUserId;
+  late final String currentUserId;
 
   @override
   void initState() {
@@ -29,26 +34,26 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   String _getChatId(String user1, String user2) {
-    return user1.hashCode <= user2.hashCode
-        ? '${user1}_$user2'
-        : '${user2}_$user1';
+    return user1.hashCode <= user2.hashCode ? '${user1}$user2' : '${user2}$user1';
   }
 
   Future<void> _sendMessage() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
 
-    final chatId = _getChatId(currentUserId, widget.peerId);
+    final chatId = _getChatId(widget.doctorId, widget.patientId);
 
     await FirebaseFirestore.instance
         .collection('messages')
         .doc(chatId)
-        .collection('chats')
+        .collection('chat')
         .add({
       'senderId': currentUserId,
       'receiverId': widget.peerId,
-      'message': text,
+      'text': text,
       'timestamp': FieldValue.serverTimestamp(),
+      'isRead': false,
+      'type': 'text',
     });
 
     _controller.clear();
@@ -61,12 +66,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final chatId = _getChatId(currentUserId, widget.peerId);
+    final chatId = _getChatId(widget.doctorId, widget.patientId);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.peerName),
-      ),
+      appBar: AppBar(title: Text(widget.peerName)),
       body: Column(
         children: [
           Expanded(
@@ -74,13 +77,11 @@ class _ChatScreenState extends State<ChatScreen> {
               stream: FirebaseFirestore.instance
                   .collection('messages')
                   .doc(chatId)
-                  .collection('chats')
+                  .collection('chat')
                   .orderBy('timestamp')
                   .snapshots(),
               builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return const Center(child: Text('Error loading messages'));
-                }
+                if (snapshot.hasError) return const Center(child: Text('Error loading messages'));
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return const Center(child: Text('No messages yet.'));
                 }
@@ -91,8 +92,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   controller: _scrollController,
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
-                    final msg = messages[index];
-                    final data = msg.data() as Map<String, dynamic>;
+                    final data = messages[index].data() as Map<String, dynamic>;
                     final isMe = data['senderId'] == currentUserId;
 
                     return Align(
@@ -104,7 +104,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           color: isMe ? Colors.purple[200] : Colors.grey[300],
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Text(data['message'] ?? ''),
+                        child: Text(data['text'] ?? ''),
                       ),
                     );
                   },
