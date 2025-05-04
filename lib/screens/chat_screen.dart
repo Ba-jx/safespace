@@ -35,7 +35,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   String _getChatId(String user1, String user2) {
-    return user1.hashCode <= user2.hashCode ? '${user1}$user2' : '${user2}$user1';
+    return user1.hashCode <= user2.hashCode ? '${user1}_$user2' : '${user2}_$user1';
   }
 
   Future<void> _markMessagesAsRead() async {
@@ -73,7 +73,7 @@ class _ChatScreenState extends State<ChatScreen> {
     await FirebaseFirestore.instance
         .collection('messages')
         .doc(chatId)
-        .set({'typing_$currentUserId': false}, SetOptions(merge: true));
+        .set({'typing': false}, SetOptions(merge: true));
 
     _controller.clear();
     _scrollToBottom();
@@ -94,17 +94,17 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.isPatient ? 'Your Doctor' : widget.patientName)),
+      appBar: AppBar(
+        title: Text(widget.isPatient ? 'Your Doctor' : widget.patientName),
+      ),
       body: Column(
         children: [
-          // Typing indicator
           StreamBuilder<DocumentSnapshot>(
             stream: FirebaseFirestore.instance.collection('messages').doc(chatId).snapshots(),
             builder: (context, snapshot) {
               if (snapshot.hasData && snapshot.data!.data() is Map<String, dynamic>) {
-                final data = snapshot.data!.data() as Map<String, dynamic>;
-                final typingKey = widget.isPatient ? widget.doctorId : widget.patientId;
-                final typing = data['typing_$typingKey'] == true;
+                final typing = snapshot.data!.get('typing') == true &&
+                    (widget.isPatient ? false : true);
                 return typing
                     ? const Padding(
                         padding: EdgeInsets.only(top: 4),
@@ -115,7 +115,6 @@ class _ChatScreenState extends State<ChatScreen> {
               return const SizedBox.shrink();
             },
           ),
-          // Messages stream
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -158,7 +157,6 @@ class _ChatScreenState extends State<ChatScreen> {
               },
             ),
           ),
-          // Input field
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Row(
@@ -174,7 +172,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       FirebaseFirestore.instance
                           .collection('messages')
                           .doc(chatId)
-                          .set({'typing_$currentUserId': text.isNotEmpty}, SetOptions(merge: true));
+                          .set({'typing': text.isNotEmpty}, SetOptions(merge: true));
                     },
                     onSubmitted: (_) => _sendMessage(),
                   ),
