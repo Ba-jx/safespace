@@ -1,18 +1,18 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 
 class ChatScreen extends StatefulWidget {
   final String patientId;
   final String doctorId;
-  final String patientName;
+  final String peerName;
   final bool isPatient;
 
   const ChatScreen({
     super.key,
     required this.patientId,
     required this.doctorId,
-    required this.patientName,
+    required this.peerName,
     required this.isPatient,
   });
 
@@ -34,9 +34,8 @@ class _ChatScreenState extends State<ChatScreen> {
     _markMessagesAsRead();
   }
 
-  String _getChatId(String user1, String user2) {
-    return user1.hashCode <= user2.hashCode ? '${user1}${user2}' : '${user2}${user1}';
-  }
+  String _getChatId(String a, String b) =>
+      a.hashCode <= b.hashCode ? '${a}$b' : '${b}$a';
 
   Future<void> _markMessagesAsRead() async {
     final messages = await FirebaseFirestore.instance
@@ -47,19 +46,14 @@ class _ChatScreenState extends State<ChatScreen> {
         .where('isRead', isEqualTo: false)
         .get();
 
-    for (var doc in messages.docs) {
-      doc.reference.update({'isRead': true});
+    for (var msg in messages.docs) {
+      msg.reference.update({'isRead': true});
     }
   }
 
   Future<void> _sendMessage() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
-
-    await FirebaseFirestore.instance.collection('messages').doc(chatId).set({
-      'typing': false,
-      'lastTyping': currentUserId,
-    }, SetOptions(merge: true));
 
     final message = {
       'senderId': currentUserId,
@@ -80,10 +74,10 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _scrollToBottom() {
-    Future.delayed(const Duration(milliseconds: 100), () {
+    Future.delayed(const Duration(milliseconds: 300), () {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent + 100,
+          _scrollController.position.maxScrollExtent,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
@@ -94,31 +88,9 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.patientName),
-      ),
+      appBar: AppBar(title: Text(widget.peerName)),
       body: Column(
         children: [
-          StreamBuilder<DocumentSnapshot>(
-            stream: FirebaseFirestore.instance.collection('messages').doc(chatId).snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.hasData && snapshot.data!.data() is Map<String, dynamic>) {
-                final data = snapshot.data!.data() as Map<String, dynamic>;
-                final typing = data['typing'] == true &&
-                    data['lastTyping'] != currentUserId;
-                return typing
-                    ? const Padding(
-                        padding: EdgeInsets.only(bottom: 4),
-                        child: Text(
-                          'Typing...',
-                          style: TextStyle(fontStyle: FontStyle.italic),
-                        ),
-                      )
-                    : const SizedBox.shrink();
-              }
-              return const SizedBox.shrink();
-            },
-          ),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -153,20 +125,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           color: isMe ? Colors.purple[200] : Colors.grey[300],
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(msg['message'] ?? ''),
-                            if (isMe && msg['isRead'] == true)
-                              const Padding(
-                                padding: EdgeInsets.only(top: 4),
-                                child: Text(
-                                  'Read',
-                                  style: TextStyle(fontSize: 10, color: Colors.black54),
-                                ),
-                              ),
-                          ],
-                        ),
+                        child: Text(msg['message'] ?? ''),
                       ),
                     );
                   },
@@ -181,12 +140,6 @@ class _ChatScreenState extends State<ChatScreen> {
                 Expanded(
                   child: TextField(
                     controller: _controller,
-                    onChanged: (text) {
-                      FirebaseFirestore.instance.collection('messages').doc(chatId).set({
-                        'typing': text.isNotEmpty,
-                        'lastTyping': currentUserId,
-                      }, SetOptions(merge: true));
-                    },
                     decoration: const InputDecoration(
                       hintText: 'Type your message...',
                       border: OutlineInputBorder(),
