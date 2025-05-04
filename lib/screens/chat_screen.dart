@@ -3,18 +3,16 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class ChatScreen extends StatefulWidget {
-  final String peerId;
-  final String peerName;
   final String patientId;
   final String doctorId;
+  final String patientName;
   final bool isPatient;
 
   const ChatScreen({
     super.key,
-    required this.peerId,
-    required this.peerName,
     required this.patientId,
     required this.doctorId,
+    required this.patientName,
     required this.isPatient,
   });
 
@@ -25,7 +23,8 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  late final String currentUserId;
+
+  late String currentUserId;
 
   @override
   void initState() {
@@ -33,27 +32,27 @@ class _ChatScreenState extends State<ChatScreen> {
     currentUserId = FirebaseAuth.instance.currentUser!.uid;
   }
 
-  String _getChatId(String user1, String user2) {
-    return user1.hashCode <= user2.hashCode ? '${user1}$user2' : '${user2}$user1';
+  String getChatId(String user1, String user2) {
+    return user1.hashCode <= user2.hashCode
+        ? '${user1}_$user2'
+        : '${user2}_$user1';
   }
 
   Future<void> _sendMessage() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
 
-    final chatId = _getChatId(widget.doctorId, widget.patientId);
+    final chatId = getChatId(widget.patientId, widget.doctorId);
 
     await FirebaseFirestore.instance
         .collection('messages')
         .doc(chatId)
-        .collection('chat')
+        .collection('chats')
         .add({
       'senderId': currentUserId,
-      'receiverId': widget.peerId,
-      'text': text,
+      'receiverId': widget.isPatient ? widget.doctorId : widget.patientId,
+      'message': text,
       'timestamp': FieldValue.serverTimestamp(),
-      'isRead': false,
-      'type': 'text',
     });
 
     _controller.clear();
@@ -66,10 +65,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final chatId = _getChatId(widget.doctorId, widget.patientId);
+    final chatId = getChatId(widget.patientId, widget.doctorId);
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.peerName)),
+      appBar: AppBar(title: Text(widget.patientName)),
       body: Column(
         children: [
           Expanded(
@@ -77,11 +76,13 @@ class _ChatScreenState extends State<ChatScreen> {
               stream: FirebaseFirestore.instance
                   .collection('messages')
                   .doc(chatId)
-                  .collection('chat')
+                  .collection('chats')
                   .orderBy('timestamp')
                   .snapshots(),
               builder: (context, snapshot) {
-                if (snapshot.hasError) return const Center(child: Text('Error loading messages'));
+                if (snapshot.hasError) {
+                  return const Center(child: Text('Error loading messages'));
+                }
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return const Center(child: Text('No messages yet.'));
                 }
@@ -92,8 +93,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   controller: _scrollController,
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
-                    final data = messages[index].data() as Map<String, dynamic>;
-                    final isMe = data['senderId'] == currentUserId;
+                    final msg = messages[index].data() as Map<String, dynamic>;
+                    final isMe = msg['senderId'] == currentUserId;
 
                     return Align(
                       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
@@ -104,7 +105,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           color: isMe ? Colors.purple[200] : Colors.grey[300],
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Text(data['text'] ?? ''),
+                        child: Text(msg['message'] ?? ''),
                       ),
                     );
                   },
