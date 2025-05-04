@@ -33,24 +33,49 @@ class DoctorCommunicationScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               final patient = patients[index];
               final patientName = patient['name'];
-              final patientEmail = patient['email'];
               final patientId = patient.id;
 
-              return ListTile(
-                leading: const Icon(Icons.person),
-                title: Text(patientName),
-                subtitle: Text(patientEmail),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ChatScreen(
-                        patientId: patientId,
-                        doctorId: doctorId,
-                        patientName: patientName,
-                        isPatient: false, // doctor is the sender
-                      ),
-                    ),
+              return StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('messages')
+                    .doc('${doctorId}_$patientId')
+                    .collection('chats')
+                    .where('receiverId', isEqualTo: doctorId)
+                    .where('read', isEqualTo: false)
+                    .snapshots(),
+                builder: (context, unreadSnapshot) {
+                  int unreadCount = unreadSnapshot.data?.docs.length ?? 0;
+
+                  return ListTile(
+                    title: Text(patientName),
+                    subtitle: Text(patient['email']),
+                    leading: const Icon(Icons.person),
+                    trailing: unreadCount > 0
+                        ? CircleAvatar(
+                            backgroundColor: Colors.red,
+                            radius: 10,
+                            child: Text(
+                              unreadCount.toString(),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.white,
+                              ),
+                            ),
+                          )
+                        : null,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ChatScreen(
+                            patientId: patientId,
+                            doctorId: doctorId,
+                            patientName: patientName,
+                            isPatient: false,
+                          ),
+                        ),
+                      );
+                    },
                   );
                 },
               );
