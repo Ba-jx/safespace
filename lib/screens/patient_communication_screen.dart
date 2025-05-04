@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'chat_screen.dart';
 
 class PatientCommunicationScreen extends StatelessWidget {
@@ -50,42 +51,21 @@ class PatientCommunicationScreen extends StatelessWidget {
 
             return Scaffold(
               appBar: AppBar(title: const Text('Chat with Your Doctor')),
-              body: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('messages')
-                    .doc(_getChatId(currentUser.uid, doctorId))
-                    .collection('chats')
-                    .where('receiverId', isEqualTo: currentUser.uid)
-                    .where('isRead', isEqualTo: false)
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  final unreadCount = snapshot.data?.docs.length ?? 0;
-
-                  return ListTile(
-                    leading: const Icon(Icons.person),
-                    title: Text(doctorName),
-                    subtitle: Text(doctorData['email'] ?? ''),
-                    trailing: unreadCount > 0
-                        ? CircleAvatar(
-                            radius: 12,
-                            backgroundColor: Colors.red,
-                            child: Text('$unreadCount',
-                                style: const TextStyle(fontSize: 12, color: Colors.white)),
-                          )
-                        : null,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ChatScreen(
-                            patientId: currentUser.uid,
-                            doctorId: doctorId,
-                            patientName: doctorName,
-                            isPatient: true,
-                          ),
-                        ),
-                      );
-                    },
+              body: ListTile(
+                leading: const Icon(Icons.person),
+                title: Text(doctorName),
+                subtitle: Text(doctorData['email'] ?? ''),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ChatScreen(
+                        patientId: currentUser.uid,
+                        doctorId: doctorId,
+                        patientName: doctorName,
+                        isPatient: true,
+                      ),
+                    ),
                   );
                 },
               ),
@@ -94,9 +74,5 @@ class PatientCommunicationScreen extends StatelessWidget {
         );
       },
     );
-  }
-
-  String _getChatId(String user1, String user2) {
-    return user1.hashCode <= user2.hashCode ? '${user1}$user2' : '${user2}$user1';
   }
 }
