@@ -34,12 +34,12 @@ class _ChatScreenState extends State<ChatScreen> {
     _markMessagesAsRead();
   }
 
-  String _getChatId(String uid1, String uid2) {
-    return uid1.compareTo(uid2) < 0 ? '${uid1}${uid2}' : '${uid2}${uid1}';
+  String _getChatId(String user1, String user2) {
+    return user1.hashCode <= user2.hashCode ? '${user1}${user2}' : '${user2}${user1}';
   }
 
   Future<void> _markMessagesAsRead() async {
-    final messages = await FirebaseFirestore.instance
+    final unread = await FirebaseFirestore.instance
         .collection('messages')
         .doc(chatId)
         .collection('chats')
@@ -47,7 +47,7 @@ class _ChatScreenState extends State<ChatScreen> {
         .where('isRead', isEqualTo: false)
         .get();
 
-    for (var doc in messages.docs) {
+    for (final doc in unread.docs) {
       doc.reference.update({'isRead': true});
     }
   }
@@ -56,32 +56,31 @@ class _ChatScreenState extends State<ChatScreen> {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
 
-    final message = {
+    await FirebaseFirestore.instance
+        .collection('messages')
+        .doc(chatId)
+        .collection('chats')
+        .add({
       'senderId': currentUserId,
       'receiverId': widget.isPatient ? widget.doctorId : widget.patientId,
       'message': text,
       'timestamp': FieldValue.serverTimestamp(),
       'isRead': false,
-    };
+    });
+
+    _controller.clear();
+    _scrollToBottom();
 
     await FirebaseFirestore.instance
         .collection('messages')
         .doc(chatId)
-        .collection('chats')
-        .add(message);
-
-    _controller.clear();
-    _scrollToBottom();
+        .set({'typing': false}, SetOptions(merge: true));
   }
 
   void _scrollToBottom() {
-    Future.delayed(const Duration(milliseconds: 100), () {
+    Future.delayed(const Duration(milliseconds: 300), () {
       if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent + 100,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
       }
     });
   }
@@ -89,11 +88,28 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.isPatient ? 'Your Doctor' : widget.patientName),
-      ),
+      appBar: AppBar(title: Text(widget.patientName)),
       body: Column(
         children: [
+          // Typing indicator
+          StreamBuilder<DocumentSnapshot>(
+            stream: FirebaseFirestore.instance.collection('messages').doc(chatId).snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.hasData && snapshot.data!.data() is Map<String, dynamic>) {
+                final data = snapshot.data!.data() as Map<String, dynamic>;
+                final typing = data['typing'] == true && !widget.isPatient;
+                return typing
+                    ? const Padding(
+                        padding: EdgeInsets.only(bottom: 4),
+                        child: Text('Doctor is typing...', style: TextStyle(fontStyle: FontStyle.italic)),
+                      )
+                    : const SizedBox.shrink();
+              }
+              return const SizedBox.shrink();
+            },
+          ),
+
+          // Message list
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -103,12 +119,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   .orderBy('timestamp')
                   .snapshots(),
               builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return const Center(child: Text('Error loading messages'));
-                }
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+                if (snapshot.hasError) return const Center(child: Text('Error loading messages'));
+                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
                 final messages = snapshot.data!.docs;
 
@@ -136,6 +148,8 @@ class _ChatScreenState extends State<ChatScreen> {
               },
             ),
           ),
+
+          // Input field
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Row(
@@ -147,6 +161,12 @@ class _ChatScreenState extends State<ChatScreen> {
                       hintText: 'Type your message...',
                       border: OutlineInputBorder(),
                     ),
+                    onChanged: (text) {
+                      FirebaseFirestore.instance
+                          .collection('messages')
+                          .doc(chatId)
+                          .set({'typing': text.isNotEmpty}, SetOptions(merge: true));
+                    },
                     onSubmitted: (_) => _sendMessage(),
                   ),
                 ),
@@ -154,7 +174,6 @@ class _ChatScreenState extends State<ChatScreen> {
                 IconButton(
                   onPressed: _sendMessage,
                   icon: const Icon(Icons.send),
-                  color: Theme.of(context).primaryColor,
                 ),
               ],
             ),
