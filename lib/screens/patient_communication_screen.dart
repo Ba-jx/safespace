@@ -10,7 +10,9 @@ class PatientCommunicationScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
-      return const Scaffold(body: Center(child: Text('User not logged in.')));
+      return const Scaffold(
+        body: Center(child: Text('User not logged in.')),
+      );
     }
 
     final userDoc = FirebaseFirestore.instance.collection('users').doc(currentUser.uid);
@@ -18,7 +20,12 @@ class PatientCommunicationScreen extends StatelessWidget {
     return FutureBuilder<DocumentSnapshot>(
       future: userDoc.get(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
+        if (!snapshot.hasData || !snapshot.data!.exists) {
+          return const Scaffold(body: Center(child: Text('User data not found.')));
+        }
 
         final userData = snapshot.data!.data() as Map<String, dynamic>;
         final doctorId = userData['doctorId'];
@@ -30,7 +37,13 @@ class PatientCommunicationScreen extends StatelessWidget {
         return FutureBuilder<DocumentSnapshot>(
           future: FirebaseFirestore.instance.collection('users').doc(doctorId).get(),
           builder: (context, doctorSnap) {
-            if (!doctorSnap.hasData) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+            if (doctorSnap.connectionState == ConnectionState.waiting) {
+              return const Scaffold(body: Center(child: CircularProgressIndicator()));
+            }
+
+            if (!doctorSnap.hasData || !doctorSnap.data!.exists) {
+              return const Scaffold(body: Center(child: Text('Assigned doctor not found.')));
+            }
 
             final doctorData = doctorSnap.data!.data() as Map<String, dynamic>;
             final doctorName = doctorData['name'] ?? 'Doctor';
@@ -47,9 +60,9 @@ class PatientCommunicationScreen extends StatelessWidget {
                     MaterialPageRoute(
                       builder: (_) => ChatScreen(
                         patientId: currentUser.uid,
+                        doctorId: doctorId,
                         patientName: doctorName,
                         isPatient: true,
-                        doctorId: doctorId,
                       ),
                     ),
                   );
