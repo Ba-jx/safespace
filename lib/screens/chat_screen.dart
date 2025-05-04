@@ -31,8 +31,8 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     chatId = widget.patientId.hashCode <= widget.doctorId.hashCode
-        ? '\${widget.patientId}_\${widget.doctorId}'
-        : '\${widget.doctorId}_\${widget.patientId}';
+        ? '${widget.patientId}_${widget.doctorId}'
+        : '${widget.doctorId}_${widget.patientId}';
 
     _markMessagesAsRead();
   }
@@ -68,17 +68,25 @@ class _ChatScreenState extends State<ChatScreen> {
     });
 
     _controller.clear();
-    _scrollController.animateTo(
-      _scrollController.position.maxScrollExtent + 80,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOut,
-    );
+    Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
+  }
+
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent + 80,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.patientName)),
+      appBar: AppBar(
+        title: Text(widget.patientName),
+      ),
       body: Column(
         children: [
           Expanded(
@@ -90,6 +98,9 @@ class _ChatScreenState extends State<ChatScreen> {
                   .orderBy('timestamp')
                   .snapshots(),
               builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return const Center(child: Text('Error loading messages'));
+                }
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
@@ -102,13 +113,12 @@ class _ChatScreenState extends State<ChatScreen> {
                   itemBuilder: (context, index) {
                     final data = messages[index].data() as Map<String, dynamic>;
                     final isMe = data['senderId'] == currentUserId;
+                    final isRead = data['isRead'] == true;
 
                     return Align(
-                      alignment:
-                          isMe ? Alignment.centerRight : Alignment.centerLeft,
+                      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
                       child: Container(
-                        margin: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
+                        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: isMe ? Colors.purple[200] : Colors.grey[300],
@@ -118,11 +128,13 @@ class _ChatScreenState extends State<ChatScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(data['message'] ?? ''),
-                            if (!isMe && !(data['isRead'] ?? true))
-                              const Text(
-                                ' (unread)',
-                                style: TextStyle(
-                                    fontSize: 10, color: Colors.redAccent),
+                            if (isMe)
+                              Align(
+                                alignment: Alignment.bottomRight,
+                                child: Text(
+                                  isRead ? 'Read' : 'Delivered',
+                                  style: const TextStyle(fontSize: 10, color: Colors.black54),
+                                ),
                               ),
                           ],
                         ),
