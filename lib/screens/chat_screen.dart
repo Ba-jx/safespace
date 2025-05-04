@@ -1,4 +1,3 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -32,12 +31,11 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     currentUserId = FirebaseAuth.instance.currentUser!.uid;
     chatId = _getChatId(widget.patientId, widget.doctorId);
-
     _markMessagesAsRead();
   }
 
   String _getChatId(String user1, String user2) {
-    return user1.hashCode <= user2.hashCode ? '${user1}_$user2' : '${user2}_$user1';
+    return user1.hashCode <= user2.hashCode ? '${user1}$user2' : '${user2}$user1';
   }
 
   Future<void> _markMessagesAsRead() async {
@@ -75,7 +73,7 @@ class _ChatScreenState extends State<ChatScreen> {
     await FirebaseFirestore.instance
         .collection('messages')
         .doc(chatId)
-        .set({'typing_${currentUserId}': false}, SetOptions(merge: true));
+        .set({'typing_$currentUserId': false}, SetOptions(merge: true));
 
     _controller.clear();
     _scrollToBottom();
@@ -96,11 +94,10 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.isPatient ? 'Your Doctor' : widget.patientName),
-      ),
+      appBar: AppBar(title: Text(widget.isPatient ? 'Your Doctor' : widget.patientName)),
       body: Column(
         children: [
+          // Typing indicator
           StreamBuilder<DocumentSnapshot>(
             stream: FirebaseFirestore.instance.collection('messages').doc(chatId).snapshots(),
             builder: (context, snapshot) {
@@ -118,6 +115,7 @@ class _ChatScreenState extends State<ChatScreen> {
               return const SizedBox.shrink();
             },
           ),
+          // Messages stream
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -160,6 +158,7 @@ class _ChatScreenState extends State<ChatScreen> {
               },
             ),
           ),
+          // Input field
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Row(
