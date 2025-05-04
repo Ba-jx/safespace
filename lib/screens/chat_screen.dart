@@ -31,16 +31,15 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     currentUserId = FirebaseAuth.instance.currentUser!.uid;
     chatId = _getChatId(widget.patientId, widget.doctorId);
-
     _markMessagesAsRead();
   }
 
   String _getChatId(String user1, String user2) {
-    return user1.hashCode <= user2.hashCode ? '${user1}$user2' : '${user2}$user1';
+    return user1.compareTo(user2) < 0 ? '${user1}$user2' : '${user2}$user1';
   }
 
   Future<void> _markMessagesAsRead() async {
-    final messages = await FirebaseFirestore.instance
+    final unread = await FirebaseFirestore.instance
         .collection('messages')
         .doc(chatId)
         .collection('chats')
@@ -48,7 +47,7 @@ class _ChatScreenState extends State<ChatScreen> {
         .where('isRead', isEqualTo: false)
         .get();
 
-    for (var doc in messages.docs) {
+    for (var doc in unread.docs) {
       doc.reference.update({'isRead': true});
     }
   }
@@ -57,19 +56,19 @@ class _ChatScreenState extends State<ChatScreen> {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
 
-    final message = {
-      'senderId': currentUserId,
-      'receiverId': widget.isPatient ? widget.doctorId : widget.patientId,
-      'message': text,
-      'timestamp': FieldValue.serverTimestamp(),
-      'isRead': false,
-    };
+    final receiverId = widget.isPatient ? widget.doctorId : widget.patientId;
 
     await FirebaseFirestore.instance
         .collection('messages')
         .doc(chatId)
         .collection('chats')
-        .add(message);
+        .add({
+      'senderId': currentUserId,
+      'receiverId': receiverId,
+      'message': text,
+      'timestamp': FieldValue.serverTimestamp(),
+      'isRead': false,
+    });
 
     _controller.clear();
     _scrollToBottom();
