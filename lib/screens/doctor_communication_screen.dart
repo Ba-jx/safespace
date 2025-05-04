@@ -32,26 +32,27 @@ class DoctorCommunicationScreen extends StatelessWidget {
             itemCount: patients.length,
             itemBuilder: (context, index) {
               final patient = patients[index];
-              final patientName = patient['name'];
               final patientId = patient.id;
-
               final chatId = doctorId.hashCode <= patientId.hashCode
-                  ? '${doctorId}_$patientId'
-                  : '${patientId}_$doctorId';
+                  ? '${doctorId}$patientId'
+                  : '${patientId}$doctorId';
+
+              final unreadStream = FirebaseFirestore.instance
+                  .collection('messages')
+                  .doc(chatId)
+                  .collection('chats')
+                  .where('receiverId', isEqualTo: doctorId)
+                  .where('isRead', isEqualTo: false)
+                  .snapshots();
 
               return StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('messages')
-                    .doc(chatId)
-                    .collection('chats')
-                    .where('receiverId', isEqualTo: doctorId)
-                    .where('isRead', isEqualTo: false)
-                    .snapshots(),
-                builder: (context, unreadSnapshot) {
-                  final unreadCount = unreadSnapshot.data?.docs.length ?? 0;
+                stream: unreadStream,
+                builder: (context, snapshot) {
+                  final unreadCount = snapshot.data?.docs.length ?? 0;
 
                   return ListTile(
-                    title: Text(patientName),
+                    leading: const Icon(Icons.person),
+                    title: Text(patient['name']),
                     subtitle: Text(patient['email']),
                     trailing: unreadCount > 0
                         ? CircleAvatar(
@@ -63,7 +64,6 @@ class DoctorCommunicationScreen extends StatelessWidget {
                             ),
                           )
                         : null,
-                    leading: const Icon(Icons.person),
                     onTap: () {
                       Navigator.push(
                         context,
@@ -71,7 +71,7 @@ class DoctorCommunicationScreen extends StatelessWidget {
                           builder: (_) => ChatScreen(
                             patientId: patientId,
                             doctorId: doctorId,
-                            patientName: patientName,
+                            patientName: patient['name'],
                             isPatient: false,
                           ),
                         ),
