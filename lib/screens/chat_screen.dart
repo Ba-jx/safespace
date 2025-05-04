@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 
 class ChatScreen extends StatefulWidget {
   final String patientId;
@@ -23,26 +23,37 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final currentUserId = FirebaseAuth.instance.currentUser!.uid;
 
-  late String currentUserId;
+  late final String chatId;
 
   @override
   void initState() {
     super.initState();
-    currentUserId = FirebaseAuth.instance.currentUser!.uid;
+    chatId = widget.patientId.hashCode <= widget.doctorId.hashCode
+        ? '\${widget.patientId}_\${widget.doctorId}'
+        : '\${widget.doctorId}_\${widget.patientId}';
+
+    _markMessagesAsRead();
   }
 
-  String getChatId(String user1, String user2) {
-    return user1.hashCode <= user2.hashCode
-        ? '${user1}_$user2'
-        : '${user2}_$user1';
+  Future<void> _markMessagesAsRead() async {
+    final unreadMessages = await FirebaseFirestore.instance
+        .collection('messages')
+        .doc(chatId)
+        .collection('chats')
+        .where('receiverId', isEqualTo: currentUserId)
+        .where('isRead', isEqualTo: false)
+        .get();
+
+    for (var doc in unreadMessages.docs) {
+      doc.reference.update({'isRead': true});
+    }
   }
 
   Future<void> _sendMessage() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
-
-    final chatId = getChatId(widget.patientId, widget.doctorId);
 
     await FirebaseFirestore.instance
         .collection('messages')
@@ -53,6 +64,7 @@ class _ChatScreenState extends State<ChatScreen> {
       'receiverId': widget.isPatient ? widget.doctorId : widget.patientId,
       'message': text,
       'timestamp': FieldValue.serverTimestamp(),
+      'isRead': false,
     });
 
     _controller.clear();
@@ -65,8 +77,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final chatId = getChatId(widget.patientId, widget.doctorId);
-
     return Scaffold(
       appBar: AppBar(title: Text(widget.patientName)),
       body: Column(
@@ -80,11 +90,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   .orderBy('timestamp')
                   .snapshots(),
               builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return const Center(child: Text('Error loading messages'));
-                }
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(child: Text('No messages yet.'));
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
                 }
 
                 final messages = snapshot.data!.docs;
@@ -93,19 +100,32 @@ class _ChatScreenState extends State<ChatScreen> {
                   controller: _scrollController,
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
-                    final msg = messages[index].data() as Map<String, dynamic>;
-                    final isMe = msg['senderId'] == currentUserId;
+                    final data = messages[index].data() as Map<String, dynamic>;
+                    final isMe = data['senderId'] == currentUserId;
 
                     return Align(
-                      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                      alignment:
+                          isMe ? Alignment.centerRight : Alignment.centerLeft,
                       child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: isMe ? Colors.purple[200] : Colors.grey[300],
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Text(msg['message'] ?? ''),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(data['message'] ?? ''),
+                            if (!isMe && !(data['isRead'] ?? true))
+                              const Text(
+                                ' (unread)',
+                                style: TextStyle(
+                                    fontSize: 10, color: Colors.redAccent),
+                              ),
+                          ],
+                        ),
                       ),
                     );
                   },
