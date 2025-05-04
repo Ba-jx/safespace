@@ -10,9 +10,7 @@ class PatientCommunicationScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
-      return const Scaffold(
-        body: Center(child: Text('User not logged in.')),
-      );
+      return const Scaffold(body: Center(child: Text('User not logged in.')));
     }
 
     final userDoc = FirebaseFirestore.instance.collection('users').doc(currentUser.uid);
@@ -27,8 +25,8 @@ class PatientCommunicationScreen extends StatelessWidget {
           return const Scaffold(body: Center(child: Text('User data not found.')));
         }
 
-        final userData = snapshot.data!.data() as Map<String, dynamic>;
-        final doctorId = userData['doctorId'];
+        final data = snapshot.data!.data() as Map<String, dynamic>;
+        final doctorId = data['doctorId'];
 
         if (doctorId == null || doctorId.isEmpty) {
           return const Scaffold(body: Center(child: Text('No assigned doctor found.')));
@@ -40,34 +38,35 @@ class PatientCommunicationScreen extends StatelessWidget {
             if (doctorSnap.connectionState == ConnectionState.waiting) {
               return const Scaffold(body: Center(child: CircularProgressIndicator()));
             }
-
             if (!doctorSnap.hasData || !doctorSnap.data!.exists) {
-              return const Scaffold(body: Center(child: Text('Assigned doctor not found.')));
+              return const Scaffold(body: Center(child: Text('Doctor not found.')));
             }
 
-            final doctorData = doctorSnap.data!.data() as Map<String, dynamic>;
-            final doctorName = doctorData['name'] ?? 'Doctor';
+            final doctor = doctorSnap.data!.data() as Map<String, dynamic>;
+            final doctorName = doctor['name'] ?? 'Doctor';
             final chatId = currentUser.uid.hashCode <= doctorId.hashCode
-                ? '${currentUser.uid}_$doctorId'
-                : '${doctorId}_${currentUser.uid}';
+                ? '${currentUser.uid}$doctorId'
+                : '${doctorId}${currentUser.uid}';
 
-            return StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('messages')
-                  .doc(chatId)
-                  .collection('chats')
-                  .where('receiverId', isEqualTo: currentUser.uid)
-                  .where('isRead', isEqualTo: false)
-                  .snapshots(),
-              builder: (context, unreadSnapshot) {
-                final unreadCount = unreadSnapshot.data?.docs.length ?? 0;
+            final unreadStream = FirebaseFirestore.instance
+                .collection('messages')
+                .doc(chatId)
+                .collection('chats')
+                .where('receiverId', isEqualTo: currentUser.uid)
+                .where('isRead', isEqualTo: false)
+                .snapshots();
 
-                return Scaffold(
-                  appBar: AppBar(title: const Text('Chat with Your Doctor')),
-                  body: ListTile(
+            return Scaffold(
+              appBar: AppBar(title: const Text('Chat with Your Doctor')),
+              body: StreamBuilder<QuerySnapshot>(
+                stream: unreadStream,
+                builder: (context, snapshot) {
+                  final unreadCount = snapshot.data?.docs.length ?? 0;
+
+                  return ListTile(
                     leading: const Icon(Icons.person),
                     title: Text(doctorName),
-                    subtitle: Text(doctorData['email'] ?? ''),
+                    subtitle: Text(doctor['email'] ?? ''),
                     trailing: unreadCount > 0
                         ? CircleAvatar(
                             radius: 12,
@@ -91,9 +90,9 @@ class PatientCommunicationScreen extends StatelessWidget {
                         ),
                       );
                     },
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             );
           },
         );
