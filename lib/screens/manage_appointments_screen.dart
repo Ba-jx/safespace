@@ -10,19 +10,6 @@ class ManageAppointmentsScreen extends StatelessWidget {
     await doc.reference.update({'status': newStatus});
   }
 
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'confirmed':
-        return Colors.blueAccent;
-      case 'completed':
-        return Colors.green;
-      case 'cancelled':
-        return Colors.redAccent;
-      default:
-        return Colors.orangeAccent;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final currentDoctorId = FirebaseAuth.instance.currentUser?.uid ?? '';
@@ -33,14 +20,13 @@ class ManageAppointmentsScreen extends StatelessWidget {
         stream: FirebaseFirestore.instance
             .collectionGroup('appointments')
             .where('doctorId', isEqualTo: currentDoctorId)
-            .orderBy('dateTime', descending: false)
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return Center(child: Text('Error: \${snapshot.error}'));
+            return Center(child: Text('Error loading appointments: ${snapshot.error}'));
           }
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text('No appointments found'));
+            return const Center(child: Text('No appointments found.'));
           }
 
           final appointments = snapshot.data!.docs;
@@ -51,10 +37,15 @@ class ManageAppointmentsScreen extends StatelessWidget {
               final doc = appointments[index];
               final data = doc.data() as Map<String, dynamic>;
 
-              final dateTime = (data['dateTime'] ?? data['date']) as Timestamp?;
-              final formatted = dateTime != null
-                  ? DateFormat('MMM dd, yyyy – hh:mm a').format(dateTime.toDate())
-                  : 'No Date';
+              final timestamp = data['dateTime'] ?? data['date'];
+              DateTime? dateTime;
+              if (timestamp is Timestamp) {
+                dateTime = timestamp.toDate();
+              }
+
+              final formattedDate = dateTime != null
+                  ? DateFormat('MMM dd, yyyy – hh:mm a').format(dateTime)
+                  : 'Unknown Date';
 
               final note = data['note'] ?? '';
               final status = data['status'] ?? 'pending';
@@ -62,36 +53,14 @@ class ManageAppointmentsScreen extends StatelessWidget {
 
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 4,
                 child: ListTile(
-                  title: Text(
-                    patientName,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                  title: Text(patientName),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Date: $formatted'),
+                      Text('Date: $formattedDate'),
                       if (note.isNotEmpty) Text('Note: $note'),
-                      Row(
-                        children: [
-                          const Text('Status: '),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: _getStatusColor(status),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              status.toUpperCase(),
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ],
-                      ),
+                      Text('Status: $status'),
                     ],
                   ),
                   trailing: PopupMenuButton<String>(
@@ -102,7 +71,7 @@ class ManageAppointmentsScreen extends StatelessWidget {
                       const PopupMenuItem(value: 'completed', child: Text('Completed')),
                       const PopupMenuItem(value: 'cancelled', child: Text('Cancelled')),
                     ],
-                    icon: const Icon(Icons.edit),
+                    icon: const Icon(Icons.more_vert),
                   ),
                 ),
               );
