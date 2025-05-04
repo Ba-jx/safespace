@@ -1,10 +1,14 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'chat_screen.dart';
 
 class PatientCommunicationScreen extends StatelessWidget {
   const PatientCommunicationScreen({super.key});
+
+  String _getChatId(String user1, String user2) {
+    return user1.hashCode <= user2.hashCode ? '${user1}_${user2}' : '${user2}_${user1}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,33 +50,32 @@ class PatientCommunicationScreen extends StatelessWidget {
             }
 
             final doctorData = doctorSnap.data!.data() as Map<String, dynamic>;
-            final doctorName = doctorData['name'] ?? 'Your Doctor';
+            final doctorName = doctorData['name'] ?? 'Doctor';
+            final chatId = _getChatId(currentUser.uid, doctorId);
 
-            return StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('messages')
-                  .doc('${currentUser.uid}_$doctorId')
-                  .collection('chats')
-                  .where('receiverId', isEqualTo: currentUser.uid)
-                  .where('isRead', isEqualTo: false)
-                  .snapshots(),
-              builder: (context, unreadSnapshot) {
-                final unread = unreadSnapshot.data?.docs.length ?? 0;
+            return Scaffold(
+              appBar: AppBar(title: const Text('Chat with Your Doctor')),
+              body: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('messages')
+                    .doc(chatId)
+                    .collection('chats')
+                    .where('receiverId', isEqualTo: currentUser.uid)
+                    .where('isRead', isEqualTo: false)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  final unreadCount = snapshot.data?.docs.length ?? 0;
 
-                return Scaffold(
-                  appBar: AppBar(title: const Text('Chat with Your Doctor')),
-                  body: ListTile(
+                  return ListTile(
                     leading: const Icon(Icons.person),
                     title: Text(doctorName),
                     subtitle: Text(doctorData['email'] ?? ''),
-                    trailing: unread > 0
+                    trailing: unreadCount > 0
                         ? CircleAvatar(
-                            backgroundColor: Colors.red,
                             radius: 12,
-                            child: Text(
-                              '$unread',
-                              style: const TextStyle(color: Colors.white, fontSize: 12),
-                            ),
+                            backgroundColor: Colors.red,
+                            child: Text('$unreadCount',
+                                style: const TextStyle(fontSize: 12, color: Colors.white)),
                           )
                         : null,
                     onTap: () {
@@ -82,15 +85,15 @@ class PatientCommunicationScreen extends StatelessWidget {
                           builder: (_) => ChatScreen(
                             patientId: currentUser.uid,
                             doctorId: doctorId,
-                            peerName: doctorName,
+                            patientName: doctorName,
                             isPatient: true,
                           ),
                         ),
                       );
                     },
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             );
           },
         );
