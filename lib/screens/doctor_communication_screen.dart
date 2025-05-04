@@ -1,105 +1,59 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'chat_screen.dart';
 
-import '../widgets/custom_drawer.dart';
-
-class DoctorCommunicationScreen extends StatefulWidget {
+class DoctorCommunicationScreen extends StatelessWidget {
   const DoctorCommunicationScreen({super.key});
 
   @override
-  State<DoctorCommunicationScreen> createState() =>
-      _DoctorCommunicationScreenState();
-}
-
-class _DoctorCommunicationScreenState extends State<DoctorCommunicationScreen> {
-  final TextEditingController _messageController = TextEditingController();
-
-  void _sendMessage() async {
-    final text = _messageController.text.trim();
-    if (text.isEmpty) return;
-
-    await FirebaseFirestore.instance.collection('chat_messages').add({
-      'sender': 'patient',
-      'message': text,
-      'timestamp': FieldValue.serverTimestamp(),
-    });
-
-    _messageController.clear();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final doctorId = FirebaseAuth.instance.currentUser!.uid;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Doctor Communication')),
-      drawer: const CustomDrawer(),
-      body: Column(
-        children: [
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream:
-                  FirebaseFirestore.instance
-                      .collection('chat_messages')
-                      .orderBy('timestamp', descending: false)
-                      .snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+      appBar: AppBar(title: const Text('Communicate with Patients')),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('users')
+            .where('doctorId', isEqualTo: doctorId)
+            .where('role', isEqualTo: 'patient')
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return const Center(child: Text('Error loading patients'));
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text('No assigned patients'));
+          }
 
-                final messages = snapshot.data!.docs;
+          final patients = snapshot.data!.docs;
 
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    final msg = messages[index];
-                    final isPatient = msg['sender'] == 'patient';
-                    return Align(
-                      alignment:
-                          isPatient
-                              ? Alignment.centerRight
-                              : Alignment.centerLeft,
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(vertical: 4),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color:
-                              isPatient ? Colors.purple[100] : Colors.grey[300],
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(msg['message']),
+          return ListView.builder(
+            itemCount: patients.length,
+            itemBuilder: (context, index) {
+              final patient = patients[index];
+              final patientName = patient['name'];
+              final patientId = patient.id;
+
+              return ListTile(
+                title: Text(patientName),
+                subtitle: Text(patient['email']),
+                leading: const Icon(Icons.person),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ChatScreen(
+                        patientId: patientId,
+                        patientName: patientName,
                       ),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    decoration: const InputDecoration(
-                      hintText: 'Type your message...',
-                      border: OutlineInputBorder(),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(Icons.send),
-                  onPressed: _sendMessage,
-                ),
-              ],
-            ),
-          ),
-        ],
+                  );
+                },
+              );
+            },
+          );
+        },
       ),
     );
   }
