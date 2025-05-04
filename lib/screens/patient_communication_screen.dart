@@ -28,14 +28,14 @@ class PatientCommunicationScreen extends StatelessWidget {
         }
 
         final userData = snapshot.data!.data() as Map<String, dynamic>;
-        final doctorId = userData['doctorId'];
+        final assignedDoctorId = userData['doctorId'];
 
-        if (doctorId == null || doctorId.isEmpty) {
+        if (assignedDoctorId == null || assignedDoctorId.isEmpty) {
           return const Scaffold(body: Center(child: Text('No assigned doctor found.')));
         }
 
         return FutureBuilder<DocumentSnapshot>(
-          future: FirebaseFirestore.instance.collection('users').doc(doctorId).get(),
+          future: FirebaseFirestore.instance.collection('users').doc(assignedDoctorId).get(),
           builder: (context, doctorSnap) {
             if (doctorSnap.connectionState == ConnectionState.waiting) {
               return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -47,51 +47,29 @@ class PatientCommunicationScreen extends StatelessWidget {
 
             final doctorData = doctorSnap.data!.data() as Map<String, dynamic>;
             final doctorName = doctorData['name'] ?? 'Doctor';
+            final doctorId = doctorSnap.id;
 
             final chatId = currentUser.uid.hashCode <= doctorId.hashCode
                 ? '${currentUser.uid}_$doctorId'
-                : '$doctorId_${currentUser.uid}';
+                : '${doctorId}_${currentUser.uid}';
 
             return Scaffold(
               appBar: AppBar(title: const Text('Chat with Your Doctor')),
-              body: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('messages')
-                    .doc(chatId)
-                    .collection('chats')
-                    .where('receiverId', isEqualTo: currentUser.uid)
-                    .where('isRead', isEqualTo: false)
-                    .snapshots(),
-                builder: (context, unreadSnapshot) {
-                  final unreadCount = unreadSnapshot.data?.docs.length ?? 0;
-
-                  return ListTile(
-                    leading: const Icon(Icons.person),
-                    title: Text(doctorName),
-                    subtitle: Text(doctorData['email'] ?? ''),
-                    trailing: unreadCount > 0
-                        ? CircleAvatar(
-                            radius: 12,
-                            backgroundColor: Colors.red,
-                            child: Text(
-                              '$unreadCount',
-                              style: const TextStyle(fontSize: 12, color: Colors.white),
-                            ),
-                          )
-                        : null,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ChatScreen(
-                            patientId: currentUser.uid,
-                            doctorId: doctorId,
-                            patientName: doctorName,
-                            isPatient: true,
-                          ),
-                        ),
-                      );
-                    },
+              body: ListTile(
+                leading: const Icon(Icons.person),
+                title: Text(doctorName),
+                subtitle: Text(doctorData['email'] ?? ''),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ChatScreen(
+                        patientId: currentUser.uid,
+                        doctorId: doctorId,
+                        patientName: doctorName,
+                        isPatient: true,
+                      ),
+                    ),
                   );
                 },
               ),
