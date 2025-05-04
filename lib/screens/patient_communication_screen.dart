@@ -28,14 +28,14 @@ class PatientCommunicationScreen extends StatelessWidget {
         }
 
         final userData = snapshot.data!.data() as Map<String, dynamic>;
-        final assignedDoctorId = userData['doctorId'];
+        final doctorId = userData['doctorId'];
 
-        if (assignedDoctorId == null || assignedDoctorId.isEmpty) {
+        if (doctorId == null || doctorId.isEmpty) {
           return const Scaffold(body: Center(child: Text('No assigned doctor found.')));
         }
 
         return FutureBuilder<DocumentSnapshot>(
-          future: FirebaseFirestore.instance.collection('users').doc(assignedDoctorId).get(),
+          future: FirebaseFirestore.instance.collection('users').doc(doctorId).get(),
           builder: (context, doctorSnap) {
             if (doctorSnap.connectionState == ConnectionState.waiting) {
               return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -47,7 +47,6 @@ class PatientCommunicationScreen extends StatelessWidget {
 
             final doctorData = doctorSnap.data!.data() as Map<String, dynamic>;
             final doctorName = doctorData['name'] ?? 'Doctor';
-            final doctorId = doctorSnap.id;
 
             final chatId = currentUser.uid.hashCode <= doctorId.hashCode
                 ? '${currentUser.uid}_$doctorId'
