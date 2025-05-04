@@ -35,11 +35,11 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   String _getChatId(String user1, String user2) {
-    return user1.compareTo(user2) <= 0 ? '${user1}${user2}' : '${user2}${user1}';
+    return user1.compareTo(user2) <= 0 ? '${user1}$user2' : '${user2}$user1';
   }
 
   Future<void> _markMessagesAsRead() async {
-    final unread = await FirebaseFirestore.instance
+    final messages = await FirebaseFirestore.instance
         .collection('messages')
         .doc(chatId)
         .collection('chats')
@@ -47,7 +47,7 @@ class _ChatScreenState extends State<ChatScreen> {
         .where('isRead', isEqualTo: false)
         .get();
 
-    for (var doc in unread.docs) {
+    for (var doc in messages.docs) {
       doc.reference.update({'isRead': true});
     }
   }
@@ -78,7 +78,7 @@ class _ChatScreenState extends State<ChatScreen> {
     Future.delayed(const Duration(milliseconds: 100), () {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent + 80,
+          _scrollController.position.maxScrollExtent + 100,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
@@ -106,8 +106,8 @@ class _ChatScreenState extends State<ChatScreen> {
                 if (snapshot.hasError) {
                   return const Center(child: Text('Error loading messages'));
                 }
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(child: Text('No messages yet.'));
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
                 }
 
                 final messages = snapshot.data!.docs;
