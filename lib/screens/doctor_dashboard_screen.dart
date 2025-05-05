@@ -25,6 +25,11 @@ class DoctorDashboardScreen extends StatelessWidget {
               onTap: () => Navigator.pushNamed(context, '/doctor/patients'),
             ),
             _DashboardTile(
+              icon: Icons.person_add,
+              label: 'Create Patient',
+              onTap: () => Navigator.pushNamed(context, '/doctor/create-patient'),
+            ),
+            _DashboardTile(
               icon: Icons.calendar_today,
               label: 'Manage Appointments',
               onTap: () => Navigator.pushNamed(context, '/doctor/appointments'),
