@@ -30,10 +30,7 @@ class _DoctorCreatesPatientScreenState extends State<DoctorCreatesPatientScreen>
         password: _passwordController.text.trim(),
       );
 
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userCredential.user!.uid)
-          .set({
+      await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
         'name': _nameController.text.trim(),
         'email': _emailController.text.trim(),
         'role': 'patient',
@@ -60,6 +57,7 @@ class _DoctorCreatesPatientScreenState extends State<DoctorCreatesPatientScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Drawer removed to avoid Provider error
       appBar: AppBar(title: const Text('Create Patient Account')),
       body: Padding(
         padding: const EdgeInsets.all(24),
