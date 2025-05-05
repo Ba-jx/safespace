@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
-// Screens
-import 'screens/home_screen.dart';
+// Import your screens
 import 'screens/role_selection_screen.dart';
 import 'screens/patient_login_screen.dart';
 import 'screens/doctor_login_screen.dart';
+import 'screens/home_screen.dart';
 import 'screens/doctor_dashboard_screen.dart';
-import 'screens/doctor_create_patient_screen.dart';
+import 'screens/doctor_create_patient_screen.dart'; // ✅ Make sure this matches the filename
 import 'screens/manage_appointments_screen.dart';
 import 'screens/view_patients_screen.dart';
 import 'screens/doctor_communication_screen.dart';
@@ -32,7 +32,7 @@ class SafeSpaceApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.purple,
-        scaffoldBackgroundColor: const Color(0xFFF9F7FC),
+        scaffoldBackgroundColor: const Color(0xFFFFF9F7FC),
       ),
       initialRoute: '/login',
       routes: {
@@ -41,7 +41,7 @@ class SafeSpaceApp extends StatelessWidget {
         '/doctor/login': (context) => const DoctorLoginScreen(),
         '/home': (context) => const HomeScreen(),
         '/doctor/dashboard': (context) => const DoctorDashboardScreen(),
-        '/doctor/create-patient': (context) => const DoctorCreatePatientScreen(), // ✅ Added
+        '/doctor/create-patient': (context) => const DoctorCreatesPatientScreen(), // ✅ FIXED
         '/doctor/appointments': (context) => const ManageAppointmentsScreen(),
         '/doctor/patients': (context) => const ViewPatientsScreen(),
         '/doctor/communication': (context) => const DoctorCommunicationScreen(),
