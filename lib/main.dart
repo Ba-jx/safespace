@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:provider/provider.dart';
-
 import 'firebase_options.dart';
-import 'providers/user_provider.dart';
 
-// Screens
+// Import screens
 import 'screens/role_selection_screen.dart';
 import 'screens/patient_login_screen.dart';
 import 'screens/doctor_login_screen.dart';
@@ -16,6 +13,7 @@ import 'screens/manage_appointments_screen.dart';
 import 'screens/view_patients_screen.dart';
 import 'screens/doctor_communication_screen.dart';
 import 'screens/patient_communication_screen.dart';
+import 'screens/settings_screen.dart'; // ✅ Added Settings screen
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,29 +28,27 @@ class SafeSpaceApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => UserProvider(),
-      child: MaterialApp(
-        title: 'SafeSpace',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          primarySwatch: Colors.purple,
-          scaffoldBackgroundColor: const Color(0xfff9f7fc),
-        ),
-        initialRoute: '/login',
-        routes: {
-          '/login': (context) => const RoleSelectionScreen(),
-          '/patient/login': (context) => const PatientLoginScreen(),
-          '/doctor/login': (context) => const DoctorLoginScreen(),
-          '/home': (context) => const HomeScreen(),
-          '/doctor/dashboard': (context) => const DoctorDashboardScreen(),
-          '/doctor/create-patient': (context) => const DoctorCreatesPatientScreen(),
-          '/doctor/appointments': (context) => const ManageAppointmentsScreen(),
-          '/doctor/patients': (context) => const ViewPatientsScreen(),
-          '/doctor/communication': (context) => const DoctorCommunicationScreen(),
-          '/patient/communication': (context) => const PatientCommunicationScreen(),
-        },
+    return MaterialApp(
+      title: 'SafeSpace',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primarySwatch: Colors.purple,
+        scaffoldBackgroundColor: const Color(0xFFF9F7FC),
       ),
+      initialRoute: '/login',
+      routes: {
+        '/login': (context) => const RoleSelectionScreen(),
+        '/patient/login': (context) => const PatientLoginScreen(),
+        '/doctor/login': (context) => const DoctorLoginScreen(),
+        '/home': (context) => const HomeScreen(),
+        '/doctor/dashboard': (context) => const DoctorDashboardScreen(),
+        '/doctor/create-patient': (context) => const DoctorCreatesPatientScreen(),
+        '/doctor/appointments': (context) => const ManageAppointmentsScreen(),
+        '/doctor/patients': (context) => const ViewPatientsScreen(),
+        '/doctor/communication': (context) => const DoctorCommunicationScreen(),
+        '/patient/communication': (context) => const PatientCommunicationScreen(),
+        '/settings': (context) => const SettingsScreen(), // ✅ Added here
+      },
     );
   }
 }
