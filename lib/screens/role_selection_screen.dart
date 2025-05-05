@@ -6,95 +6,58 @@ class RoleSelectionScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F3F8),
-      body: Column(
-        children: [
-          const SizedBox(height: 60),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
+      backgroundColor: const Color(0xFFF9F7FC),
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: ClipOval(
-                    child: Image.asset(
-                      'assets/images/safe_space_logo.jpg',
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
+                Image.asset('assets/images/safe_space_logo.jpg', height: 120),
                 const SizedBox(height: 24),
                 const Text(
                   'Welcome to Safe Space',
                   style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF6A4C93),
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.purple,
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 const Text(
                   'A mental wellness app connecting PTSD patients with their care providers using real-time biometric tracking.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: Colors.black54,
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.black87),
                 ),
-              ],
-            ),
-          ),
-          const Spacer(),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Column(
-              children: [
+                const SizedBox(height: 32),
                 ElevatedButton(
+                  onPressed: () => Navigator.pushNamed(context, '/patient/login'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFB799FF),
-                    minimumSize: const Size(double.infinity, 52),
+                    backgroundColor: Colors.purple[200],
+                    minimumSize: const Size.fromHeight(48),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/login');
-                  },
-                  child: const Text('Patient Login',
-                      style: TextStyle(fontSize: 16, color: Colors.white)),
+                  child: const Text('Patient Login'),
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
+                  onPressed: () => Navigator.pushNamed(context, '/doctor/login'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF9A73E3),
-                    minimumSize: const Size(double.infinity, 52),
+                    backgroundColor: Colors.purple[400],
+                    minimumSize: const Size.fromHeight(48),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/doctor/login');
-                  },
-                  child: const Text('Doctor Login',
-                      style: TextStyle(fontSize: 16, color: Colors.white)),
+                  child: const Text('Doctor Login'),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 40),
-        ],
+        ),
       ),
     );
   }
