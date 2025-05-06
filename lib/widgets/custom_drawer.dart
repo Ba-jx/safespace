@@ -88,6 +88,11 @@ class CustomDrawer extends StatelessWidget {
                   onTap: () => Navigator.pushNamed(context, '/doctor/appointments'),
                 ),
                 ListTile(
+                  leading: const Icon(Icons.calendar_month),
+                  title: const Text('Calendar'),
+                  onTap: () => Navigator.pushNamed(context, '/doctor/calendar'),
+                ),
+                ListTile(
                   leading: const Icon(Icons.chat),
                   title: const Text('Chats'),
                   onTap: () => Navigator.pushNamed(context, '/doctor/communication'),
