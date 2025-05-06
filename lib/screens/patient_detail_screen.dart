@@ -16,7 +16,7 @@ class PatientDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('Loading symptom logs for patientId: \$patientId');
+    debugPrint('Loading symptom logs for patientId: $patientId');
     
     return Scaffold(
       appBar: AppBar(title: Text(name)),
@@ -42,7 +42,7 @@ class PatientDetailScreen extends StatelessWidget {
                     .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.hasError) {
-                    return Center(child: Text('Error: \${snapshot.error}'));
+                    return Center(child: Text('Error: ${snapshot.error}'));
                   }
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                     return const Center(child: Text('No mood logs found.'));
