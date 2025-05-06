@@ -3,11 +3,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-class ManageAppointmentsScreen extends StatelessWidget {
+class ManageAppointmentsScreen extends StatefulWidget {
   const ManageAppointmentsScreen({super.key});
 
+  @override
+  State<ManageAppointmentsScreen> createState() => _ManageAppointmentsScreenState();
+}
+
+class _ManageAppointmentsScreenState extends State<ManageAppointmentsScreen> {
   Future<void> _updateStatus(DocumentSnapshot doc, String newStatus) async {
     await doc.reference.update({'status': newStatus});
+    setState(() {}); // Trigger a UI refresh (even if StreamBuilder will handle it)
   }
 
   @override
@@ -20,7 +26,7 @@ class ManageAppointmentsScreen extends StatelessWidget {
         stream: FirebaseFirestore.instance
             .collectionGroup('appointments')
             .where('doctorId', isEqualTo: currentDoctorId)
-            .orderBy('dateTime') // Added to match Firestore index
+            .orderBy('dateTime')
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
