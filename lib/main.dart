@@ -24,6 +24,7 @@ import 'screens/role_selection_screen.dart';
 import 'screens/view_patients_screen.dart';
 import 'screens/manage_appointments_screen.dart';
 import 'screens/doctor_create_patient_screen.dart';
+import 'screens/doctor_appointment_calendar.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -81,6 +82,7 @@ class SafeSpaceApp extends StatelessWidget {
           '/doctor/patients': (_) => const ViewPatientsScreen(),
           '/doctor/create-patient': (context) => const DoctorCreatesPatientScreen(),
           '/doctor/appointments': (_) => const ManageAppointmentsScreen(),
+          '/doctor/calendar': (_) => const DoctorAppointmentCalendar(),
         },
       ),
     );
