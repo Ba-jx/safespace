@@ -38,7 +38,7 @@ class PatientDetailScreen extends StatelessWidget {
                     .collection('users')
                     .doc(patientId)
                     .collection('symptom_logs')
-                    .orderBy('date', descending: true)
+                    .orderBy('timestamp', descending: true)
                     .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.hasError) {
