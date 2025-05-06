@@ -9,12 +9,11 @@ Future<void> confirmLogout(BuildContext context) async {
       content: const Text('Are you sure you want to log out?'),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(ctx, false),
+          onPressed: () => Navigator.of(ctx).pop(false),
           child: const Text('Cancel'),
         ),
-        ElevatedButton(
-          onPressed: () => Navigator.pop(ctx, true),
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(true),
           child: const Text('Logout'),
         ),
       ],
@@ -23,6 +22,6 @@ Future<void> confirmLogout(BuildContext context) async {
 
   if (shouldLogout == true) {
     await FirebaseAuth.instance.signOut();
-    Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
   }
 }
