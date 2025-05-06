@@ -50,7 +50,7 @@ class CustomDrawer extends StatelessWidget {
                 ),
                 ListTile(
                   leading: const Icon(Icons.chat),
-                  title: const Text('Communicate'),
+                  title: const Text('Chats'),
                   onTap: () => Navigator.pushNamed(context, '/doctor/communication'),
                 ),
               ] else ...[
