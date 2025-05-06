@@ -64,7 +64,7 @@ class CustomDrawer extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('SafeSpace', style: TextStyle(color: Colors.white, fontSize: 20)),
+                    const Text('Safe Space', style: TextStyle(color: Colors.white, fontSize: 20)),
                     const SizedBox(height: 8),
                     Text('Welcome, $name',
                         style: const TextStyle(color: Colors.white, fontSize: 16)),
