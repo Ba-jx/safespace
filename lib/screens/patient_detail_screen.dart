@@ -54,7 +54,7 @@ class PatientDetailScreen extends StatelessWidget {
                     itemCount: logs.length,
                     itemBuilder: (context, index) {
                       final log = logs[index].data() as Map<String, dynamic>;
-                      final date = (log['date'] as Timestamp?)?.toDate();
+                      final date = (log['timestamp'] as Timestamp?)?.toDate();
                       final formatted = date != null
                           ? DateFormat('MMM dd, yyyy – hh:mm a').format(date)
                           : 'Unknown date';
