@@ -9,7 +9,7 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       drawer: const CustomDrawer(),
       appBar: AppBar(
-        title: const Text('Safe Space'),
+        title: const Text('Your Safe Space'),
         centerTitle: true,
       ),
       body: Padding(
