@@ -59,6 +59,26 @@ class CustomDrawer extends StatelessWidget {
                   title: const Text('Home'),
                   onTap: () => Navigator.pushNamed(context, '/home'),
                 ),
+                  ListTile(
+                  leading: const Icon(Icons.mood),
+                  title: const Text('Track Symptoms'),
+                  onTap: () => Navigator.pushNamed(context, '/symptom-tracking'),
+                ),
+                  ListTile(
+                  leading: const Icon(Icons.monitor_heart),
+                  title: const Text('Home'),
+                  onTap: () => Navigator.pushNamed(context, '/real-time-monitor'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.schedule),
+                  title: const Text('Book Appointments'),
+                  onTap: () => Navigator.pushNamed(context, '/appointments/book'),
+                ),
+                 ListTile(
+                  leading: const Icon(Icons.calendar_today),
+                  title: const Text('My Appointments'),
+                  onTap: () => Navigator.pushNamed(context, '/appointments/list'),
+                ),
                 ListTile(
                   leading: const Icon(Icons.chat),
                   title: const Text('Communicate'),
