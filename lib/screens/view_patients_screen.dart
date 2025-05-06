@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../widgets/custom_drawer.dart';
+
 import 'patient_detail_screen.dart';
 
 class ViewPatientsScreen extends StatefulWidget {
@@ -20,7 +20,6 @@ class _ViewPatientsScreenState extends State<ViewPatientsScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Assigned Patients')),
-      drawer: const CustomDrawer(),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
