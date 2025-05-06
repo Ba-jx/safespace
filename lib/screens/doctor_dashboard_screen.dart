@@ -34,6 +34,11 @@ class DoctorDashboardScreen extends StatelessWidget {
               label: 'Manage Appointments',
               onTap: () => Navigator.pushNamed(context, '/doctor/appointments'),
             ),
+             _DashboardTile(
+              icon: Icons.calendar_month,
+              label: 'Calendar',
+              onTap: () => Navigator.pushNamed(context, '/doctor/calendar'),
+            ),
             _DashboardTile(
               icon: Icons.chat,
               label: 'Communicate',
