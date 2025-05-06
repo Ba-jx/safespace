@@ -39,11 +39,6 @@ class DoctorDashboardScreen extends StatelessWidget {
               label: 'Communicate',
               onTap: () => Navigator.pushNamed(context, '/doctor/communication'),
             ),
-            _DashboardTile(
-              icon: Icons.settings,
-              label: 'Settings',
-              onTap: () => Navigator.pushNamed(context, '/settings'),
-            ),
           ],
         ),
       ),
