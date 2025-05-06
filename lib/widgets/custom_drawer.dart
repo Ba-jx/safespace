@@ -60,14 +60,19 @@ class CustomDrawer extends StatelessWidget {
                   onTap: () => Navigator.pushNamed(context, '/home'),
                 ),
                   ListTile(
+                  leading: const Icon(Icons.monitor_heart),
+                  title: const Text('Real Time Monitor'),
+                  onTap: () => Navigator.pushNamed(context, '/real-time-monitor'),
+                ),
+                 ListTile(
                   leading: const Icon(Icons.mood),
                   title: const Text('Track Symptoms'),
                   onTap: () => Navigator.pushNamed(context, '/symptom-tracking'),
                 ),
-                  ListTile(
-                  leading: const Icon(Icons.monitor_heart),
-                  title: const Text('Real Time Monitor'),
-                  onTap: () => Navigator.pushNamed(context, '/real-time-monitor'),
+                 ListTile(
+                  leading: const Icon(Icons.chat),
+                  title: const Text('Chats'),
+                  onTap: () => Navigator.pushNamed(context, '/patient/communication'),
                 ),
                 ListTile(
                   leading: const Icon(Icons.schedule),
@@ -78,11 +83,6 @@ class CustomDrawer extends StatelessWidget {
                   leading: const Icon(Icons.calendar_today),
                   title: const Text('My Appointments'),
                   onTap: () => Navigator.pushNamed(context, '/appointments/list'),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.chat),
-                  title: const Text('Communicate'),
-                  onTap: () => Navigator.pushNamed(context, '/patient/communication'),
                 ),
               ],
               const Divider(),
