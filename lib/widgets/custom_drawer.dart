@@ -66,7 +66,7 @@ class CustomDrawer extends StatelessWidget {
                 ),
                   ListTile(
                   leading: const Icon(Icons.monitor_heart),
-                  title: const Text('Home'),
+                  title: const Text('Real Time Monitor'),
                   onTap: () => Navigator.pushNamed(context, '/real-time-monitor'),
                 ),
                 ListTile(
