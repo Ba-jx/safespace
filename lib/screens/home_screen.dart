@@ -35,7 +35,7 @@ class HomeScreen extends StatelessWidget {
               onTap: () => Navigator.pushNamed(context, '/patient/communication'),
             ),
             _DashboardTile(
-              icon: Icons.calendar_today,
+              icon: Icons.schedule,
               label: 'Booking Appointments',
               onTap: () => Navigator.pushNamed(context, '/appointments/book'),
             ),
