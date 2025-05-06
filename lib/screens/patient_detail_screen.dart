@@ -78,7 +78,7 @@ class PatientDetailScreen extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               if (heartRate != null)
-                                Text('Heart Rate: $heartRate bpm'),
+                                Text('Heart Rate: $heartRate BPM'),
                               if (temperature != null)
                                 Text('Temperature: $temperature °C'),
                               if (oxygenLevel != null)
