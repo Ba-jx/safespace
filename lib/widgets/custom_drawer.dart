@@ -8,14 +8,14 @@ import '../providers/user_provider.dart';
 class CustomDrawer extends StatelessWidget {
   const CustomDrawer({super.key});
 
-  Future<String?> _getUserRole() async {
+  Future<Map<String, dynamic>?> _getUserData() async {
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) return null;
     final doc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
-    return doc['role'];
+    return doc.exists ? doc.data() : null;
   }
-  
-Future<void> _confirmAndLogout(BuildContext context) async {
+
+  Future<void> _confirmAndLogout(BuildContext context) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -33,33 +33,43 @@ Future<void> _confirmAndLogout(BuildContext context) async {
         ],
       ),
     );
-   if (confirm == true) {
+
+    if (confirm == true) {
       await FirebaseAuth.instance.signOut();
       Provider.of<UserProvider>(context, listen: false).setUserName('');
       Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Drawer(
-      child: FutureBuilder<String?>(
-        future: _getUserRole(),
+      child: FutureBuilder<Map<String, dynamic>?>(
+        future: _getUserData(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final role = snapshot.data;
+          final userData = snapshot.data!;
+          final String name = userData['name'] ?? 'User';
+          final String role = userData['role'] ?? '';
           final isDoctor = role == 'doctor';
 
           return ListView(
             padding: EdgeInsets.zero,
             children: [
-              const DrawerHeader(
-                decoration: BoxDecoration(color: Colors.purple),
-                child: Text('SafeSpace', style: TextStyle(color: Colors.white, fontSize: 24)),
+              DrawerHeader(
+                decoration: const BoxDecoration(color: Colors.purple),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('SafeSpace', style: TextStyle(color: Colors.white, fontSize: 20)),
+                    const SizedBox(height: 8),
+                    Text('Welcome, $name',
+                        style: const TextStyle(color: Colors.white, fontSize: 16)),
+                  ],
+                ),
               ),
               if (isDoctor) ...[
                 ListTile(
@@ -88,17 +98,17 @@ Future<void> _confirmAndLogout(BuildContext context) async {
                   title: const Text('Home'),
                   onTap: () => Navigator.pushNamed(context, '/home'),
                 ),
-                  ListTile(
+                ListTile(
                   leading: const Icon(Icons.monitor_heart),
                   title: const Text('Real Time Monitor'),
                   onTap: () => Navigator.pushNamed(context, '/real-time-monitor'),
                 ),
-                 ListTile(
+                ListTile(
                   leading: const Icon(Icons.mood),
                   title: const Text('Track Symptoms'),
                   onTap: () => Navigator.pushNamed(context, '/symptom-tracking'),
                 ),
-                 ListTile(
+                ListTile(
                   leading: const Icon(Icons.chat),
                   title: const Text('Chats'),
                   onTap: () => Navigator.pushNamed(context, '/patient/communication'),
@@ -108,7 +118,7 @@ Future<void> _confirmAndLogout(BuildContext context) async {
                   title: const Text('Book Appointments'),
                   onTap: () => Navigator.pushNamed(context, '/appointments/book'),
                 ),
-                 ListTile(
+                ListTile(
                   leading: const Icon(Icons.calendar_today),
                   title: const Text('My Appointments'),
                   onTap: () => Navigator.pushNamed(context, '/appointments/list'),
@@ -116,10 +126,10 @@ Future<void> _confirmAndLogout(BuildContext context) async {
               ],
               const Divider(),
               ListTile(
-                 leading: const Icon(Icons.logout),
-            title: const Text('Logout'),
-            onTap: () => _confirmAndLogout(context),
-          ),
+                leading: const Icon(Icons.logout),
+                title: const Text('Logout'),
+                onTap: () => _confirmAndLogout(context),
+              ),
             ],
           );
         },
