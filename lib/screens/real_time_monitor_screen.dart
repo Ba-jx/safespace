@@ -18,7 +18,7 @@ class RealTimeMonitorScreen extends StatelessWidget {
             _buildMetricRow(
               icon: Icons.favorite,
               title: 'Heart Rate',
-              value: '${device.heartRate} bpm',
+              value: '${device.heartRate} BPM',
               color: Colors.redAccent,
             ),
             const SizedBox(height: 16),
