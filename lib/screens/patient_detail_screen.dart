@@ -78,13 +78,13 @@ class PatientDetailScreen extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               if (heartRate != null)
-                                Text('Heart Rate: \$heartRate bpm'),
+                                Text('Heart Rate: $heartRate bpm'),
                               if (temperature != null)
-                                Text('Temperature: \$temperature °C'),
+                                Text('Temperature: $temperature °C'),
                               if (oxygenLevel != null)
-                                Text('Oxygen Level: \$oxygenLevel%'),
+                                Text('Oxygen Level: $oxygenLevel%'),
                               if (note != null && note.toString().trim().isNotEmpty)
-                                Text('Note: \$note'),
+                                Text('Note: $note'),
                             ],
                           ),
                         ),
