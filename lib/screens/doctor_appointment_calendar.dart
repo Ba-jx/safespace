@@ -23,42 +23,24 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
 
   Future<void> _fetchConfirmedAppointments() async {
     final doctorId = FirebaseAuth.instance.currentUser?.uid;
-    if (doctorId == null) {
-      print('❌ No doctorId');
-      return;
-    }
+    if (doctorId == null) return;
 
-    try {
-      final snapshot = await FirebaseFirestore.instance
-          .collectionGroup('appointments')
-          .where('doctorId', isEqualTo: doctorId)
-          .where('status', isEqualTo: 'confirmed')
-          .get();
+    final snapshot = await FirebaseFirestore.instance
+        .collectionGroup('appointments')
+        .where('doctorId', isEqualTo: doctorId)
+        .where('status', isEqualTo: 'confirmed')
+        .get();
 
-      print('✅ Appointments found: \${snapshot.docs.length}');
-      final Map<DateTime, List<Map<String, dynamic>>> grouped = {};
+    final Map<DateTime, List<Map<String, dynamic>>> grouped = {};
 
-      for (var doc in snapshot.docs) {
-        final data = doc.data();
-        print('➡️ \${doc.id}: \$data');
-
-        final timestamp = data['dateTime'];
-        if (timestamp is Timestamp) {
-          final date = DateTime(
-              timestamp.toDate().year, timestamp.toDate().month, timestamp.toDate().day);
-          grouped[date] = grouped[date] ?? [];
-          grouped[date]!.add({...data, 'docId': doc.id, 'ref': doc.reference});
-        }
+    for (var doc in snapshot.docs) {
+      final data = doc.data();
+      final timestamp = data['dateTime'];
+      if (timestamp is Timestamp) {
+        final date = DateTime(timestamp.toDate().year, timestamp.toDate().month, timestamp.toDate().day);
+        grouped[date] = grouped[date] ?? [];
+        grouped[date]!.add({...data, 'docId': doc.id, 'ref': doc.reference});
       }
-
-      if (!mounted) return;
-      setState(() {
-        _appointmentsByDate = grouped;
-      });
-    } catch (e) {
-      print('❌ Error fetching appointments: \$e');
-    }
-  }
     }
 
     if (!mounted) return;
@@ -115,14 +97,15 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (patientProfile != null && patientProfile['name'] != null) ...[
-                  const Text('Patient Info', style: TextStyle(fontWeight: FontWeight.bold)),
-                  Text('Name: ${patientProfile?['name'] ?? 'N/A'}'),
-                  Text('Email: ${patientProfile?['email'] ?? 'N/A'}'),
-                  if (patientProfile?['age'] != null)
-                    Text('Age: ${patientProfile?['age']}'),
-                  const Divider(),
-                ],
+          if (patientProfile != null && patientProfile!['name'] != null) ...[
+  const Text('Patient Info', style: TextStyle(fontWeight: FontWeight.bold)),
+  Text('Name: ${patientProfile?['name'] ?? 'N/A'}'),
+  Text('Email: ${patientProfile?['email'] ?? 'N/A'}'),
+  if (patientProfile?['age'] != null)
+    Text('Age: ${patientProfile?['age']}'),
+  const Divider(),
+],
+
                 DropdownButtonFormField<String>(
                   value: patientId,
                   decoration: const InputDecoration(labelText: 'Select Patient'),
