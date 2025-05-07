@@ -62,19 +62,30 @@ class PatientCommunicationScreen extends StatelessWidget {
                     .where('isRead', isEqualTo: false)
                     .snapshots(),
                 builder: (context, unreadSnapshot) {
-                  final unreadCount = unreadSnapshot.data?.docs.length ?? 0;
+                  if (unreadSnapshot.hasError || !unreadSnapshot.hasData) {
+                    return ListTile(
+                      title: Text(patientName),
+                      subtitle: Text(patient['email']),
+                      leading: const Icon(Icons.person),
+                    );
+                  }
+
+                  final unreadCount = unreadSnapshot.data!.docs.length;
 
                   return ListTile(
+                    title: Text(patientName),
+                    subtitle: Text(patient['email']),
                     leading: const Icon(Icons.person),
-                    title: Text(doctorName),
-                    subtitle: Text(doctorData['email'] ?? ''),
                     trailing: unreadCount > 0
                         ? CircleAvatar(
                             radius: 12,
                             backgroundColor: Colors.red,
                             child: Text(
                               '$unreadCount',
-                              style: const TextStyle(fontSize: 12, color: Colors.white),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.white,
+                              ),
                             ),
                           )
                         : null,
@@ -83,7 +94,7 @@ class PatientCommunicationScreen extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (_) => ChatScreen(
-                            patientId: currentUser.uid,
+                            patientId: patientId,
                             doctorId: doctorId,
                             peerName: doctorName,
                             isPatient: true,
@@ -93,11 +104,11 @@ class PatientCommunicationScreen extends StatelessWidget {
                     },
                   );
                 },
-              ),
-            );
-          },
-        );
-      },
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }
