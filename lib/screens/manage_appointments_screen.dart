@@ -103,9 +103,7 @@ class _ManageAppointmentsScreenState extends State<ManageAppointmentsScreen> {
                         trailing: PopupMenuButton<String>(
                           onSelected: (value) => _updateStatus(doc, value),
                           itemBuilder: (context) => [
-                            const PopupMenuItem(value: 'pending', child: Text('Pending')),
                             const PopupMenuItem(value: 'confirmed', child: Text('Confirmed')),
-                            const PopupMenuItem(value: 'completed', child: Text('Completed')),
                             const PopupMenuItem(value: 'cancelled', child: Text('Cancelled')),
                           ],
                           icon: const Icon(Icons.more_vert),
