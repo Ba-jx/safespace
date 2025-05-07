@@ -61,10 +61,27 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
         selectedTime!.minute,
       );
 
+      final startWindow = dateTime.subtract(const Duration(hours: 2));
+      final endWindow = dateTime.add(const Duration(hours: 2));
+
       final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
       final userDoc = await docRef.get();
       final assignedDoctorId = userDoc.data()?['doctorId'];
       final patientName = userDoc.data()?['name'];
+
+      final conflictQuery = await FirebaseFirestore.instance
+          .collectionGroup('appointments')
+          .where('doctorId', isEqualTo: assignedDoctorId)
+          .where('dateTime', isGreaterThanOrEqualTo: Timestamp.fromDate(startWindow))
+          .where('dateTime', isLessThanOrEqualTo: Timestamp.fromDate(endWindow))
+          .get();
+
+      if (conflictQuery.docs.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('The selected time conflicts with an existing appointment.')),
+        );
+        return;
+      }
 
       await docRef.collection('appointments').add({
         'dateTime': Timestamp.fromDate(dateTime),
@@ -86,7 +103,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error booking appointment: \$e')),
+        SnackBar(content: Text('Error booking appointment: $e')),
       );
     } finally {
       setState(() => _isSubmitting = false);
