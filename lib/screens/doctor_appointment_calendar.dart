@@ -23,10 +23,7 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
 
   Future<void> _fetchConfirmedAppointments() async {
     final doctorId = FirebaseAuth.instance.currentUser?.uid;
-    if (doctorId == null) {
-      print('❌ No doctorId');
-      return;
-    }
+    if (doctorId == null) return;
 
     try {
       final snapshot = await FirebaseFirestore.instance
@@ -35,17 +32,17 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
           .where('status', isEqualTo: 'confirmed')
           .get();
 
-      print('✅ Appointments found: \${snapshot.docs.length}');
       final Map<DateTime, List<Map<String, dynamic>>> grouped = {};
 
       for (var doc in snapshot.docs) {
         final data = doc.data();
-        print('➡️ \${doc.id}: \$data');
-
         final timestamp = data['dateTime'];
         if (timestamp is Timestamp) {
           final date = DateTime(
-              timestamp.toDate().year, timestamp.toDate().month, timestamp.toDate().day);
+            timestamp.toDate().year,
+            timestamp.toDate().month,
+            timestamp.toDate().day,
+          );
           grouped[date] = grouped[date] ?? [];
           grouped[date]!.add({...data, 'docId': doc.id, 'ref': doc.reference});
         }
@@ -56,186 +53,13 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
         _appointmentsByDate = grouped;
       });
     } catch (e) {
-      print('❌ Error fetching appointments: \$e');
+      print('❌ Error fetching appointments: $e');
     }
-  }
-    }
-
-    if (!mounted) return;
-    setState(() {
-      _appointmentsByDate = grouped;
-    });
   }
 
   List<Map<String, dynamic>> _getAppointmentsForDay(DateTime day) {
     final date = DateTime(day.year, day.month, day.day);
     return _appointmentsByDate[date] ?? [];
-  }
-
-  void _showAppointmentDialog({DateTime? defaultDate, Map<String, dynamic>? existing}) async {
-    final doctorId = FirebaseAuth.instance.currentUser!.uid;
-
-    final noteController = TextEditingController(text: existing?['note'] ?? '');
-    String? patientId = existing?['patientId'];
-    String? patientName = existing?['patientName'];
-
-    TimeOfDay selectedTime = existing != null
-        ? TimeOfDay.fromDateTime((existing['dateTime'] as Timestamp).toDate())
-        : const TimeOfDay(hour: 9, minute: 0);
-
-    final patientsSnapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .where('role', isEqualTo: 'patient')
-        .where('doctorId', isEqualTo: doctorId)
-        .get();
-
-    if (!mounted) return;
-
-    final patients = patientsSnapshot.docs.map((doc) {
-      final data = doc.data();
-      return {
-        'id': doc.id,
-        'name': data['name'] ?? 'Unknown',
-        'email': data['email'],
-        'age': data['age'],
-      };
-    }).toList();
-
-    Map<String, dynamic>? patientProfile;
-    if (patientId != null) {
-      patientProfile = patients.firstWhere((p) => p['id'] == patientId, orElse: () => {});
-    }
-
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => AlertDialog(
-          title: Text(existing != null ? 'Edit Appointment' : 'Create Appointment'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (patientProfile != null && patientProfile['name'] != null) ...[
-                  const Text('Patient Info', style: TextStyle(fontWeight: FontWeight.bold)),
-                  Text('Name: ${patientProfile?['name'] ?? 'N/A'}'),
-                  Text('Email: ${patientProfile?['email'] ?? 'N/A'}'),
-                  const Divider(),
-                ],
-                DropdownButtonFormField<String>(
-                  value: patientId,
-                  decoration: const InputDecoration(labelText: 'Select Patient'),
-                  items: patients.map((patient) {
-                    return DropdownMenuItem<String>(
-                      value: patient['id'],
-                      child: Text(patient['name']),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setModalState(() {
-                      patientId = value;
-                      patientProfile = patients.firstWhere((p) => p['id'] == value);
-                      patientName = patientProfile?['name'];
-                    });
-                  },
-                ),
-                TextField(
-                  controller: noteController,
-                  decoration: const InputDecoration(labelText: 'Note'),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Text('Time:'),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: () async {
-                        final picked = await showTimePicker(context: context, initialTime: selectedTime);
-                        if (picked != null) {
-                          setModalState(() {
-                            selectedTime = picked;
-                          });
-                        }
-                      },
-                      child: Text(selectedTime.format(context)),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            if (existing != null)
-              TextButton(
-                onPressed: () async {
-                  final confirm = await showDialog<bool>(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Delete Appointment'),
-                      content: const Text('Are you sure you want to delete this appointment?'),
-                      actions: [
-                        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-                        TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
-                      ],
-                    ),
-                  );
-                  if (confirm == true) {
-                    await (existing['ref'] as DocumentReference).delete();
-                    if (!mounted) return;
-                    Navigator.pop(context);
-                    await _fetchConfirmedAppointments();
-                  }
-                },
-                child: const Text('Delete', style: TextStyle(color: Colors.red)),
-              ),
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-            ElevatedButton(
-              onPressed: () async {
-                if (patientId == null || patientName == null) {
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please select a patient')),
-                  );
-                  return;
-                }
-
-                final selectedDate = defaultDate ?? _selectedDay ?? DateTime.now();
-                final dateTime = DateTime(
-                  selectedDate.year,
-                  selectedDate.month,
-                  selectedDate.day,
-                  selectedTime.hour,
-                  selectedTime.minute,
-                );
-
-                final data = {
-                  'patientName': patientName,
-                  'patientId': patientId,
-                  'note': noteController.text.trim(),
-                  'dateTime': Timestamp.fromDate(dateTime),
-                  'status': 'confirmed',
-                  'doctorId': doctorId,
-                };
-
-                if (existing != null) {
-                  await (existing['ref'] as DocumentReference).update(data);
-                } else {
-                  await FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(patientId!)
-                      .collection('appointments')
-                      .add(data);
-                }
-
-                if (!mounted) return;
-                Navigator.pop(context);
-                await _fetchConfirmedAppointments();
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   @override
@@ -258,7 +82,6 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
               });
             },
             eventLoader: _getAppointmentsForDay,
-            
             calendarBuilders: CalendarBuilders(
               markerBuilder: (context, date, events) {
                 if (events.isNotEmpty) {
@@ -284,33 +107,28 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
               },
             ),
             calendarStyle: const CalendarStyle(
-
               markerDecoration: BoxDecoration(color: Colors.purple, shape: BoxShape.circle),
             ),
           ),
           const SizedBox(height: 16),
           Expanded(
-            child: ListView(
-              children: appointments.map((appt) {
-                final patientName = appt['patientName'] ?? 'Unknown';
-                final note = appt['note'] ?? '';
-                final time = (appt['dateTime'] as Timestamp).toDate();
+            child: appointments.isEmpty
+                ? const Center(child: Text('No appointments on this day.'))
+                : ListView(
+                    children: appointments.map((appt) {
+                      final patientName = appt['patientName'] ?? 'Unknown';
+                      final note = appt['note'] ?? '';
+                      final time = (appt['dateTime'] as Timestamp).toDate();
 
-                return ListTile(
-                  title: Text(patientName),
-                  subtitle: Text('${TimeOfDay.fromDateTime(time).format(context)} - $note'),
-                  leading: const Icon(Icons.event_available),
-                  onTap: () => _showAppointmentDialog(existing: appt),
-                );
-              }).toList(),
-            ),
+                      return ListTile(
+                        title: Text(patientName),
+                        subtitle: Text('${TimeOfDay.fromDateTime(time).format(context)} - $note'),
+                        leading: const Icon(Icons.event_available),
+                      );
+                    }).toList(),
+                  ),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAppointmentDialog(defaultDate: _selectedDay ?? _focusedDay),
-        child: const Icon(Icons.add),
-        backgroundColor: Colors.purple,
       ),
     );
   }
