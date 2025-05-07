@@ -107,8 +107,7 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                   onChanged: (value) {
                     setModalState(() {
                       selectedPatientId = value;
-                      selectedPatientName = patients
-                          .firstWhere((p) => p['id'] == value)['name'];
+                      selectedPatientName = patients.firstWhere((p) => p['id'] == value)['name'];
                     });
                   },
                 ),
@@ -192,6 +191,25 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
       appBar: AppBar(title: const Text('Doctor Appointment Calendar')),
       body: Column(
         children: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16.0, top: 8),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: () {
+                  setState(() {
+                    _focusedDay = DateTime.now();
+                    _selectedDay = DateTime.now();
+                  });
+                },
+                child: const Text('Today', style: TextStyle(color: Colors.white)),
+              ),
+            ),
+          ),
           TableCalendar(
             firstDay: DateTime.utc(2024, 1, 1),
             lastDay: DateTime.utc(2030, 12, 31),
@@ -254,8 +272,8 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAppointmentDialog,
-        child: const Icon(Icons.add),
         backgroundColor: Colors.purple,
+        child: const Icon(Icons.add),
       ),
     );
   }
