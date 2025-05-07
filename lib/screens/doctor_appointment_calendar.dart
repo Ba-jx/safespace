@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -23,15 +22,9 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
   }
 
   Future<void> _fetchConfirmedAppointments() async {
-  final doctorId = FirebaseAuth.instance.currentUser?.uid;
-  if (doctorId == null) {
-    print('❌ Doctor ID is null');
-    return;
-  }
+    final doctorId = FirebaseAuth.instance.currentUser?.uid;
+    if (doctorId == null) return;
 
-  print('🔍 Fetching appointments for doctorId: $doctorId');
-
-  try {
     final snapshot = await FirebaseFirestore.instance
         .collectionGroup('appointments')
         .where('doctorId', isEqualTo: doctorId)
@@ -40,32 +33,15 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
 
     final Map<DateTime, List<Map<String, dynamic>>> grouped = {};
 
-    print('📦 Fetched ${snapshot.docs.length} confirmed appointments');
-
     for (var doc in snapshot.docs) {
       final data = doc.data();
       final timestamp = data['dateTime'];
-
-      print('➡️ Document: ${doc.id}, Data: $data');
-
       if (timestamp is Timestamp) {
-        final date = DateTime(
-            timestamp.toDate().year, timestamp.toDate().month, timestamp.toDate().day);
+        final date = DateTime(timestamp.toDate().year, timestamp.toDate().month, timestamp.toDate().day);
         grouped[date] = grouped[date] ?? [];
         grouped[date]!.add({...data, 'docId': doc.id, 'ref': doc.reference});
-      } else {
-        print('⚠️ Skipping doc ${doc.id}, invalid dateTime: $timestamp');
       }
     }
-
-    if (!mounted) return;
-    setState(() {
-      _appointmentsByDate = grouped;
-    });
-  } catch (e) {
-    print('❌ Error loading appointments: $e');
-  }
-}    }
 
     if (!mounted) return;
     setState(() {
@@ -121,11 +97,12 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if ((patientProfile ?? {}).isNotEmpty) ...[
+                if (patientProfile != null && patientProfile['name'] != null) ...[
                   const Text('Patient Info', style: TextStyle(fontWeight: FontWeight.bold)),
                   Text('Name: ${patientProfile?['name'] ?? 'N/A'}'),
                   Text('Email: ${patientProfile?['email'] ?? 'N/A'}'),
-                  if (patientProfile?['age'] != null) Text('Age: ${patientProfile?['age']}'),
+                  if (patientProfile?['age'] != null)
+                    Text('Age: ${patientProfile?['age']}'),
                   const Divider(),
                 ],
                 DropdownButtonFormField<String>(
