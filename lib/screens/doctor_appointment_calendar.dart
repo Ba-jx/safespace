@@ -62,8 +62,6 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
     return _appointmentsByDate[date] ?? [];
   }
 
-  @override
-  
   void _showAppointmentDialog() async {
     final doctorId = FirebaseAuth.instance.currentUser!.uid;
     final noteController = TextEditingController();
@@ -150,7 +148,6 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                   return;
                 }
 
-                final now = DateTime.now();
                 final selectedDate = _selectedDay ?? _focusedDay;
                 final dateTime = DateTime(
                   selectedDate.year,
@@ -189,7 +186,6 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
 
   @override
   Widget build(BuildContext context) {
-
     final appointments = _getAppointmentsForDay(_selectedDay ?? _focusedDay);
 
     return Scaffold(
@@ -255,6 +251,11 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                   ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAppointmentDialog,
+        child: const Icon(Icons.add),
+        backgroundColor: Colors.purple,
       ),
     );
   }
