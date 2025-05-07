@@ -36,20 +36,20 @@ class PatientCommunicationScreen extends StatelessWidget {
           return const Scaffold(body: Center(child: Text('No assigned doctor found.')));
         }
 
+        final chatId = _getChatId(currentUser.uid, doctorId);
+
         return FutureBuilder<DocumentSnapshot>(
           future: FirebaseFirestore.instance.collection('users').doc(doctorId).get(),
           builder: (context, doctorSnap) {
             if (doctorSnap.connectionState == ConnectionState.waiting) {
               return const Scaffold(body: Center(child: CircularProgressIndicator()));
             }
-
             if (!doctorSnap.hasData || !doctorSnap.data!.exists) {
               return const Scaffold(body: Center(child: Text('Assigned doctor not found.')));
             }
 
             final doctorData = doctorSnap.data!.data() as Map<String, dynamic>;
             final doctorName = doctorData['name'] ?? 'Doctor';
-            final chatId = _getChatId(currentUser.uid, doctorId);
 
             return Scaffold(
               appBar: AppBar(title: const Text('Chat with Your Doctor')),
@@ -58,16 +58,11 @@ class PatientCommunicationScreen extends StatelessWidget {
                     .collection('messages')
                     .doc(chatId)
                     .collection('chats')
+                    .where('receiverId', isEqualTo: currentUser.uid)
+                    .where('isRead', isEqualTo: false)
                     .snapshots(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  final messages = snapshot.data!.docs;
-                  final unreadCount = messages.where((msg) =>
-                    msg['receiverId'] == currentUser.uid && msg['isRead'] == false
-                  ).length;
+                builder: (context, unreadSnapshot) {
+                  final unreadCount = unreadSnapshot.data?.docs.length ?? 0;
 
                   return ListTile(
                     leading: const Icon(Icons.person),
