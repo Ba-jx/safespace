@@ -212,7 +212,7 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                   });
                 },
                 icon: const Icon(Icons.today, size: 18),
-                label: const Text('Today'),
+                label: const Text('Current Week'),
               ),
             ),
           ),
