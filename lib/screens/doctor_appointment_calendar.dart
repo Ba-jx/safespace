@@ -43,6 +43,7 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
       }
     }
 
+    if (!mounted) return;
     setState(() {
       _appointmentsByDate = grouped;
     });
@@ -64,7 +65,6 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
         ? TimeOfDay.fromDateTime((existing['dateTime'] as Timestamp).toDate())
         : const TimeOfDay(hour: 9, minute: 0);
 
-    // Fetch patients assigned to this doctor
     final patientsSnapshot = await FirebaseFirestore.instance
         .collection('users')
         .where('role', isEqualTo: 'patient')
@@ -81,12 +81,15 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
       };
     }).toList();
 
-    // Load profile if a patient is already selected
     Map<String, dynamic>? patientProfile;
     if (patientId != null) {
-      patientProfile = patients.firstWhere((p) => p['id'] == patientId, orElse: () => {});
+      patientProfile = patients.firstWhere(
+        (p) => p['id'] == patientId,
+        orElse: () => {},
+      );
     }
 
+    if (!mounted) return;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -97,9 +100,9 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
             children: [
               if (patientProfile != null && patientProfile.isNotEmpty) ...[
                 const Text('Patient Info', style: TextStyle(fontWeight: FontWeight.bold)),
-                Text('Name: ${patientProfile['name'] ?? 'N/A'}'),
-                Text('Email: ${patientProfile['email'] ?? 'N/A'}'),
-                if (patientProfile['age'] != null) Text('Age: ${patientProfile['age']}'),
+                Text('Name: ${patientProfile?['name'] ?? 'N/A'}'),
+                Text('Email: ${patientProfile?['email'] ?? 'N/A'}'),
+                if (patientProfile?['age'] != null) Text('Age: ${patientProfile?['age']}'),
                 const Divider(),
               ],
               DropdownButtonFormField<String>(
@@ -159,9 +162,9 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                     ],
                   ),
                 );
-
                 if (confirm == true) {
                   await (existing['ref'] as DocumentReference).delete();
+                  if (!mounted) return;
                   Navigator.pop(context);
                   await _fetchConfirmedAppointments();
                 }
@@ -172,6 +175,7 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
           ElevatedButton(
             onPressed: () async {
               if (patientId == null || patientName == null) {
+                if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Please select a patient')),
                 );
@@ -206,6 +210,7 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                     .add(data);
               }
 
+              if (!mounted) return;
               Navigator.pop(context);
               await _fetchConfirmedAppointments();
             },
