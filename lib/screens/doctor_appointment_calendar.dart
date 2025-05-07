@@ -8,7 +8,8 @@ class DoctorAppointmentCalendar extends StatefulWidget {
   const DoctorAppointmentCalendar({super.key});
 
   @override
-  State<DoctorAppointmentCalendar> createState() => _DoctorAppointmentCalendarState();
+  State<DoctorAppointmentCalendar> createState() =>
+      _DoctorAppointmentCalendarState();
 }
 
 class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
@@ -64,7 +65,10 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
   }
 
   Future<void> _sendAppointmentNotification(String patientId, String title, String body) async {
-    final tokenDoc = await FirebaseFirestore.instance.collection('users').doc(patientId).get();
+    final tokenDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(patientId)
+        .get();
     final token = tokenDoc.data()?['fcmToken'];
 
     if (token != null) {
@@ -249,6 +253,12 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
               });
             },
             eventLoader: _getAppointmentsForDay,
+            availableCalendarFormats: const {
+              CalendarFormat.month: 'Month',
+            },
+            headerStyle: const HeaderStyle(
+              formatButtonVisible: false,
+            ),
             calendarBuilders: CalendarBuilders(
               markerBuilder: (context, date, events) {
                 if (events.isNotEmpty) {
@@ -274,7 +284,10 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
               },
             ),
             calendarStyle: const CalendarStyle(
-              markerDecoration: BoxDecoration(color: Colors.purple, shape: BoxShape.circle),
+              markerDecoration: BoxDecoration(
+                color: Colors.purple,
+                shape: BoxShape.circle,
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -289,7 +302,9 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
 
                       return ListTile(
                         title: Text(patientName),
-                        subtitle: Text('${TimeOfDay.fromDateTime(time).format(context)} - $note'),
+                        subtitle: Text(
+                          '${TimeOfDay.fromDateTime(time).format(context)} - $note',
+                        ),
                         leading: const Icon(Icons.event_available),
                       );
                     }).toList(),
