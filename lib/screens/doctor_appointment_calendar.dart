@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 class DoctorAppointmentCalendar extends StatefulWidget {
@@ -60,6 +61,20 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
   List<Map<String, dynamic>> _getAppointmentsForDay(DateTime day) {
     final date = DateTime(day.year, day.month, day.day);
     return _appointmentsByDate[date] ?? [];
+  }
+
+  Future<void> _sendAppointmentNotification(String patientId, String title, String body) async {
+    final tokenDoc = await FirebaseFirestore.instance.collection('users').doc(patientId).get();
+    final token = tokenDoc.data()?['fcmToken'];
+
+    if (token != null) {
+      await FirebaseFirestore.instance.collection('notifications').add({
+        'token': token,
+        'title': title,
+        'body': body,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    }
   }
 
   void _showAppointmentDialog() async {
@@ -170,6 +185,12 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                     .doc(selectedPatientId!)
                     .collection('appointments')
                     .add(data);
+
+                await _sendAppointmentNotification(
+                  selectedPatientId!,
+                  'New Appointment Booked',
+                  'Your doctor booked an appointment on ${dateTime.toLocal()}.'
+                );
 
                 if (!mounted) return;
                 Navigator.pop(context);
