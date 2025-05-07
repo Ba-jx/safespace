@@ -94,7 +94,7 @@ class PatientCommunicationScreen extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (_) => ChatScreen(
-                            patientId: patientId,
+                            patientId: currentUser.uid,
                             doctorId: doctorId,
                             peerName: doctorName,
                             isPatient: true,
