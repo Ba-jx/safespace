@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -57,7 +58,7 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
   void _showAppointmentDialog({DateTime? defaultDate, Map<String, dynamic>? existing}) async {
     final doctorId = FirebaseAuth.instance.currentUser!.uid;
 
-    final _noteController = TextEditingController(text: existing?['note'] ?? '');
+    final noteController = TextEditingController(text: existing?['note'] ?? '');
     String? patientId = existing?['patientId'];
     String? patientName = existing?['patientName'];
 
@@ -71,6 +72,8 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
         .where('doctorId', isEqualTo: doctorId)
         .get();
 
+    if (!mounted) return;
+
     final patients = patientsSnapshot.docs.map((doc) {
       final data = doc.data();
       return {
@@ -83,140 +86,138 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
 
     Map<String, dynamic>? patientProfile;
     if (patientId != null) {
-      patientProfile = patients.firstWhere(
-        (p) => p['id'] == patientId,
-        orElse: () => {},
-      );
+      patientProfile = patients.firstWhere((p) => p['id'] == patientId, orElse: () => {});
     }
 
-    if (!mounted) return;
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(existing != null ? 'Edit Appointment' : 'Create Appointment'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (patientProfile != null && patientProfile.isNotEmpty) ...[
-                const Text('Patient Info', style: TextStyle(fontWeight: FontWeight.bold)),
-                Text('Name: ${patientProfile?['name'] ?? 'N/A'}'),
-                Text('Email: ${patientProfile?['email'] ?? 'N/A'}'),
-                if (patientProfile?['age'] != null) Text('Age: ${patientProfile?['age']}'),
-                const Divider(),
-              ],
-              DropdownButtonFormField<String>(
-                value: patientId,
-                decoration: const InputDecoration(labelText: 'Select Patient'),
-                items: patients.map((patient) {
-                  return DropdownMenuItem<String>(
-                    value: patient['id'],
-                    child: Text(patient['name']),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    patientId = value;
-                    patientProfile = patients.firstWhere((p) => p['id'] == value);
-                    patientName = patientProfile?['name'];
-                  });
-                },
-              ),
-              TextField(
-                controller: _noteController,
-                decoration: const InputDecoration(labelText: 'Note'),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Text('Time:'),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: () async {
-                      final picked = await showTimePicker(context: context, initialTime: selectedTime);
-                      if (picked != null) {
-                        setState(() {
-                          selectedTime = picked;
-                        });
-                      }
-                    },
-                    child: Text('${selectedTime.format(context)}'),
-                  ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => AlertDialog(
+          title: Text(existing != null ? 'Edit Appointment' : 'Create Appointment'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (patientProfile != null && patientProfile.isNotEmpty) ...[
+                  const Text('Patient Info', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text('Name: ${patientProfile?['name'] ?? 'N/A'}'),
+                  Text('Email: ${patientProfile?['email'] ?? 'N/A'}'),
+                  if (patientProfile?['age'] != null) Text('Age: ${patientProfile?['age']}'),
+                  const Divider(),
                 ],
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          if (existing != null)
-            TextButton(
-              onPressed: () async {
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Delete Appointment'),
-                    content: const Text('Are you sure you want to delete this appointment?'),
-                    actions: [
-                      TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-                      TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
-                    ],
-                  ),
-                );
-                if (confirm == true) {
-                  await (existing['ref'] as DocumentReference).delete();
-                  if (!mounted) return;
-                  Navigator.pop(context);
-                  await _fetchConfirmedAppointments();
-                }
-              },
-              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                DropdownButtonFormField<String>(
+                  value: patientId,
+                  decoration: const InputDecoration(labelText: 'Select Patient'),
+                  items: patients.map((patient) {
+                    return DropdownMenuItem<String>(
+                      value: patient['id'],
+                      child: Text(patient['name']),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setModalState(() {
+                      patientId = value;
+                      patientProfile = patients.firstWhere((p) => p['id'] == value);
+                      patientName = patientProfile?['name'];
+                    });
+                  },
+                ),
+                TextField(
+                  controller: noteController,
+                  decoration: const InputDecoration(labelText: 'Note'),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Text('Time:'),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () async {
+                        final picked = await showTimePicker(context: context, initialTime: selectedTime);
+                        if (picked != null) {
+                          setModalState(() {
+                            selectedTime = picked;
+                          });
+                        }
+                      },
+                      child: Text(selectedTime.format(context)),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () async {
-              if (patientId == null || patientName == null) {
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please select a patient')),
-                );
-                return;
-              }
-
-              final selectedDate = defaultDate ?? _selectedDay ?? DateTime.now();
-              final dateTime = DateTime(
-                selectedDate.year,
-                selectedDate.month,
-                selectedDate.day,
-                selectedTime.hour,
-                selectedTime.minute,
-              );
-
-              final data = {
-                'patientName': patientName,
-                'patientId': patientId,
-                'note': _noteController.text.trim(),
-                'dateTime': Timestamp.fromDate(dateTime),
-                'status': 'confirmed',
-                'doctorId': doctorId,
-              };
-
-              if (existing != null) {
-                await (existing['ref'] as DocumentReference).update(data);
-              } else {
-                await FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(patientId!)
-                    .collection('appointments')
-                    .add(data);
-              }
-
-              if (!mounted) return;
-              Navigator.pop(context);
-              await _fetchConfirmedAppointments();
-            },
-            child: const Text('Save'),
           ),
-        ],
+          actions: [
+            if (existing != null)
+              TextButton(
+                onPressed: () async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Delete Appointment'),
+                      content: const Text('Are you sure you want to delete this appointment?'),
+                      actions: [
+                        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                        TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
+                      ],
+                    ),
+                  );
+                  if (confirm == true) {
+                    await (existing['ref'] as DocumentReference).delete();
+                    if (!mounted) return;
+                    Navigator.pop(context);
+                    await _fetchConfirmedAppointments();
+                  }
+                },
+                child: const Text('Delete', style: TextStyle(color: Colors.red)),
+              ),
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () async {
+                if (patientId == null || patientName == null) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please select a patient')),
+                  );
+                  return;
+                }
+
+                final selectedDate = defaultDate ?? _selectedDay ?? DateTime.now();
+                final dateTime = DateTime(
+                  selectedDate.year,
+                  selectedDate.month,
+                  selectedDate.day,
+                  selectedTime.hour,
+                  selectedTime.minute,
+                );
+
+                final data = {
+                  'patientName': patientName,
+                  'patientId': patientId,
+                  'note': noteController.text.trim(),
+                  'dateTime': Timestamp.fromDate(dateTime),
+                  'status': 'confirmed',
+                  'doctorId': doctorId,
+                };
+
+                if (existing != null) {
+                  await (existing['ref'] as DocumentReference).update(data);
+                } else {
+                  await FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(patientId!)
+                      .collection('appointments')
+                      .add(data);
+                }
+
+                if (!mounted) return;
+                Navigator.pop(context);
+                await _fetchConfirmedAppointments();
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
       ),
     );
   }
