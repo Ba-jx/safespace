@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 class DoctorAppointmentCalendar extends StatefulWidget {
   const DoctorAppointmentCalendar({super.key});
 
   @override
-  State<DoctorAppointmentCalendar> createState() =>
-      _DoctorAppointmentCalendarState();
+  State<DoctorAppointmentCalendar> createState() => _DoctorAppointmentCalendarState();
 }
 
 class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
@@ -55,30 +53,13 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
         _appointmentsByDate = grouped;
       });
     } catch (e) {
-      print('❌ Error fetching appointments: $e');
+      print('Error fetching appointments: $e');
     }
   }
 
   List<Map<String, dynamic>> _getAppointmentsForDay(DateTime day) {
     final date = DateTime(day.year, day.month, day.day);
     return _appointmentsByDate[date] ?? [];
-  }
-
-  Future<void> _sendAppointmentNotification(String patientId, String title, String body) async {
-    final tokenDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(patientId)
-        .get();
-    final token = tokenDoc.data()?['fcmToken'];
-
-    if (token != null) {
-      await FirebaseFirestore.instance.collection('notifications').add({
-        'token': token,
-        'title': title,
-        'body': body,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-    }
   }
 
   void _showAppointmentDialog() async {
@@ -175,6 +156,38 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                   selectedTime.minute,
                 );
 
+                final startWindow = dateTime.subtract(const Duration(hours: 2));
+                final endWindow = dateTime.add(const Duration(hours: 2));
+
+                final doctorConflict = await FirebaseFirestore.instance
+                    .collectionGroup('appointments')
+                    .where('doctorId', isEqualTo: doctorId)
+                    .where('dateTime', isGreaterThanOrEqualTo: Timestamp.fromDate(startWindow))
+                    .where('dateTime', isLessThanOrEqualTo: Timestamp.fromDate(endWindow))
+                    .get();
+
+                if (doctorConflict.docs.isNotEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('This time conflicts with another appointment.')),
+                  );
+                  return;
+                }
+
+                final patientConflict = await FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(selectedPatientId)
+                    .collection('appointments')
+                    .where('dateTime', isGreaterThanOrEqualTo: Timestamp.fromDate(startWindow))
+                    .where('dateTime', isLessThanOrEqualTo: Timestamp.fromDate(endWindow))
+                    .get();
+
+                if (patientConflict.docs.isNotEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('This patient already has an appointment around this time.')),
+                  );
+                  return;
+                }
+
                 final data = {
                   'patientId': selectedPatientId,
                   'patientName': selectedPatientName,
@@ -189,12 +202,6 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                     .doc(selectedPatientId!)
                     .collection('appointments')
                     .add(data);
-
-                await _sendAppointmentNotification(
-                  selectedPatientId!,
-                  'New Appointment Booked',
-                  'Your doctor booked an appointment on ${dateTime.toLocal()}.'
-                );
 
                 if (!mounted) return;
                 Navigator.pop(context);
@@ -284,10 +291,7 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
               },
             ),
             calendarStyle: const CalendarStyle(
-              markerDecoration: BoxDecoration(
-                color: Colors.purple,
-                shape: BoxShape.circle,
-              ),
+              markerDecoration: BoxDecoration(color: Colors.purple, shape: BoxShape.circle),
             ),
           ),
           const SizedBox(height: 16),
@@ -302,9 +306,7 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
 
                       return ListTile(
                         title: Text(patientName),
-                        subtitle: Text(
-                          '${TimeOfDay.fromDateTime(time).format(context)} - $note',
-                        ),
+                        subtitle: Text('${TimeOfDay.fromDateTime(time).format(context)} - $note'),
                         leading: const Icon(Icons.event_available),
                       );
                     }).toList(),
