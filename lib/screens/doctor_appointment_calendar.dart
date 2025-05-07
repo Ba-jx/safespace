@@ -227,25 +227,28 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
             padding: const EdgeInsets.only(right: 16.0, top: 8),
             child: Align(
               alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor: Colors.deepPurple,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  elevation: 4,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _focusedDay = DateTime.now();
-                    _selectedDay = DateTime.now();
-                  });
-                },
-                icon: const Icon(Icons.today, size: 18),
-                label: const Text('Current Week'),
-              ),
+              child: ElevatedButton.icon(
+  onPressed: () {
+    setState(() {
+      _focusedDay = DateTime.now();
+      _selectedDay = DateTime.now();
+    });
+  },
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.purple,
+    foregroundColor: Colors.white,
+    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(40),
+    ),
+    elevation: 4,
+  ),
+  icon: const Icon(Icons.calendar_today, size: 18),
+  label: const Text(
+    'Current Week',
+    style: TextStyle(fontWeight: FontWeight.w500),
+  ),
+),
             ),
           ),
           TableCalendar(
