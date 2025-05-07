@@ -80,7 +80,8 @@ class _PatientAppointmentCalendarState
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   elevation: 4,
                 ),
                 onPressed: () {
@@ -115,7 +116,8 @@ class _PatientAppointmentCalendarState
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: events.map((event) {
                         return Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                          margin:
+                              const EdgeInsets.symmetric(horizontal: 1.5),
                           width: 6,
                           height: 6,
                           decoration: const BoxDecoration(
@@ -135,6 +137,12 @@ class _PatientAppointmentCalendarState
                 color: Colors.purple,
                 shape: BoxShape.circle,
               ),
+            ),
+            availableCalendarFormats: const {
+              CalendarFormat.month: 'Month',
+            },
+            headerStyle: const HeaderStyle(
+              formatButtonVisible: false,
             ),
           ),
           const SizedBox(height: 16),
