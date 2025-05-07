@@ -195,10 +195,15 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
             padding: const EdgeInsets.only(right: 16.0, top: 8),
             child: Align(
               alignment: Alignment.centerRight,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.purple,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              child: TextButton.icon(
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  backgroundColor: Colors.deepPurple,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  elevation: 4,
                 ),
                 onPressed: () {
                   setState(() {
@@ -206,7 +211,8 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                     _selectedDay = DateTime.now();
                   });
                 },
-                child: const Text('Today', style: TextStyle(color: Colors.white)),
+                icon: const Icon(Icons.today, size: 18),
+                label: const Text('Today'),
               ),
             ),
           ),
