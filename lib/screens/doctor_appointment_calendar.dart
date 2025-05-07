@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -97,7 +98,7 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (patientProfile != null && patientProfile.isNotEmpty) ...[
+                if ((patientProfile ?? {}).isNotEmpty) ...[
                   const Text('Patient Info', style: TextStyle(fontWeight: FontWeight.bold)),
                   Text('Name: ${patientProfile?['name'] ?? 'N/A'}'),
                   Text('Email: ${patientProfile?['email'] ?? 'N/A'}'),
