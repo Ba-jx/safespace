@@ -97,14 +97,13 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (patientProfile != null && patientProfile['name'] != null) ...[
-                  const Text('Patient Info', style: TextStyle(fontWeight: FontWeight.bold)),
-                  Text('Name: ${patientProfile?['name'] ?? 'N/A'}'),
-                  Text('Email: ${patientProfile?['email'] ?? 'N/A'}'),
-                  if (patientProfile?['age'] != null)
-                    Text('Age: ${patientProfile?['age']}'),
-                  const Divider(),
-                ],
+               if ((patientProfile ?? {})['name'] != null) ...[
+  const Text('Patient Info', style: TextStyle(fontWeight: FontWeight.bold)),
+  Text('Name: ${(patientProfile ?? {})['name'] ?? 'N/A'}'),
+  Text('Email: ${(patientProfile ?? {})['email'] ?? 'N/A'}'),
+  const Divider(),
+],
+
                 DropdownButtonFormField<String>(
                   value: patientId,
                   decoration: const InputDecoration(labelText: 'Select Patient'),
