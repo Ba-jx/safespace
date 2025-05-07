@@ -34,8 +34,8 @@ class _ChatScreenState extends State<ChatScreen> {
     chatId = _getChatId(widget.patientId, widget.doctorId);
   }
 
-  String _getChatId(String a, String b) =>
-      a.hashCode <= b.hashCode ? '${a}_$b' : '${b}_$a';
+  String _getChatId(String user1, String user2) =>
+      user1.hashCode <= user2.hashCode ? '${user1}_$user2' : '${user2}_$user1';
 
   Future<void> _sendMessage() async {
     final text = _controller.text.trim();
