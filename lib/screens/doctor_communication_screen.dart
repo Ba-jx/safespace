@@ -7,7 +7,7 @@ class DoctorCommunicationScreen extends StatelessWidget {
   const DoctorCommunicationScreen({super.key});
 
   String _getChatId(String user1, String user2) {
-    return user1.hashCode <= user2.hashCode ? '${user1}_${user2}' : '${user2}_${user1}';
+    return user1.hashCode <= user2.hashCode ? '${user1}_$user2' : '${user2}_$user1';
   }
 
   @override
@@ -38,6 +38,7 @@ class DoctorCommunicationScreen extends StatelessWidget {
               final patient = patients[index];
               final patientName = patient['name'];
               final patientId = patient.id;
+              final patientEmail = patient['email'];
               final chatId = _getChatId(patientId, doctorId);
 
               return StreamBuilder<QuerySnapshot>(
@@ -52,15 +53,21 @@ class DoctorCommunicationScreen extends StatelessWidget {
                   final unreadCount = unreadSnapshot.data?.docs.length ?? 0;
 
                   return ListTile(
-                    title: Text(patientName),
-                    subtitle: Text(patient['email']),
                     leading: const Icon(Icons.person),
+                    title: Text(patientName),
+                    subtitle: Text(patientEmail),
                     trailing: unreadCount > 0
                         ? CircleAvatar(
-                            radius: 12,
                             backgroundColor: Colors.red,
-                            child: Text('$unreadCount',
-                                style: const TextStyle(fontSize: 12, color: Colors.white)),
+                            radius: 10,
+                            child: Text(
+                              '$unreadCount',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           )
                         : null,
                     onTap: () {
