@@ -1,4 +1,3 @@
-// Keep your imports unchanged
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -33,25 +32,10 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     currentUserId = FirebaseAuth.instance.currentUser!.uid;
     chatId = _getChatId(widget.patientId, widget.doctorId);
-    _markMessagesAsRead();
   }
 
   String _getChatId(String a, String b) =>
-      a.hashCode <= b.hashCode ? '${a}$b' : '${b}$a';
-
-  Future<void> _markMessagesAsRead() async {
-    final messages = await FirebaseFirestore.instance
-        .collection('messages')
-        .doc(chatId)
-        .collection('chats')
-        .where('receiverId', isEqualTo: currentUserId)
-        .where('isRead', isEqualTo: false)
-        .get();
-
-    for (var msg in messages.docs) {
-      msg.reference.update({'isRead': true});
-    }
-  }
+      a.hashCode <= b.hashCode ? '${a}_$b' : '${b}_$a';
 
   Future<void> _sendMessage() async {
     final text = _controller.text.trim();
@@ -72,6 +56,7 @@ class _ChatScreenState extends State<ChatScreen> {
         .add(message);
 
     _controller.clear();
+    _scrollToBottom();
   }
 
   void _scrollToBottom() {
@@ -84,6 +69,13 @@ class _ChatScreenState extends State<ChatScreen> {
         );
       }
     });
+  }
+
+  Future<void> _markMessageAsRead(DocumentSnapshot doc) async {
+    final data = doc.data() as Map<String, dynamic>;
+    if (data['receiverId'] == currentUserId && data['isRead'] == false) {
+      await doc.reference.update({'isRead': true});
+    }
   }
 
   Widget _buildMessageBubble(Map<String, dynamic> msg, bool isMe) {
@@ -107,7 +99,8 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ),
         child: Column(
-          crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          crossAxisAlignment:
+              isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
             Text(
               msg['message'] ?? '',
@@ -143,13 +136,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  bool _shouldShowDateDivider(DateTime current, DateTime? previous) {
-    if (previous == null) return true;
-    return current.day != previous.day ||
-        current.month != previous.month ||
-        current.year != previous.year;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -173,7 +159,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 }
 
                 final messages = snapshot.data!.docs;
-                WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+                _scrollToBottom();
 
                 DateTime? lastDate;
 
@@ -181,17 +167,26 @@ class _ChatScreenState extends State<ChatScreen> {
                   controller: _scrollController,
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
-                    final msg = messages[index].data() as Map<String, dynamic>;
+                    final doc = messages[index];
+                    final msg = doc.data() as Map<String, dynamic>;
                     final isMe = msg['senderId'] == currentUserId;
+
                     final timestamp = (msg['timestamp'] as Timestamp?)?.toDate();
-                    final showDateDivider = timestamp != null && _shouldShowDateDivider(timestamp, lastDate);
+                    final showDateDivider = timestamp != null &&
+                        (lastDate == null ||
+                            timestamp.day != lastDate!.day ||
+                            timestamp.month != lastDate!.month ||
+                            timestamp.year != lastDate!.year);
                     if (timestamp != null) lastDate = timestamp;
+
+                    _markMessageAsRead(doc);
 
                     return Column(
                       children: [
                         if (showDateDivider && timestamp != null)
                           Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 8.0),
                             child: Text(
                               DateFormat.yMMMMd().format(timestamp),
                               style: const TextStyle(color: Colors.grey),
