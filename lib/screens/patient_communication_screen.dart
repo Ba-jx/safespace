@@ -50,7 +50,7 @@ class PatientCommunicationScreen extends StatelessWidget {
 
             final doctorData = doctorSnap.data!.data() as Map<String, dynamic>;
             final doctorName = doctorData['name'] ?? 'Doctor';
-            final doctorEmail = doctorData['email'] ?? '';
+            final doctorEmail = doctorData['email'] ?? 'No email';
 
             return Scaffold(
               appBar: AppBar(title: const Text('Chat with Your Doctor')),
@@ -63,7 +63,7 @@ class PatientCommunicationScreen extends StatelessWidget {
                     .where('isRead', isEqualTo: false)
                     .snapshots(),
                 builder: (context, unreadSnapshot) {
-                  final unreadCount = unreadSnapshot.hasData ? unreadSnapshot.data!.docs.length : 0;
+                  final unreadCount = unreadSnapshot.data?.docs.length ?? 0;
 
                   return ListTile(
                     title: Text(doctorName),
