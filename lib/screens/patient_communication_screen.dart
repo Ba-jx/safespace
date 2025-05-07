@@ -50,6 +50,7 @@ class PatientCommunicationScreen extends StatelessWidget {
 
             final doctorData = doctorSnap.data!.data() as Map<String, dynamic>;
             final doctorName = doctorData['name'] ?? 'Doctor';
+            final doctorEmail = doctorData['email'] ?? '';
 
             return Scaffold(
               appBar: AppBar(title: const Text('Chat with Your Doctor')),
@@ -62,19 +63,11 @@ class PatientCommunicationScreen extends StatelessWidget {
                     .where('isRead', isEqualTo: false)
                     .snapshots(),
                 builder: (context, unreadSnapshot) {
-                  if (unreadSnapshot.hasError || !unreadSnapshot.hasData) {
-                    return ListTile(
-                      title: Text(patientName),
-                      subtitle: Text(patient['email']),
-                      leading: const Icon(Icons.person),
-                    );
-                  }
-
-                  final unreadCount = unreadSnapshot.data!.docs.length;
+                  final unreadCount = unreadSnapshot.hasData ? unreadSnapshot.data!.docs.length : 0;
 
                   return ListTile(
-                    title: Text(patientName),
-                    subtitle: Text(patient['email']),
+                    title: Text(doctorName),
+                    subtitle: Text(doctorEmail),
                     leading: const Icon(Icons.person),
                     trailing: unreadCount > 0
                         ? CircleAvatar(
@@ -82,10 +75,7 @@ class PatientCommunicationScreen extends StatelessWidget {
                             backgroundColor: Colors.red,
                             child: Text(
                               '$unreadCount',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.white,
-                              ),
+                              style: const TextStyle(fontSize: 12, color: Colors.white),
                             ),
                           )
                         : null,
@@ -104,11 +94,11 @@ class PatientCommunicationScreen extends StatelessWidget {
                     },
                   );
                 },
-              );
-            },
-          );
-        },
-      ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
