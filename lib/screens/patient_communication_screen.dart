@@ -7,7 +7,7 @@ class PatientCommunicationScreen extends StatelessWidget {
   const PatientCommunicationScreen({super.key});
 
   String _getChatId(String user1, String user2) {
-    return user1.hashCode <= user2.hashCode ? '${user1}${user2}' : '${user2}${user1}';
+    return user1.hashCode <= user2.hashCode ? '${user1}_${user2}' : '${user2}_${user1}';
   }
 
   @override
