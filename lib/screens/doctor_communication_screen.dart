@@ -7,7 +7,7 @@ class DoctorCommunicationScreen extends StatelessWidget {
   const DoctorCommunicationScreen({super.key});
 
   String _getChatId(String user1, String user2) {
-    return user1.hashCode <= user2.hashCode ? '${user1}${user2}' : '${user2}${user1}';
+    return user1.hashCode <= user2.hashCode ? '${user1}_${user2}' : '${user2}_${user1}';
   }
 
   @override
@@ -37,7 +37,6 @@ class DoctorCommunicationScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               final patient = patients[index];
               final patientName = patient['name'];
-              final patientEmail = patient['email'];
               final patientId = patient.id;
               final chatId = _getChatId(patientId, doctorId);
 
@@ -50,11 +49,19 @@ class DoctorCommunicationScreen extends StatelessWidget {
                     .where('isRead', isEqualTo: false)
                     .snapshots(),
                 builder: (context, unreadSnapshot) {
-                  final unreadCount = unreadSnapshot.data?.docs.length ?? 0;
+                  if (unreadSnapshot.hasError || !unreadSnapshot.hasData) {
+                    return ListTile(
+                      title: Text(patientName),
+                      subtitle: Text(patient['email']),
+                      leading: const Icon(Icons.person),
+                    );
+                  }
+
+                  final unreadCount = unreadSnapshot.data!.docs.length;
 
                   return ListTile(
                     title: Text(patientName),
-                    subtitle: Text(patientEmail),
+                    subtitle: Text(patient['email']),
                     leading: const Icon(Icons.person),
                     trailing: unreadCount > 0
                         ? CircleAvatar(
@@ -62,7 +69,10 @@ class DoctorCommunicationScreen extends StatelessWidget {
                             backgroundColor: Colors.red,
                             child: Text(
                               '$unreadCount',
-                              style: const TextStyle(fontSize: 12, color: Colors.white),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.white,
+                              ),
                             ),
                           )
                         : null,
