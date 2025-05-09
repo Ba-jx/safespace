@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:flutter_blue/flutter_blue.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../providers/device_provider.dart';
 
 class RealTimeMonitorScreen extends StatefulWidget {
@@ -12,70 +14,86 @@ class RealTimeMonitorScreen extends StatefulWidget {
 }
 
 class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
+  FlutterBlue flutterBlue = FlutterBlue.instance;
   BluetoothDevice? connectedDevice;
-  StreamSubscription<List<int>>? dataSubscription;
+  BluetoothCharacteristic? notifyCharacteristic;
+  StreamSubscription<List<int>>? notifySubscription;
+  bool isScanning = false;
 
   @override
   void initState() {
     super.initState();
-    _scanAndConnect();
+    scanAndConnect();
   }
 
   @override
   void dispose() {
-    dataSubscription?.cancel();
+    notifySubscription?.cancel();
     connectedDevice?.disconnect();
     super.dispose();
   }
 
-  void _scanAndConnect() async {
-    final deviceProvider = Provider.of<DeviceProvider>(context, listen: false);
-    deviceProvider.updateBluetoothStatus('Scanning...');
+  void scanAndConnect() async {
+    setState(() => isScanning = true);
 
-    FlutterBluePlus.startScan(timeout: const Duration(seconds: 4));
-    FlutterBluePlus.scanResults.listen((results) async {
-      for (ScanResult result in results) {
-        if (result.device.name.contains("ESP32")) {
-          FlutterBluePlus.stopScan();
-          deviceProvider.updateBluetoothStatus('Connecting...');
-          try {
-            await result.device.connect(autoConnect: false);
-          } catch (_) {}
+    flutterBlue.startScan(timeout: const Duration(seconds: 5));
+    flutterBlue.scanResults.listen((results) async {
+      for (ScanResult r in results) {
+        if (r.device.name == "ESP32_HealthMonitor") {
+          flutterBlue.stopScan();
+          await r.device.connect();
+          connectedDevice = r.device;
 
-          connectedDevice = result.device;
-          deviceProvider.updateBluetoothStatus('Connected');
-          _listenToDevice();
+          List<BluetoothService> services = await r.device.discoverServices();
+          for (var service in services) {
+            for (var char in service.characteristics) {
+              if (char.properties.notify) {
+                notifyCharacteristic = char;
+                await char.setNotifyValue(true);
+                notifySubscription = char.value.listen((value) {
+                  final data = String.fromCharCodes(value);
+                  parseAndUpdate(data);
+                });
+                break;
+              }
+            }
+          }
+
+          setState(() => isScanning = false);
           break;
         }
       }
     });
   }
 
-  void _listenToDevice() async {
-    final deviceProvider = Provider.of<DeviceProvider>(context, listen: false);
+  void parseAndUpdate(String data) async {
+    final device = Provider.of<DeviceProvider>(context, listen: false);
+    final uid = FirebaseAuth.instance.currentUser?.uid;
 
-    List<BluetoothService> services = await connectedDevice!.discoverServices();
-    for (var service in services) {
-      for (var characteristic in service.characteristics) {
-        if (characteristic.properties.notify) {
-          await characteristic.setNotifyValue(true);
-          dataSubscription = characteristic.value.listen((value) {
-            String data = String.fromCharCodes(value);
-            List<String> parts = data.split("|");
+    try {
+      final parts = data.split('|');
+      int hr = int.parse(parts[0].replaceAll(RegExp(r'[^0-9]'), ''));
+      int spo2 = int.parse(parts[1].replaceAll(RegExp(r'[^0-9]'), ''));
+      double temp = double.parse(parts[2].replaceAll(RegExp(r'[^0-9\.]'), ''));
 
-            for (String part in parts) {
-              if (part.contains("BPM:")) {
-                deviceProvider.updateHeartRate(int.tryParse(part.split(":")[1].trim()) ?? 0);
-              } else if (part.contains("SpO2:")) {
-                deviceProvider.updateOxygenLevel(int.tryParse(part.split(":")[1].replaceAll("%", "").trim()) ?? 0);
-              } else if (part.contains("Temp:")) {
-                deviceProvider.updateTemperature(double.tryParse(part.split(":")[1].replaceAll("C", "").trim()) ?? 0.0);
-              }
-            }
-          });
-          return;
-        }
+      device.updateHeartRate(hr);
+      device.updateOxygenLevel(spo2);
+      device.updateTemperature(temp);
+
+      if (uid != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .collection('readings')
+            .add({
+              'heartRate': hr,
+              'oxygenLevel': spo2,
+              'temperature': temp,
+              'timestamp': DateTime.now().toIso8601String(),
+            });
       }
+    } catch (e) {
+      debugPrint("Parse error: $e");
     }
   }
 
@@ -89,8 +107,6 @@ class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            Text('Bluetooth: ${device.bluetoothStatus}', style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 16),
             _buildMetricRow(
               icon: Icons.favorite,
               title: 'Heart Rate',
@@ -111,6 +127,13 @@ class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
               value: '${device.oxygenLevel}%',
               color: Colors.blueAccent,
             ),
+            const SizedBox(height: 24),
+            if (isScanning)
+              const CircularProgressIndicator()
+            else if (connectedDevice != null)
+              Text('Connected to ${connectedDevice!.name}', style: const TextStyle(color: Colors.green))
+            else
+              const Text('Device not connected', style: TextStyle(color: Colors.red)),
           ],
         ),
       ),
