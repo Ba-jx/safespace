@@ -1,9 +1,6 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue/flutter_blue.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../providers/device_provider.dart';
 
 class RealTimeMonitorScreen extends StatefulWidget {
@@ -16,84 +13,61 @@ class RealTimeMonitorScreen extends StatefulWidget {
 class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
   FlutterBlue flutterBlue = FlutterBlue.instance;
   BluetoothDevice? connectedDevice;
-  BluetoothCharacteristic? notifyCharacteristic;
-  StreamSubscription<List<int>>? notifySubscription;
-  bool isScanning = false;
+  BluetoothCharacteristic? dataChar;
+  String status = 'Scanning...';
 
   @override
   void initState() {
     super.initState();
-    scanAndConnect();
+    scanForDevices();
   }
 
-  @override
-  void dispose() {
-    notifySubscription?.cancel();
-    connectedDevice?.disconnect();
-    super.dispose();
-  }
-
-  void scanAndConnect() async {
-    setState(() => isScanning = true);
-
+  void scanForDevices() {
     flutterBlue.startScan(timeout: const Duration(seconds: 5));
     flutterBlue.scanResults.listen((results) async {
       for (ScanResult r in results) {
-        if (r.device.name == "ESP32_HealthMonitor") {
-          flutterBlue.stopScan();
-          await r.device.connect();
-          connectedDevice = r.device;
-
-          List<BluetoothService> services = await r.device.discoverServices();
-          for (var service in services) {
-            for (var char in service.characteristics) {
-              if (char.properties.notify) {
-                notifyCharacteristic = char;
-                await char.setNotifyValue(true);
-                notifySubscription = char.value.listen((value) {
-                  final data = String.fromCharCodes(value);
-                  parseAndUpdate(data);
-                });
-                break;
-              }
-            }
-          }
-
-          setState(() => isScanning = false);
+        if (r.device.name == 'ESP32_HealthMonitor') {
+          await flutterBlue.stopScan();
+          setState(() => status = 'Connecting to ${r.device.name}');
+          try {
+            await r.device.connect();
+          } catch (_) {}
+          setState(() => connectedDevice = r.device);
+          discoverServices(r.device);
           break;
         }
       }
     });
   }
 
-  void parseAndUpdate(String data) async {
-    final device = Provider.of<DeviceProvider>(context, listen: false);
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-
-    try {
-      final parts = data.split('|');
-      int hr = int.parse(parts[0].replaceAll(RegExp(r'[^0-9]'), ''));
-      int spo2 = int.parse(parts[1].replaceAll(RegExp(r'[^0-9]'), ''));
-      double temp = double.parse(parts[2].replaceAll(RegExp(r'[^0-9\.]'), ''));
-
-      device.updateHeartRate(hr);
-      device.updateOxygenLevel(spo2);
-      device.updateTemperature(temp);
-
-      if (uid != null) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(uid)
-            .collection('readings')
-            .add({
-              'heartRate': hr,
-              'oxygenLevel': spo2,
-              'temperature': temp,
-              'timestamp': DateTime.now().toIso8601String(),
-            });
+  void discoverServices(BluetoothDevice device) async {
+    List<BluetoothService> services = await device.discoverServices();
+    for (var service in services) {
+      for (var char in service.characteristics) {
+        if (char.properties.notify) {
+          await char.setNotifyValue(true);
+          char.value.listen((value) {
+            final rawData = String.fromCharCodes(value);
+            parseAndUpdateData(rawData);
+          });
+          setState(() => dataChar = char);
+          break;
+        }
       }
-    } catch (e) {
-      debugPrint("Parse error: $e");
+    }
+  }
+
+  void parseAndUpdateData(String data) {
+    final device = Provider.of<DeviceProvider>(context, listen: false);
+    final parts = data.split('|');
+    for (var part in parts) {
+      if (part.contains('BPM:')) {
+        device.updateHeartRate(int.tryParse(part.split(':')[1].trim()) ?? 0);
+      } else if (part.contains('SpO2:')) {
+        device.updateOxygenLevel(int.tryParse(part.split(':')[1].replaceAll('%', '').trim()) ?? 0);
+      } else if (part.contains('Temp:')) {
+        device.updateTemperature(double.tryParse(part.split(':')[1].replaceAll('C', '').trim()) ?? 0.0);
+      }
     }
   }
 
@@ -107,6 +81,8 @@ class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
+            Text('Status: $status', style: const TextStyle(fontSize: 16)),
+            const SizedBox(height: 20),
             _buildMetricRow(
               icon: Icons.favorite,
               title: 'Heart Rate',
@@ -127,13 +103,6 @@ class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
               value: '${device.oxygenLevel}%',
               color: Colors.blueAccent,
             ),
-            const SizedBox(height: 24),
-            if (isScanning)
-              const CircularProgressIndicator()
-            else if (connectedDevice != null)
-              Text('Connected to ${connectedDevice!.name}', style: const TextStyle(color: Colors.green))
-            else
-              const Text('Device not connected', style: TextStyle(color: Colors.red)),
           ],
         ),
       ),
@@ -155,15 +124,9 @@ class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
           text: TextSpan(
             style: const TextStyle(fontSize: 18, color: Colors.black),
             children: [
-              TextSpan(
-                text: title,
-                style: const TextStyle(fontWeight: FontWeight.w500),
-              ),
+              TextSpan(text: title, style: const TextStyle(fontWeight: FontWeight.w500)),
               const TextSpan(text: '  '),
-              TextSpan(
-                text: value,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
+              TextSpan(text: value, style: const TextStyle(fontWeight: FontWeight.bold)),
             ],
           ),
         ),
