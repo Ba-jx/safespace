@@ -25,32 +25,36 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
     final doctorId = FirebaseAuth.instance.currentUser?.uid;
     if (doctorId == null) return;
 
-    final snapshot = await FirebaseFirestore.instance
-        .collectionGroup('appointments')
-        .where('doctorId', isEqualTo: doctorId)
-        .where('status', isEqualTo: 'confirmed')
-        .get();
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collectionGroup('appointments')
+          .where('doctorId', isEqualTo: doctorId)
+          .where('status', isEqualTo: 'confirmed')
+          .get();
 
-    final Map<DateTime, List<Map<String, dynamic>>> grouped = {};
+      final Map<DateTime, List<Map<String, dynamic>>> grouped = {};
 
-    for (var doc in snapshot.docs) {
-      final data = doc.data();
-      final timestamp = data['dateTime'];
-      if (timestamp is Timestamp) {
-        final date = DateTime(
-          timestamp.toDate().year,
-          timestamp.toDate().month,
-          timestamp.toDate().day,
-        );
-        grouped[date] = grouped[date] ?? [];
-        grouped[date]!.add({...data, 'docId': doc.id, 'ref': doc.reference});
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        final timestamp = data['dateTime'];
+        if (timestamp is Timestamp) {
+          final date = DateTime(
+            timestamp.toDate().year,
+            timestamp.toDate().month,
+            timestamp.toDate().day,
+          );
+          grouped[date] = grouped[date] ?? [];
+          grouped[date]!.add({...data, 'docId': doc.id, 'ref': doc.reference});
+        }
       }
-    }
 
-    if (!mounted) return;
-    setState(() {
-      _appointmentsByDate = grouped;
-    });
+      if (!mounted) return;
+      setState(() {
+        _appointmentsByDate = grouped;
+      });
+    } catch (e) {
+      print('Error fetching appointments: $e');
+    }
   }
 
   List<Map<String, dynamic>> _getAppointmentsForDay(DateTime day) {
@@ -58,11 +62,11 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
     return _appointmentsByDate[date] ?? [];
   }
 
-  void _showAppointmentDialog({Map<String, dynamic>? existing}) async {
+  void _showAppointmentDialog() async {
     final doctorId = FirebaseAuth.instance.currentUser!.uid;
-    final noteController = TextEditingController(text: existing?['note'] ?? '');
-    String? selectedPatientId = existing?['patientId'];
-    String? selectedPatientName = existing?['patientName'];
+    final noteController = TextEditingController();
+    String? selectedPatientId;
+    String? selectedPatientName;
 
     final patientsSnapshot = await FirebaseFirestore.instance
         .collection('users')
@@ -74,20 +78,19 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
 
     final patients = patientsSnapshot.docs.map((doc) {
       final data = doc.data();
-      return {'id': doc.id, 'name': data['name'] ?? 'Unknown'};
+      return {
+        'id': doc.id,
+        'name': data['name'] ?? 'Unknown',
+      };
     }).toList();
 
-    TimeOfDay selectedTime = existing != null
-        ? TimeOfDay.fromDateTime((existing['dateTime'] as Timestamp).toDate())
-        : const TimeOfDay(hour: 9, minute: 0);
-
-    final selectedDate = _selectedDay ?? _focusedDay;
+    TimeOfDay selectedTime = const TimeOfDay(hour: 9, minute: 0);
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => AlertDialog(
-          title: Text(existing != null ? 'Edit Appointment' : 'Create Appointment'),
+          title: const Text('Create Appointment'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -134,16 +137,6 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
             ),
           ),
           actions: [
-            if (existing != null)
-              TextButton(
-                onPressed: () async {
-                  await (existing['ref'] as DocumentReference).delete();
-                  if (!mounted) return;
-                  Navigator.pop(context);
-                  await _fetchConfirmedAppointments();
-                },
-                child: const Text('Delete', style: TextStyle(color: Colors.red)),
-              ),
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
             ElevatedButton(
               onPressed: () async {
@@ -154,6 +147,7 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                   return;
                 }
 
+                final selectedDate = _selectedDay ?? _focusedDay;
                 final dateTime = DateTime(
                   selectedDate.year,
                   selectedDate.month,
@@ -172,13 +166,24 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                     .where('dateTime', isLessThanOrEqualTo: Timestamp.fromDate(endWindow))
                     .get();
 
-                final isEditing = existing != null;
-                final conflictExists = doctorConflict.docs.any((doc) =>
-                    !isEditing || (doc.id != existing!['docId']));
-
-                if (conflictExists) {
+                if (doctorConflict.docs.isNotEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('This time conflicts with another appointment.')),
+                  );
+                  return;
+                }
+
+                final patientConflict = await FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(selectedPatientId)
+                    .collection('appointments')
+                    .where('dateTime', isGreaterThanOrEqualTo: Timestamp.fromDate(startWindow))
+                    .where('dateTime', isLessThanOrEqualTo: Timestamp.fromDate(endWindow))
+                    .get();
+
+                if (patientConflict.docs.isNotEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('This patient already has an appointment around this time.')),
                   );
                   return;
                 }
@@ -192,15 +197,11 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                   'status': 'confirmed',
                 };
 
-                if (existing != null) {
-                  await (existing['ref'] as DocumentReference).update(data);
-                } else {
-                  await FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(selectedPatientId!)
-                      .collection('appointments')
-                      .add(data);
-                }
+                await FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(selectedPatientId!)
+                    .collection('appointments')
+                    .add(data);
 
                 if (!mounted) return;
                 Navigator.pop(context);
@@ -223,26 +224,34 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.only(right: 16.0, top: 8),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _focusedDay = DateTime.now();
-                    _selectedDay = DateTime.now();
-                  });
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.purple,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
-                  elevation: 4,
+            padding: const EdgeInsets.only(left: 12.0, right: 12.0, top: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${_focusedDay.month}/${_focusedDay.year}',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
-                icon: const Icon(Icons.calendar_today, size: 18),
-                label: const Text('Current Week', style: TextStyle(fontWeight: FontWeight.w500)),
-              ),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _focusedDay = DateTime.now();
+                      _selectedDay = DateTime.now();
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.purple,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(40),
+                    ),
+                    elevation: 4,
+                  ),
+                  icon: const Icon(Icons.calendar_today, size: 18),
+                  label: const Text('Current Week', style: TextStyle(fontWeight: FontWeight.w500)),
+                ),
+              ],
             ),
           ),
           TableCalendar(
@@ -257,7 +266,9 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
               });
             },
             eventLoader: _getAppointmentsForDay,
-            availableCalendarFormats: const {CalendarFormat.month: 'Month'},
+            availableCalendarFormats: const {
+              CalendarFormat.month: 'Month',
+            },
             headerStyle: const HeaderStyle(formatButtonVisible: false),
             calendarBuilders: CalendarBuilders(
               markerBuilder: (context, date, events) {
@@ -271,10 +282,7 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                           margin: const EdgeInsets.symmetric(horizontal: 1.5),
                           width: 6,
                           height: 6,
-                          decoration: const BoxDecoration(
-                            color: Colors.purple,
-                            shape: BoxShape.circle,
-                          ),
+                          decoration: const BoxDecoration(color: Colors.purple, shape: BoxShape.circle),
                         );
                       }).toList(),
                     ),
@@ -301,7 +309,6 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                         title: Text(patientName),
                         subtitle: Text('${TimeOfDay.fromDateTime(time).format(context)} - $note'),
                         leading: const Icon(Icons.event_available),
-                        onTap: () => _showAppointmentDialog(existing: appt),
                       );
                     }).toList(),
                   ),
