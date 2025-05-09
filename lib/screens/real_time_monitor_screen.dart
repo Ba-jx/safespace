@@ -1,5 +1,7 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import '../providers/device_provider.dart';
 
@@ -11,117 +13,96 @@ class RealTimeMonitorScreen extends StatefulWidget {
 }
 
 class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
-  BluetoothDevice? connectedDevice;
-  BluetoothCharacteristic? dataChar;
-  String status = 'Scanning...';
+  static const String authToken = 'IC_O52YQ1auEdxmNw345luxEMu5cwvnl';
+  static const String baseUrl = 'https://blynk.cloud/external/api/get';
+
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
-    startScan();
-  }
-
-  void startScan() {
-    FlutterBluePlus.startScan(timeout: const Duration(seconds: 5));
-    FlutterBluePlus.scanResults.listen((results) {
-      for (ScanResult r in results) {
-        if (r.device.platformName == "ESP32_HealthMonitor") {
-          FlutterBluePlus.stopScan();
-          connectToDevice(r.device);
-          break;
-        }
-      }
-    });
-  }
-
-  Future<void> connectToDevice(BluetoothDevice device) async {
-    setState(() => status = 'Connecting...');
-    try {
-      await device.connect();
-      setState(() {
-        connectedDevice = device;
-        status = 'Connected';
-      });
-      discoverServices(device);
-    } catch (e) {
-      setState(() => status = 'Connection Failed');
-      debugPrint('Connection error: $e');
-    }
-  }
-
-  Future<void> discoverServices(BluetoothDevice device) async {
-    List<BluetoothService> services = await device.discoverServices();
-    for (var service in services) {
-      for (var characteristic in service.characteristics) {
-        if (characteristic.properties.notify) {
-          dataChar = characteristic;
-          await characteristic.setNotifyValue(true);
-          characteristic.lastValueStream.listen((value) {
-            final reading = String.fromCharCodes(value);
-            _handleReading(reading);
-          });
-        }
-      }
-    }
-  }
-
-  void _handleReading(String data) {
-    final device = Provider.of<DeviceProvider>(context, listen: false);
-    if (data.contains('BPM:')) {
-      final bpm = RegExp(r'BPM:(\d+)').firstMatch(data)?.group(1);
-      final spo2 = RegExp(r'SpO2:(\d+)').firstMatch(data)?.group(1);
-      final temp = RegExp(r'Temp:([\d.]+)').firstMatch(data)?.group(1);
-
-      if (bpm != null) device.updateHeartRate(int.parse(bpm));
-      if (spo2 != null) device.updateOxygenLevel(int.parse(spo2));
-      if (temp != null) device.updateTemperature(double.parse(temp));
-    }
+    fetchData();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (_) => fetchData());
   }
 
   @override
   void dispose() {
-    connectedDevice?.disconnect();
+    _refreshTimer?.cancel();
     super.dispose();
+  }
+
+  Future<void> fetchData() async {
+    try {
+      final responses = await Future.wait([
+        http.get(Uri.parse('$baseUrl?token=$authToken&v0')),
+        http.get(Uri.parse('$baseUrl?token=$authToken&v1')),
+        http.get(Uri.parse('$baseUrl?token=$authToken&v2')),
+      ]);
+
+      if (responses.every((res) => res.statusCode == 200)) {
+        final bpm = int.tryParse(responses[0].body.trim()) ?? 0;
+        final spo2 = int.tryParse(responses[1].body.trim()) ?? 0;
+        final temp = double.tryParse(responses[2].body.trim()) ?? 0.0;
+
+        final provider = Provider.of<DeviceProvider>(context, listen: false);
+        provider.updateHeartRate(bpm);
+        provider.updateOxygenLevel(spo2);
+        provider.updateTemperature(temp);
+      }
+    } catch (e) {
+      debugPrint('Failed to fetch Blynk data: $e');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final device = Provider.of<DeviceProvider>(context);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Real-Time Monitor')),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            Text(status, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            _buildMetricRow(
+              icon: Icons.favorite,
+              title: 'Heart Rate',
+              value: '${device.heartRate} BPM',
+              color: Colors.redAccent,
+            ),
             const SizedBox(height: 16),
-            _buildMetricRow(Icons.favorite, 'Heart Rate', '${device.heartRate} BPM', Colors.redAccent),
+            _buildMetricRow(
+              icon: Icons.bloodtype,
+              title: 'Oxygen Level',
+              value: '${device.oxygenLevel} %',
+              color: Colors.blueAccent,
+            ),
             const SizedBox(height: 16),
-            _buildMetricRow(Icons.thermostat, 'Temperature', '${device.temperature.toStringAsFixed(1)} °C', Colors.orange),
-            const SizedBox(height: 16),
-            _buildMetricRow(Icons.bloodtype, 'Oxygen Level', '${device.oxygenLevel}%', Colors.blueAccent),
+            _buildMetricRow(
+              icon: Icons.thermostat,
+              title: 'Temperature',
+              value: '${device.temperature.toStringAsFixed(1)} °C',
+              color: Colors.orange,
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildMetricRow(IconData icon, String title, String value, Color color) {
+  Widget _buildMetricRow({
+    required IconData icon,
+    required String title,
+    required String value,
+    required Color color,
+  }) {
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
         leading: Icon(icon, size: 36, color: color),
-        title: RichText(
-          text: TextSpan(
-            style: const TextStyle(fontSize: 18, color: Colors.black),
-            children: [
-              TextSpan(text: title, style: const TextStyle(fontWeight: FontWeight.w500)),
-              const TextSpan(text: '  '),
-              TextSpan(text: value, style: const TextStyle(fontWeight: FontWeight.bold)),
-            ],
-          ),
-        ),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+        trailing: Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
       ),
     );
   }
