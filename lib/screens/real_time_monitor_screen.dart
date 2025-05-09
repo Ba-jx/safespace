@@ -11,7 +11,6 @@ class RealTimeMonitorScreen extends StatefulWidget {
 }
 
 class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
-  FlutterBluePlus flutterBlue = FlutterBluePlus.instance;
   BluetoothDevice? connectedDevice;
   BluetoothCharacteristic? dataChar;
   String status = 'Scanning...';
@@ -23,11 +22,11 @@ class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
   }
 
   void startScan() {
-    flutterBlue.startScan(timeout: const Duration(seconds: 5));
-    flutterBlue.scanResults.listen((results) {
+    FlutterBluePlus.startScan(timeout: const Duration(seconds: 5));
+    FlutterBluePlus.scanResults.listen((results) {
       for (ScanResult r in results) {
-        if (r.device.name == "ESP32_HealthMonitor") {
-          flutterBlue.stopScan();
+        if (r.device.platformName == "ESP32_HealthMonitor") {
+          FlutterBluePlus.stopScan();
           connectToDevice(r.device);
           break;
         }
@@ -38,7 +37,7 @@ class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
   Future<void> connectToDevice(BluetoothDevice device) async {
     setState(() => status = 'Connecting...');
     try {
-      await device.connect(autoConnect: false);
+      await device.connect();
       setState(() {
         connectedDevice = device;
         status = 'Connected';
@@ -57,7 +56,7 @@ class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
         if (characteristic.properties.notify) {
           dataChar = characteristic;
           await characteristic.setNotifyValue(true);
-          characteristic.value.listen((value) {
+          characteristic.lastValueStream.listen((value) {
             final reading = String.fromCharCodes(value);
             _handleReading(reading);
           });
@@ -67,8 +66,6 @@ class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
   }
 
   void _handleReading(String data) {
-    debugPrint('Raw Bluetooth Data: $data');
-
     final device = Provider.of<DeviceProvider>(context, listen: false);
     if (data.contains('BPM:')) {
       final bpm = RegExp(r'BPM:(\d+)').firstMatch(data)?.group(1);
@@ -83,16 +80,13 @@ class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
 
   @override
   void dispose() {
-    if (connectedDevice != null) {
-      connectedDevice!.disconnect();
-    }
+    connectedDevice?.disconnect();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final device = Provider.of<DeviceProvider>(context);
-
     return Scaffold(
       appBar: AppBar(title: const Text('Real-Time Monitor')),
       body: Padding(
@@ -101,38 +95,18 @@ class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
           children: [
             Text(status, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
-            _buildMetricRow(
-              icon: Icons.favorite,
-              title: 'Heart Rate',
-              value: '${device.heartRate} BPM',
-              color: Colors.redAccent,
-            ),
+            _buildMetricRow(Icons.favorite, 'Heart Rate', '${device.heartRate} BPM', Colors.redAccent),
             const SizedBox(height: 16),
-            _buildMetricRow(
-              icon: Icons.thermostat,
-              title: 'Temperature',
-              value: '${device.temperature.toStringAsFixed(1)} °C',
-              color: Colors.orange,
-            ),
+            _buildMetricRow(Icons.thermostat, 'Temperature', '${device.temperature.toStringAsFixed(1)} °C', Colors.orange),
             const SizedBox(height: 16),
-            _buildMetricRow(
-              icon: Icons.bloodtype,
-              title: 'Oxygen Level',
-              value: '${device.oxygenLevel}%',
-              color: Colors.blueAccent,
-            ),
+            _buildMetricRow(Icons.bloodtype, 'Oxygen Level', '${device.oxygenLevel}%', Colors.blueAccent),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildMetricRow({
-    required IconData icon,
-    required String title,
-    required String value,
-    required Color color,
-  }) {
+  Widget _buildMetricRow(IconData icon, String title, String value, Color color) {
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
