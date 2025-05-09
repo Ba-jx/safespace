@@ -1,43 +1,115 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../providers/device_provider.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
-class RealTimeMonitorScreen extends StatelessWidget {
+class RealTimeMonitorScreen extends StatefulWidget {
   const RealTimeMonitorScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final device = Provider.of<DeviceProvider>(context);
+  State<RealTimeMonitorScreen> createState() => _RealTimeMonitorScreenState();
+}
 
+class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
+  BluetoothDevice? connectedDevice;
+  BluetoothCharacteristic? notifyCharacteristic;
+  String heartRate = '--';
+  String temperature = '--';
+  String oxygenLevel = '--';
+  bool isConnecting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    scanAndConnect();
+  }
+
+  void scanAndConnect() async {
+    setState(() => isConnecting = true);
+    FlutterBluePlus.startScan(timeout: const Duration(seconds: 5));
+
+    FlutterBluePlus.scanResults.listen((results) async {
+      for (ScanResult r in results) {
+        if (r.device.name == "ESP32_HealthMonitor") {
+          await FlutterBluePlus.stopScan();
+          connectedDevice = r.device;
+
+          await connectedDevice!.connect(autoConnect: false);
+          discoverServices();
+          break;
+        }
+      }
+    });
+  }
+
+  void discoverServices() async {
+    if (connectedDevice == null) return;
+
+    List<BluetoothService> services = await connectedDevice!.discoverServices();
+    for (BluetoothService service in services) {
+      for (BluetoothCharacteristic c in service.characteristics) {
+        if (c.properties.notify) {
+          notifyCharacteristic = c;
+          await c.setNotifyValue(true);
+          c.onValueReceived.listen((value) {
+            final data = String.fromCharCodes(value);
+            parseAndSetData(data);
+          });
+          setState(() => isConnecting = false);
+          return;
+        }
+      }
+    }
+  }
+
+  void parseAndSetData(String data) {
+    final parts = data.split('|');
+    if (parts.length == 3) {
+      setState(() {
+        heartRate = parts[0].replaceAll('BPM:', '').trim();
+        oxygenLevel = parts[1].replaceAll('SpO2:', '').replaceAll('%', '').trim();
+        temperature = parts[2].replaceAll('Temp:', '').replaceAll('C', '').trim();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    connectedDevice?.disconnect();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Real-Time Monitor')),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            _buildMetricRow(
-              icon: Icons.favorite,
-              title: 'Heart Rate',
-              value: '${device.heartRate} BPM',
-              color: Colors.redAccent,
+      body: isConnecting
+          ? const Center(child: CircularProgressIndicator())
+          : Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  _buildMetricRow(
+                    icon: Icons.favorite,
+                    title: 'Heart Rate',
+                    value: '$heartRate BPM',
+                    color: Colors.redAccent,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildMetricRow(
+                    icon: Icons.thermostat,
+                    title: 'Temperature',
+                    value: '$temperature °C',
+                    color: Colors.orange,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildMetricRow(
+                    icon: Icons.bloodtype,
+                    title: 'Oxygen Level',
+                    value: '$oxygenLevel %',
+                    color: Colors.blueAccent,
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 16),
-            _buildMetricRow(
-              icon: Icons.thermostat,
-              title: 'Temperature',
-              value: '${device.temperature.toStringAsFixed(1)} °C',
-              color: Colors.orange,
-            ),
-            const SizedBox(height: 16),
-            _buildMetricRow(
-              icon: Icons.bloodtype,
-              title: 'Oxygen Level',
-              value: '${device.oxygenLevel}%',
-              color: Colors.blueAccent,
-            ),
-          ],
-        ),
-      ),
     );
   }
 
