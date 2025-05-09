@@ -11,7 +11,7 @@ class RealTimeMonitorScreen extends StatefulWidget {
 }
 
 class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
-  FlutterBlue flutterBlue = FlutterBlue.instance;
+  FlutterBluePlus flutterBlue = FlutterBluePlus.instance;
   BluetoothDevice? connectedDevice;
   BluetoothCharacteristic? dataChar;
   String status = 'Scanning...';
