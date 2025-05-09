@@ -40,6 +40,7 @@ dependencies:
   firebase_messaging: ^14.6.8
   
   flutter_blue_plus: ^1.31.15
+  http: ^0.13.5
 
 
 
