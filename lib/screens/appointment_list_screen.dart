@@ -61,28 +61,70 @@ class _PatientAppointmentCalendarState
     return _appointmentsByDate[date] ?? [];
   }
 
-  Future<void> _editNote(String docId, String currentNote) async {
+  Future<void> _editAppointment(Map<String, dynamic> appt) async {
     final patientId = FirebaseAuth.instance.currentUser?.uid;
-    final controller = TextEditingController(text: currentNote);
-    final result = await showDialog<String>(
+    if (patientId == null) return;
+
+    DateTime current = (appt['dateTime'] as Timestamp).toDate();
+    TimeOfDay selectedTime = TimeOfDay.fromDateTime(current);
+    final noteController = TextEditingController(text: appt['note'] ?? '');
+
+    final result = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Note'),
-        content: TextField(controller: controller),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, controller.text), child: const Text('Save')),
-        ],
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => AlertDialog(
+          title: const Text('Edit Appointment'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: noteController,
+                decoration: const InputDecoration(labelText: 'Note'),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Text('Time:'),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: () async {
+                      final picked = await showTimePicker(
+                          context: context, initialTime: selectedTime);
+                      if (picked != null) {
+                        setModalState(() => selectedTime = picked);
+                      }
+                    },
+                    child: Text(selectedTime.format(context)),
+                  )
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+            ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Save')),
+          ],
+        ),
       ),
     );
 
-    if (result != null && patientId != null) {
+    if (result == true) {
+      final updatedDateTime = DateTime(
+        current.year,
+        current.month,
+        current.day,
+        selectedTime.hour,
+        selectedTime.minute,
+      );
       await FirebaseFirestore.instance
           .collection('users')
           .doc(patientId)
           .collection('appointments')
-          .doc(docId)
-          .update({'note': result});
+          .doc(appt['docId'])
+          .update({
+        'note': noteController.text.trim(),
+        'dateTime': Timestamp.fromDate(updatedDateTime),
+      });
       await _fetchAllAppointments();
     }
   }
@@ -206,7 +248,6 @@ class _PatientAppointmentCalendarState
                       final note = appt['note'] ?? '';
                       final status = appt['status'] ?? '';
                       final time = (appt['dateTime'] as Timestamp).toDate();
-                      final docId = appt['docId'];
 
                       return ListTile(
                         title: Text(
@@ -217,9 +258,9 @@ class _PatientAppointmentCalendarState
                         trailing: PopupMenuButton<String>(
                           onSelected: (value) {
                             if (value == 'edit') {
-                              _editNote(docId, note);
+                              _editAppointment(appt);
                             } else if (value == 'delete') {
-                              _deleteAppointment(docId);
+                              _deleteAppointment(appt['docId']);
                             }
                           },
                           itemBuilder: (context) => [
