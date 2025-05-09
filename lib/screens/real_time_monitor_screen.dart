@@ -37,13 +37,17 @@ class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
 
   Future<void> connectToDevice(BluetoothDevice device) async {
     setState(() => status = 'Connecting...');
-    await device.connect();
-    setState(() {
-      connectedDevice = device;
-      status = 'Connected';
-    });
-
-    discoverServices(device);
+    try {
+      await device.connect(autoConnect: false);
+      setState(() {
+        connectedDevice = device;
+        status = 'Connected';
+      });
+      discoverServices(device);
+    } catch (e) {
+      setState(() => status = 'Connection Failed');
+      debugPrint('Connection error: $e');
+    }
   }
 
   Future<void> discoverServices(BluetoothDevice device) async {
@@ -63,6 +67,8 @@ class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
   }
 
   void _handleReading(String data) {
+    debugPrint('Raw Bluetooth Data: $data');
+
     final device = Provider.of<DeviceProvider>(context, listen: false);
     if (data.contains('BPM:')) {
       final bpm = RegExp(r'BPM:(\d+)').firstMatch(data)?.group(1);
@@ -76,8 +82,17 @@ class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
   }
 
   @override
+  void dispose() {
+    if (connectedDevice != null) {
+      connectedDevice!.disconnect();
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final device = Provider.of<DeviceProvider>(context);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Real-Time Monitor')),
       body: Padding(
@@ -127,15 +142,9 @@ class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
           text: TextSpan(
             style: const TextStyle(fontSize: 18, color: Colors.black),
             children: [
-              TextSpan(
-                text: title,
-                style: const TextStyle(fontWeight: FontWeight.w500),
-              ),
+              TextSpan(text: title, style: const TextStyle(fontWeight: FontWeight.w500)),
               const TextSpan(text: '  '),
-              TextSpan(
-                text: value,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
+              TextSpan(text: value, style: const TextStyle(fontWeight: FontWeight.bold)),
             ],
           ),
         ),
