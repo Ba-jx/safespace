@@ -61,6 +61,57 @@ class _PatientAppointmentCalendarState
     return _appointmentsByDate[date] ?? [];
   }
 
+  Future<void> _editNote(String docId, String currentNote) async {
+    final patientId = FirebaseAuth.instance.currentUser?.uid;
+    final controller = TextEditingController(text: currentNote);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Note'),
+        content: TextField(controller: controller),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.pop(context, controller.text), child: const Text('Save')),
+        ],
+      ),
+    );
+
+    if (result != null && patientId != null) {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(patientId)
+          .collection('appointments')
+          .doc(docId)
+          .update({'note': result});
+      await _fetchAllAppointments();
+    }
+  }
+
+  Future<void> _deleteAppointment(String docId) async {
+    final patientId = FirebaseAuth.instance.currentUser?.uid;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Delete'),
+        content: const Text('Are you sure you want to delete this appointment?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
+        ],
+      ),
+    );
+
+    if (confirm == true && patientId != null) {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(patientId)
+          .collection('appointments')
+          .doc(docId)
+          .delete();
+      await _fetchAllAppointments();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final appointments = _getAppointmentsForDay(_selectedDay ?? _focusedDay);
@@ -74,28 +125,27 @@ class _PatientAppointmentCalendarState
             child: Align(
               alignment: Alignment.centerRight,
               child: ElevatedButton.icon(
-  onPressed: () {
-    setState(() {
-      _focusedDay = DateTime.now();
-      _selectedDay = DateTime.now();
-    });
-  },
-  style: ElevatedButton.styleFrom(
-    backgroundColor: Colors.purple,
-    foregroundColor: Colors.white,
-    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(40),
-    ),
-    elevation: 4,
-  ),
-  icon: const Icon(Icons.calendar_today, size: 18),
-  label: const Text(
-    'Current Week',
-    style: TextStyle(fontWeight: FontWeight.w500),
-  ),
-),
-
+                onPressed: () {
+                  setState(() {
+                    _focusedDay = DateTime.now();
+                    _selectedDay = DateTime.now();
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(40),
+                  ),
+                  elevation: 4,
+                ),
+                icon: const Icon(Icons.calendar_today, size: 18),
+                label: const Text(
+                  'Current Week',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
+              ),
             ),
           ),
           TableCalendar(
@@ -119,8 +169,7 @@ class _PatientAppointmentCalendarState
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: events.map((event) {
                         return Container(
-                          margin:
-                              const EdgeInsets.symmetric(horizontal: 1.5),
+                          margin: const EdgeInsets.symmetric(horizontal: 1.5),
                           width: 6,
                           height: 6,
                           decoration: const BoxDecoration(
@@ -157,6 +206,7 @@ class _PatientAppointmentCalendarState
                       final note = appt['note'] ?? '';
                       final status = appt['status'] ?? '';
                       final time = (appt['dateTime'] as Timestamp).toDate();
+                      final docId = appt['docId'];
 
                       return ListTile(
                         title: Text(
@@ -164,6 +214,25 @@ class _PatientAppointmentCalendarState
                         ),
                         subtitle: Text('Status: $status'),
                         leading: const Icon(Icons.calendar_today),
+                        trailing: PopupMenuButton<String>(
+                          onSelected: (value) {
+                            if (value == 'edit') {
+                              _editNote(docId, note);
+                            } else if (value == 'delete') {
+                              _deleteAppointment(docId);
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(
+                              value: 'edit',
+                              child: Text('Edit'),
+                            ),
+                            const PopupMenuItem(
+                              value: 'delete',
+                              child: Text('Delete'),
+                            ),
+                          ],
+                        ),
                       );
                     }).toList(),
                   ),
