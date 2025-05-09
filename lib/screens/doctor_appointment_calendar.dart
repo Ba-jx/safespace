@@ -1,3 +1,5 @@
+// doctor_appointment_calendar.dart
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -81,7 +83,9 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
         ? TimeOfDay.fromDateTime((existing['dateTime'] as Timestamp).toDate())
         : const TimeOfDay(hour: 9, minute: 0);
 
-    final selectedDate = _selectedDay ?? _focusedDay;
+    DateTime selectedDate = existing != null
+        ? (existing['dateTime'] as Timestamp).toDate()
+        : (_selectedDay ?? _focusedDay);
 
     showDialog(
       context: context,
@@ -111,6 +115,29 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                 TextField(
                   controller: noteController,
                   decoration: const InputDecoration(labelText: 'Note'),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Text('Date:'),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: selectedDate,
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime.now().add(const Duration(days: 365)),
+                        );
+                        if (picked != null) {
+                          setModalState(() {
+                            selectedDate = picked;
+                          });
+                        }
+                      },
+                      child: Text('${selectedDate.year}-${selectedDate.month}-${selectedDate.day}'),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 Row(
@@ -161,27 +188,6 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                   selectedTime.hour,
                   selectedTime.minute,
                 );
-
-                final startWindow = dateTime.subtract(const Duration(hours: 2));
-                final endWindow = dateTime.add(const Duration(hours: 2));
-
-                final doctorConflict = await FirebaseFirestore.instance
-                    .collectionGroup('appointments')
-                    .where('doctorId', isEqualTo: doctorId)
-                    .where('dateTime', isGreaterThanOrEqualTo: Timestamp.fromDate(startWindow))
-                    .where('dateTime', isLessThanOrEqualTo: Timestamp.fromDate(endWindow))
-                    .get();
-
-                final isEditing = existing != null;
-                final conflictExists = doctorConflict.docs.any((doc) =>
-                    !isEditing || (doc.id != existing!['docId']));
-
-                if (conflictExists) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('This time conflicts with another appointment.')),
-                  );
-                  return;
-                }
 
                 final data = {
                   'patientId': selectedPatientId,
