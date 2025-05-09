@@ -11,8 +11,7 @@ class PatientAppointmentCalendar extends StatefulWidget {
       _PatientAppointmentCalendarState();
 }
 
-class _PatientAppointmentCalendarState
-    extends State<PatientAppointmentCalendar> {
+class _PatientAppointmentCalendarState extends State<PatientAppointmentCalendar> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   Map<DateTime, List<Map<String, dynamic>>> _appointmentsByDate = {};
@@ -20,10 +19,10 @@ class _PatientAppointmentCalendarState
   @override
   void initState() {
     super.initState();
-    _fetchAllAppointments();
+    _fetchAppointments();
   }
 
-  Future<void> _fetchAllAppointments() async {
+  Future<void> _fetchAppointments() async {
     final patientId = FirebaseAuth.instance.currentUser?.uid;
     if (patientId == null) return;
 
@@ -40,11 +39,7 @@ class _PatientAppointmentCalendarState
       final data = doc.data();
       final timestamp = data['dateTime'];
       if (timestamp is Timestamp) {
-        final date = DateTime(
-          timestamp.toDate().year,
-          timestamp.toDate().month,
-          timestamp.toDate().day,
-        );
+        final date = DateTime(timestamp.toDate().year, timestamp.toDate().month, timestamp.toDate().day);
         grouped[date] = grouped[date] ?? [];
         grouped[date]!.add({...data, 'docId': doc.id});
       }
@@ -61,15 +56,12 @@ class _PatientAppointmentCalendarState
     return _appointmentsByDate[date] ?? [];
   }
 
-  Future<void> _editAppointment(Map<String, dynamic> appt) async {
-    final patientId = FirebaseAuth.instance.currentUser?.uid;
-    if (patientId == null) return;
+  void _showEditDialog(Map<String, dynamic> appt) async {
+    DateTime initialDate = (appt['dateTime'] as Timestamp).toDate();
+    DateTime selectedDate = initialDate;
+    TimeOfDay selectedTime = TimeOfDay.fromDateTime(initialDate);
 
-    DateTime current = (appt['dateTime'] as Timestamp).toDate();
-    TimeOfDay selectedTime = TimeOfDay.fromDateTime(current);
-    final noteController = TextEditingController(text: appt['note'] ?? '');
-
-    final result = await showDialog<bool>(
+    await showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => AlertDialog(
@@ -77,56 +69,74 @@ class _PatientAppointmentCalendarState
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
-                controller: noteController,
-                decoration: const InputDecoration(labelText: 'Note'),
+              ListTile(
+                title: const Text('Date'),
+                subtitle: Text(
+                  '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}',
+                ),
+                trailing: const Icon(Icons.calendar_today),
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: selectedDate,
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime.now().add(const Duration(days: 60)),
+                  );
+                  if (picked != null) {
+                    setModalState(() => selectedDate = picked);
+                  }
+                },
               ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Text('Time:'),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: () async {
-                      final picked = await showTimePicker(
-                          context: context, initialTime: selectedTime);
-                      if (picked != null) {
-                        setModalState(() => selectedTime = picked);
-                      }
-                    },
-                    child: Text(selectedTime.format(context)),
-                  )
-                ],
+              ListTile(
+                title: const Text('Time'),
+                subtitle: Text(selectedTime.format(context)),
+                trailing: const Icon(Icons.access_time),
+                onTap: () async {
+                  final picked = await showTimePicker(
+                    context: context,
+                    initialTime: selectedTime,
+                  );
+                  if (picked != null) {
+                    setModalState(() => selectedTime = picked);
+                  }
+                },
               ),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-            ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Save')),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final newDateTime = DateTime(
+                  selectedDate.year,
+                  selectedDate.month,
+                  selectedDate.day,
+                  selectedTime.hour,
+                  selectedTime.minute,
+                );
+
+                final patientId = FirebaseAuth.instance.currentUser!.uid;
+                final docId = appt['docId'];
+                await FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(patientId)
+                    .collection('appointments')
+                    .doc(docId)
+                    .update({'dateTime': Timestamp.fromDate(newDateTime)});
+
+                if (!mounted) return;
+                Navigator.pop(context);
+                await _fetchAppointments();
+              },
+              child: const Text('Save'),
+            ),
           ],
         ),
       ),
     );
-
-    if (result == true) {
-      final updatedDateTime = DateTime(
-        current.year,
-        current.month,
-        current.day,
-        selectedTime.hour,
-        selectedTime.minute,
-      );
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(patientId)
-          .collection('appointments')
-          .doc(appt['docId'])
-          .update({
-        'note': noteController.text.trim(),
-        'dateTime': Timestamp.fromDate(updatedDateTime),
-      });
-      await _fetchAllAppointments();
-    }
   }
 
   Future<void> _deleteAppointment(String docId) async {
@@ -134,7 +144,7 @@ class _PatientAppointmentCalendarState
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirm Delete'),
+        title: const Text('Delete Appointment'),
         content: const Text('Are you sure you want to delete this appointment?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
@@ -150,7 +160,7 @@ class _PatientAppointmentCalendarState
           .collection('appointments')
           .doc(docId)
           .delete();
-      await _fetchAllAppointments();
+      await _fetchAppointments();
     }
   }
 
@@ -177,16 +187,11 @@ class _PatientAppointmentCalendarState
                   backgroundColor: Colors.purple,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(40),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
                   elevation: 4,
                 ),
                 icon: const Icon(Icons.calendar_today, size: 18),
-                label: const Text(
-                  'Current Week',
-                  style: TextStyle(fontWeight: FontWeight.w500),
-                ),
+                label: const Text('Current Week', style: TextStyle(fontWeight: FontWeight.w500)),
               ),
             ),
           ),
@@ -202,6 +207,8 @@ class _PatientAppointmentCalendarState
               });
             },
             eventLoader: _getAppointmentsForDay,
+            availableCalendarFormats: const {CalendarFormat.month: 'Month'},
+            headerStyle: const HeaderStyle(formatButtonVisible: false),
             calendarBuilders: CalendarBuilders(
               markerBuilder: (context, date, events) {
                 if (events.isNotEmpty) {
@@ -227,16 +234,7 @@ class _PatientAppointmentCalendarState
               },
             ),
             calendarStyle: const CalendarStyle(
-              markerDecoration: BoxDecoration(
-                color: Colors.purple,
-                shape: BoxShape.circle,
-              ),
-            ),
-            availableCalendarFormats: const {
-              CalendarFormat.month: 'Month',
-            },
-            headerStyle: const HeaderStyle(
-              formatButtonVisible: false,
+              markerDecoration: BoxDecoration(color: Colors.purple, shape: BoxShape.circle),
             ),
           ),
           const SizedBox(height: 16),
@@ -248,6 +246,7 @@ class _PatientAppointmentCalendarState
                       final note = appt['note'] ?? '';
                       final status = appt['status'] ?? '';
                       final time = (appt['dateTime'] as Timestamp).toDate();
+                      final docId = appt['docId'];
 
                       return ListTile(
                         title: Text(
@@ -258,20 +257,14 @@ class _PatientAppointmentCalendarState
                         trailing: PopupMenuButton<String>(
                           onSelected: (value) {
                             if (value == 'edit') {
-                              _editAppointment(appt);
+                              _showEditDialog(appt);
                             } else if (value == 'delete') {
-                              _deleteAppointment(appt['docId']);
+                              _deleteAppointment(docId);
                             }
                           },
                           itemBuilder: (context) => [
-                            const PopupMenuItem(
-                              value: 'edit',
-                              child: Text('Edit'),
-                            ),
-                            const PopupMenuItem(
-                              value: 'delete',
-                              child: Text('Delete'),
-                            ),
+                            const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                            const PopupMenuItem(value: 'delete', child: Text('Delete')),
                           ],
                         ),
                       );
