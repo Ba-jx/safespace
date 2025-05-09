@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -94,23 +95,36 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (existing == null)
-                  DropdownButtonFormField<String>(
-                    value: selectedPatientId,
-                    decoration: const InputDecoration(labelText: 'Select Patient'),
-                    items: patients.map((patient) {
-                      return DropdownMenuItem<String>(
-                        value: patient['id'],
-                        child: Text(patient['name']),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setModalState(() {
-                        selectedPatientId = value;
-                        selectedPatientName = patients.firstWhere((p) => p['id'] == value)['name'];
-                      });
-                    },
-                  ),
+                existing == null
+                    ? DropdownButtonFormField<String>(
+                        value: selectedPatientId,
+                        decoration: const InputDecoration(labelText: 'Select Patient'),
+                        items: patients.map((patient) {
+                          return DropdownMenuItem<String>(
+                            value: patient['id'],
+                            child: Text(patient['name']),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setModalState(() {
+                            selectedPatientId = value;
+                            selectedPatientName = patients.firstWhere((p) => p['id'] == value)['name'];
+                          });
+                        },
+                      )
+                    : Align(
+                        alignment: Alignment.centerLeft,
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 12.0),
+                          child: Row(
+                            children: [
+                              const Text('Patient:', style: TextStyle(fontWeight: FontWeight.bold)),
+                              const SizedBox(width: 8),
+                              Text(selectedPatientName ?? 'Unknown'),
+                            ],
+                          ),
+                        ),
+                      ),
                 TextField(
                   controller: noteController,
                   decoration: const InputDecoration(labelText: 'Note'),
