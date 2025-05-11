@@ -80,9 +80,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildMessageBubble(Map<String, dynamic> msg, bool isMe) {
     final timestamp = msg['timestamp'] as Timestamp?;
-    final timeText = timestamp != null
-        ? TimeOfDay.fromDateTime(timestamp.toDate()).format(context)
-        : '';
+    final timeText =
+        timestamp != null
+            ? TimeOfDay.fromDateTime(timestamp.toDate()).format(context)
+            : '';
 
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
@@ -123,9 +124,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     child: Icon(
                       msg['isRead'] == true ? Icons.done_all : Icons.check,
                       size: 14,
-                      color: msg['isRead'] == true
-                          ? Colors.white
-                          : Colors.white60,
+                      color:
+                          msg['isRead'] == true ? Colors.white : Colors.white60,
                     ),
                   ),
               ],
@@ -144,12 +144,13 @@ class _ChatScreenState extends State<ChatScreen> {
         children: [
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('messages')
-                  .doc(chatId)
-                  .collection('chats')
-                  .orderBy('timestamp')
-                  .snapshots(),
+              stream:
+                  FirebaseFirestore.instance
+                      .collection('messages')
+                      .doc(chatId)
+                      .collection('chats')
+                      .orderBy('timestamp')
+                      .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   return const Center(child: Text('Error loading messages'));
@@ -171,8 +172,10 @@ class _ChatScreenState extends State<ChatScreen> {
                     final msg = doc.data() as Map<String, dynamic>;
                     final isMe = msg['senderId'] == currentUserId;
 
-                    final timestamp = (msg['timestamp'] as Timestamp?)?.toDate();
-                    final showDateDivider = timestamp != null &&
+                    final timestamp =
+                        (msg['timestamp'] as Timestamp?)?.toDate();
+                    final showDateDivider =
+                        timestamp != null &&
                         (lastDate == null ||
                             timestamp.day != lastDate!.day ||
                             timestamp.month != lastDate!.month ||
@@ -183,10 +186,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
                     return Column(
                       children: [
-                        if (showDateDivider && timestamp != null)
+                        if (showDateDivider)
                           Padding(
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 8.0),
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
                             child: Text(
                               DateFormat.yMMMMd().format(timestamp),
                               style: const TextStyle(color: Colors.grey),
