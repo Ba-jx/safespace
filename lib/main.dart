@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 // Providers
 import 'providers/user_provider.dart';
@@ -25,9 +27,17 @@ import 'screens/manage_appointments_screen.dart';
 import 'screens/doctor_create_patient_screen.dart';
 import 'screens/doctor_appointment_calendar.dart';
 
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  print("⏪ Background message: ${message.notification?.title} - ${message.notification?.body}");
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
   runApp(const SafeSpaceApp());
 }
 
@@ -79,11 +89,38 @@ class SafeSpaceApp extends StatelessWidget {
           '/appointments/list': (_) => const PatientAppointmentCalendar(),
           '/doctor/dashboard': (_) => const DoctorDashboardScreen(),
           '/doctor/patients': (_) => const ViewPatientsScreen(),
-          '/doctor/create-patient': (context) => const DoctorCreatesPatientScreen(),
+          '/doctor/create-patient': (_) => const DoctorCreatesPatientScreen(),
           '/doctor/appointments': (_) => const ManageAppointmentsScreen(),
           '/doctor/calendar': (_) => const DoctorAppointmentCalendar(),
         },
+        builder: (context, child) {
+          _initializeFCM();
+          return child!;
+        },
       ),
     );
+  }
+
+  void _initializeFCM() async {
+    final fcm = FirebaseMessaging.instance;
+
+    // 🔑 Request permission for iOS
+    await fcm.requestPermission();
+
+    // 💬 Listen for foreground messages
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      if (message.notification != null) {
+        print('🔔 Foreground Notification: ${message.notification!.title} - ${message.notification!.body}');
+      }
+    });
+
+    // 🧠 Save FCM token to Firestore (for current user)
+    final token = await fcm.getToken();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null && token != null) {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+        'fcmToken': token,
+      });
+    }
   }
 }
