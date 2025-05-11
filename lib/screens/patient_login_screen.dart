@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import '../providers/user_provider.dart';
 
 class PatientLoginScreen extends StatefulWidget {
@@ -40,6 +41,14 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
 
       final name = doc.data()?['name'] ?? 'User';
       Provider.of<UserProvider>(context, listen: false).setUserName(name);
+
+      // 🔐 Store FCM token
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token != null) {
+        await FirebaseFirestore.instance.collection('users').doc(uid).update({
+          'fcmToken': token,
+        });
+      }
 
       Navigator.pushReplacementNamed(context, '/home');
     } catch (e) {
