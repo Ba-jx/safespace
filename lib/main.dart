@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 // Providers
 import 'providers/user_provider.dart';
@@ -41,46 +41,8 @@ void main() async {
   runApp(const SafeSpaceApp());
 }
 
-class SafeSpaceApp extends StatefulWidget {
+class SafeSpaceApp extends StatelessWidget {
   const SafeSpaceApp({super.key});
-
-  @override
-  State<SafeSpaceApp> createState() => _SafeSpaceAppState();
-}
-
-class _SafeSpaceAppState extends State<SafeSpaceApp> {
-  @override
-  void initState() {
-    super.initState();
-    Future.microtask(() => _initializeFCM());
-  }
-
-  Future<void> _initializeFCM() async {
-    try {
-      final fcm = FirebaseMessaging.instance;
-
-      // Request permissions (for iOS)
-      await fcm.requestPermission();
-
-      // Listen for foreground messages
-      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-        if (message.notification != null) {
-          print('🔔 Foreground Notification: ${message.notification!.title} - ${message.notification!.body}');
-        }
-      });
-
-      // Get and save the FCM token
-      final token = await fcm.getToken();
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null && token != null) {
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-          'fcmToken': token,
-        });
-      }
-    } catch (e) {
-      print('❌ Error initializing FCM: $e');
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -90,48 +52,89 @@ class _SafeSpaceAppState extends State<SafeSpaceApp> {
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'Safe Space',
-        theme: ThemeData(
-          brightness: Brightness.light,
-          primarySwatch: Colors.purple,
-          scaffoldBackgroundColor: const Color(0xFFF5F3F8),
-          appBarTheme: const AppBarTheme(
-            backgroundColor: Color(0xFFD8BFD8),
-            foregroundColor: Colors.white,
-          ),
+      child: const MaterialAppWithFCM(),
+    );
+  }
+}
+
+class MaterialAppWithFCM extends StatefulWidget {
+  const MaterialAppWithFCM({super.key});
+
+  @override
+  State<MaterialAppWithFCM> createState() => _MaterialAppWithFCMState();
+}
+
+class _MaterialAppWithFCMState extends State<MaterialAppWithFCM> {
+  @override
+  void initState() {
+    super.initState();
+    _initializeFCM();
+  }
+
+  Future<void> _initializeFCM() async {
+    final fcm = FirebaseMessaging.instance;
+    await fcm.requestPermission();
+
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      if (message.notification != null) {
+        print('🔔 Foreground Notification: ${message.notification!.title} - ${message.notification!.body}');
+      }
+    });
+
+    final token = await fcm.getToken();
+    final user = FirebaseAuth.instance.currentUser;
+    print("📱 FCM Token: $token");
+
+    if (user != null && token != null) {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+        'fcmToken': token,
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Safe Space',
+      theme: ThemeData(
+        brightness: Brightness.light,
+        primarySwatch: Colors.purple,
+        scaffoldBackgroundColor: const Color(0xFFF5F3F8),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFFD8BFD8),
+          foregroundColor: Colors.white,
         ),
-        darkTheme: ThemeData(
-          brightness: Brightness.dark,
-          primarySwatch: Colors.purple,
-          scaffoldBackgroundColor: const Color(0xFF1E1B2E),
-          appBarTheme: const AppBarTheme(
-            backgroundColor: Color(0xFF2A2640),
-            foregroundColor: Colors.white,
-          ),
-        ),
-        themeMode: ThemeMode.system,
-        initialRoute: '/',
-        routes: {
-          '/': (_) => const RoleSelectionScreen(),
-          '/login': (_) => const PatientLoginScreen(),
-          '/doctor/login': (_) => const DoctorLoginScreen(),
-          '/home': (_) => const HomeScreen(),
-          '/symptom-tracking': (_) => const SymptomTrackingScreen(),
-          '/real-time-monitor': (_) => const RealTimeMonitorScreen(),
-          '/doctor/communication': (_) => const DoctorCommunicationScreen(),
-          '/patient/communication': (_) => const PatientCommunicationScreen(),
-          '/settings': (_) => const SettingsScreen(),
-          '/appointments/book': (_) => const AppointmentBookingScreen(),
-          '/appointments/list': (_) => const PatientAppointmentCalendar(),
-          '/doctor/dashboard': (_) => const DoctorDashboardScreen(),
-          '/doctor/patients': (_) => const ViewPatientsScreen(),
-          '/doctor/create-patient': (_) => const DoctorCreatesPatientScreen(),
-          '/doctor/appointments': (_) => const ManageAppointmentsScreen(),
-          '/doctor/calendar': (_) => const DoctorAppointmentCalendar(),
-        },
       ),
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        primarySwatch: Colors.purple,
+        scaffoldBackgroundColor: const Color(0xFF1E1B2E),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF2A2640),
+          foregroundColor: Colors.white,
+        ),
+      ),
+      themeMode: ThemeMode.system,
+      initialRoute: '/',
+      routes: {
+        '/': (_) => const RoleSelectionScreen(),
+        '/login': (_) => const PatientLoginScreen(),
+        '/doctor/login': (_) => const DoctorLoginScreen(),
+        '/home': (_) => const HomeScreen(),
+        '/symptom-tracking': (_) => const SymptomTrackingScreen(),
+        '/real-time-monitor': (_) => const RealTimeMonitorScreen(),
+        '/doctor/communication': (_) => const DoctorCommunicationScreen(),
+        '/patient/communication': (_) => const PatientCommunicationScreen(),
+        '/settings': (_) => const SettingsScreen(),
+        '/appointments/book': (_) => const AppointmentBookingScreen(),
+        '/appointments/list': (_) => const PatientAppointmentCalendar(),
+        '/doctor/dashboard': (_) => const DoctorDashboardScreen(),
+        '/doctor/patients': (_) => const ViewPatientsScreen(),
+        '/doctor/create-patient': (_) => const DoctorCreatesPatientScreen(),
+        '/doctor/appointments': (_) => const ManageAppointmentsScreen(),
+        '/doctor/calendar': (_) => const DoctorAppointmentCalendar(),
+      },
     );
   }
 }
