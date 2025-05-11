@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 // Providers
 import 'providers/user_provider.dart';
@@ -35,14 +36,51 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   runApp(const SafeSpaceApp());
 }
 
-class SafeSpaceApp extends StatelessWidget {
+class SafeSpaceApp extends StatefulWidget {
   const SafeSpaceApp({super.key});
+
+  @override
+  State<SafeSpaceApp> createState() => _SafeSpaceAppState();
+}
+
+class _SafeSpaceAppState extends State<SafeSpaceApp> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() => _initializeFCM());
+  }
+
+  Future<void> _initializeFCM() async {
+    try {
+      final fcm = FirebaseMessaging.instance;
+
+      // Request permissions (for iOS)
+      await fcm.requestPermission();
+
+      // Listen for foreground messages
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        if (message.notification != null) {
+          print('🔔 Foreground Notification: ${message.notification!.title} - ${message.notification!.body}');
+        }
+      });
+
+      // Get and save the FCM token
+      final token = await fcm.getToken();
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null && token != null) {
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+          'fcmToken': token,
+        });
+      }
+    } catch (e) {
+      print('❌ Error initializing FCM: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -93,34 +131,7 @@ class SafeSpaceApp extends StatelessWidget {
           '/doctor/appointments': (_) => const ManageAppointmentsScreen(),
           '/doctor/calendar': (_) => const DoctorAppointmentCalendar(),
         },
-        builder: (context, child) {
-          _initializeFCM();
-          return child!;
-        },
       ),
     );
-  }
-
-  void _initializeFCM() async {
-    final fcm = FirebaseMessaging.instance;
-
-    // 🔑 Request permission for iOS
-    await fcm.requestPermission();
-
-    // 💬 Listen for foreground messages
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      if (message.notification != null) {
-        print('🔔 Foreground Notification: ${message.notification!.title} - ${message.notification!.body}');
-      }
-    });
-
-    // 🧠 Save FCM token to Firestore (for current user)
-    final token = await fcm.getToken();
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null && token != null) {
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-        'fcmToken': token,
-      });
-    }
   }
 }
