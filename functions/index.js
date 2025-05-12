@@ -44,16 +44,15 @@ exports.notifyAppointmentChanged = onDocumentUpdated(
       title = "Appointment Status Updated";
       body = `Your appointment status changed to "${after.status}".`;
       logger.info(`🔄 Status changed to: ${after.status}`);
-    }
-    // 🟡 Note or DateTime changed
-    else if (
+    } else if (
       before.note !== after.note ||
       before.dateTime.toMillis() !== after.dateTime.toMillis()
     ) {
+      // 🟡 Note or DateTime changed
       const newTime = after.dateTime.toDate().toLocaleString();
       title = "Appointment Updated";
       body = `Your appointment has been updated to ${newTime}.`;
-      logger.info(`📝 Appointment date/time or note changed.`);
+      logger.info("📝 Appointment date/time or note changed.");
     }
 
     // 🚀 Send notification if applicable
