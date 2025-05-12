@@ -1,7 +1,27 @@
+const functions = require("firebase-functions/v2"); // ✅ Needed for v2
+const { onDocumentUpdated } = require("firebase-functions/v2/firestore");
+const { onRequest } = require("firebase-functions/v2/https");
+const { initializeApp } = require("firebase-admin/app");
+const { getFirestore } = require("firebase-admin/firestore");
+const { getMessaging } = require("firebase-admin/messaging");
+const logger = require("firebase-functions/logger");
+
+// 🔧 Initialize Firebase Admin
+initializeApp();
+const db = getFirestore();
+const messaging = getMessaging();
+
+// ✅ Test HTTP function (optional)
+exports.helloWorld = onRequest((req, res) => {
+  logger.info("Hello logs!", { structuredData: true });
+  res.send("Hello from Firebase!");
+});
+
+// 🔔 Cloud Function: Notify patient when appointment is updated
 exports.notifyAppointmentChanged = onDocumentUpdated(
   {
     document: "users/{userId}/appointments/{appointmentId}",
-    region: "us-central1", // match your deployed region
+    region: "us-central1", // Optional, but explicit
   },
   async (event) => {
     logger.info("✅ notifyAppointmentChanged function triggered");
@@ -23,6 +43,7 @@ exports.notifyAppointmentChanged = onDocumentUpdated(
     let title = "";
     let body = "";
 
+    // 🟡 Appointment status changed
     if (before.status !== after.status) {
       title = "Appointment Status Updated";
       body = `Your appointment status changed to "${after.status}".`;
@@ -37,11 +58,15 @@ exports.notifyAppointmentChanged = onDocumentUpdated(
       logger.info("📝 Appointment date/time or note changed.");
     }
 
+    // 🚀 Send notification if applicable
     if (title && body) {
       try {
         await messaging.send({
           token: fcmToken,
-          notification: { title, body },
+          notification: {
+            title,
+            body,
+          },
         });
         logger.info("✅ Notification sent successfully.");
       } catch (error) {
