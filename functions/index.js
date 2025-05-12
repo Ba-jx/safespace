@@ -1,6 +1,7 @@
 const functions = require("firebase-functions/v2"); // ✅ Needed for v2
 const { onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { onRequest } = require("firebase-functions/v2/https");
+const { onSchedule } = require("firebase-functions/v2/scheduler"); // ✅ For scheduled tasks
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
@@ -21,7 +22,7 @@ exports.helloWorld = onRequest((req, res) => {
 exports.notifyAppointmentChanged = onDocumentUpdated(
   {
     document: "users/{userId}/appointments/{appointmentId}",
-    region: "us-central1", // Optional, but explicit
+    region: "us-central1",
   },
   async (event) => {
     logger.info("✅ notifyAppointmentChanged function triggered");
@@ -43,7 +44,6 @@ exports.notifyAppointmentChanged = onDocumentUpdated(
     let title = "";
     let body = "";
 
-    // 🟡 Appointment status changed
     if (before.status !== after.status) {
       title = "Appointment Status Updated";
       body = `Your appointment status changed to "${after.status}".`;
@@ -58,7 +58,6 @@ exports.notifyAppointmentChanged = onDocumentUpdated(
       logger.info("📝 Appointment date/time or note changed.");
     }
 
-    // 🚀 Send notification if applicable
     if (title && body) {
       try {
         await messaging.send({
@@ -75,5 +74,41 @@ exports.notifyAppointmentChanged = onDocumentUpdated(
     } else {
       logger.info("ℹ️ No significant appointment changes to notify.");
     }
+  }
+);
+
+// ⏰ Scheduled Daily Symptom Reminder at 7:40 PM Jordan Time
+exports.dailySymptomReminder = onSchedule(
+  {
+    schedule: "40 16 * * *", // 16:40 UTC = 19:40 Asia/Amman
+    timeZone: "Asia/Amman",
+  },
+  async () => {
+    logger.info("⏰ Running daily symptom reminder");
+
+    const patientsSnapshot = await db
+      .collection("users")
+      .where("role", "==", "patient")
+      .get();
+
+    const messagingPromises = [];
+
+    patientsSnapshot.forEach((doc) => {
+      const data = doc.data();
+      if (data.fcmToken) {
+        messagingPromises.push(
+          messaging.send({
+            token: data.fcmToken,
+            notification: {
+              title: "Daily Symptom Check-in",
+              body: "Please remember to log your symptoms today.",
+            },
+          })
+        );
+      }
+    });
+
+    await Promise.all(messagingPromises);
+    logger.info(`📨 Sent ${messagingPromises.length} daily reminders.`);
   }
 );
