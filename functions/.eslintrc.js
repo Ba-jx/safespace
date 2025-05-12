@@ -56,5 +56,11 @@ module.exports = {
       rules: {},
     },
   ],
-  globals: {},
+  globals: {
+    onDocumentUpdated: "readonly",
+    onRequest: "readonly",
+    logger: "readonly",
+    db: "readonly",
+    messaging: "readonly",
+  },
 };
