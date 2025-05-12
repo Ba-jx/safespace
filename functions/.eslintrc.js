@@ -14,24 +14,38 @@ module.exports = {
     // 👇 Allow both single and double quotes
     "quotes": ["warn", "double", { allowTemplateLiterals: true }],
 
-    // 👇 Prefer arrow functions but not enforced
-    "prefer-arrow-callback": "off",
+    // 👇 Relax linebreaks (CRLF/LF)
+    "linebreak-style": "off",
 
-    // 👇 Turn off restricted globals if not needed
-    "no-restricted-globals": "off",
+    // 👇 Don't enforce brace style (e.g., } else {)
+    "brace-style": "off",
 
-    // 👇 Increase max line length
-    "max-len": ["warn", { code: 120 }],
+    // 👇 Allow long lines but warn only
+    "max-len": ["warn", { code: 140 }],
 
-    // 👇 Relax indentation errors (default Google is 2)
+    // 👇 Relax indent enforcement
     "indent": ["warn", 2],
 
     // 👇 Allow trailing commas
     "comma-dangle": "off",
 
-    // 👇 Turn off brace spacing enforcement
-    "object-curly-spacing": "off"
+    // 👇 Don't enforce spacing in curly braces
+    "object-curly-spacing": "off",
 
+    // 👇 Allow unused vars (warn only, don't block)
+    "no-unused-vars": "warn",
+
+    // 👇 Allow console logs (important for Firebase Functions)
+    "no-console": "off",
+
+    // 👇 Disable Google style semicolon enforcement
+    "semi": "off",
+
+    // 👇 Turn off restricted globals if not needed
+    "no-restricted-globals": "off",
+
+    // 👇 Prefer arrow functions but not enforced
+    "prefer-arrow-callback": "off",
   },
   overrides: [
     {
