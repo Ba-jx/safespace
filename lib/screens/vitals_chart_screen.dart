@@ -15,7 +15,7 @@ class VitalsChartScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
-              .collection('patients')
+              .collection('users')
               .doc(patientId)
               .collection('readings')
               .orderBy('timestamp')
