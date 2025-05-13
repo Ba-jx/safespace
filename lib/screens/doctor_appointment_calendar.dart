@@ -187,10 +187,13 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
             ElevatedButton(
               onPressed: () async {
                 if (selectedPatientId == null || selectedPatientName == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please select a patient')),
-                  );
-                  return;
+  if (existing == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please select a patient')),
+    );
+    return;
+  }
+}
                 }
 
                 final dateTime = DateTime(
