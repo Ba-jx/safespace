@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -201,6 +200,14 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                   selectedTime.hour,
                   selectedTime.minute,
                 );
+
+                // Block creating or rescheduling if within 24 hours
+                if (dateTime.difference(DateTime.now()).inHours < 24) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Appointments must be scheduled at least 24 hours in advance.')),
+                  );
+                  return;
+                }
 
                 final data = {
                   'patientId': selectedPatientId,
