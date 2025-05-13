@@ -47,19 +47,27 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
       return;
     }
 
+    final DateTime dateTime = DateTime(
+      selectedDate!.year,
+      selectedDate!.month,
+      selectedDate!.day,
+      selectedTime!.hour,
+      selectedTime!.minute,
+    );
+
+    // 🔒 Block appointments scheduled less than 24 hours from now
+    if (dateTime.difference(DateTime.now()).inHours < 24) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Appointments must be booked at least 24 hours in advance.')),
+      );
+      return;
+    }
+
     setState(() => _isSubmitting = true);
 
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception("User not logged in");
-
-      final DateTime dateTime = DateTime(
-        selectedDate!.year,
-        selectedDate!.month,
-        selectedDate!.day,
-        selectedTime!.hour,
-        selectedTime!.minute,
-      );
 
       final startWindow = dateTime.subtract(const Duration(hours: 2));
       final endWindow = dateTime.add(const Duration(hours: 2));
