@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'vitals_chart_screen.dart'; 
 
 class PatientDetailScreen extends StatelessWidget {
   final String patientId;
@@ -17,7 +18,7 @@ class PatientDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     debugPrint('Loading symptom logs for patientId: $patientId');
-    
+
     return Scaffold(
       appBar: AppBar(title: Text(name)),
       body: Padding(
@@ -32,6 +33,23 @@ class PatientDetailScreen extends StatelessWidget {
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const Divider(),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => VitalsChartScreen(patientId: patientId),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.show_chart),
+              label: const Text('View Vitals Chart'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal,
+                foregroundColor: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 10),
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
