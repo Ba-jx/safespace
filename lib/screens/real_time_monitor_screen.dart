@@ -76,7 +76,7 @@ class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
           final patientId = FirebaseAuth.instance.currentUser?.uid;
           if (patientId != null) {
             await FirebaseFirestore.instance
-                .collection('patients')
+                .collection('users')
                 .doc(patientId)
                 .collection('readings')
                 .add({
