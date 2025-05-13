@@ -1,11 +1,15 @@
 const functions = require("firebase-functions/v2");
-const { onDocumentUpdated } = require("firebase-functions/v2/firestore");
+const { onDocumentUpdated, onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { onRequest } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
 const logger = require("firebase-functions/logger");
+const sgMail = require("@sendgrid/mail");
+
+// 🔐 Use secret key set with: firebase functions:secrets:set SENDGRID_API_KEY
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 // 🔧 Initialize Firebase Admin
 initializeApp();
@@ -29,10 +33,9 @@ exports.notifyAppointmentChanged = onDocumentUpdated(
 
     const before = event.data.before.data();
     const after = event.data.after.data();
-
     const userId = event.params.userId;
-    logger.info(`📍 Processing changes for user: ${userId}`);
 
+    logger.info(`📍 Processing changes for user: ${userId}`);
     const userDoc = await db.collection("users").doc(userId).get();
     const fcmToken = userDoc.exists && userDoc.data().fcmToken;
 
@@ -62,10 +65,7 @@ exports.notifyAppointmentChanged = onDocumentUpdated(
       try {
         await messaging.send({
           token: fcmToken,
-          notification: {
-            title,
-            body,
-          },
+          notification: { title, body },
         });
         logger.info("✅ Notification sent successfully.");
       } catch (error) {
@@ -73,6 +73,42 @@ exports.notifyAppointmentChanged = onDocumentUpdated(
       }
     } else {
       logger.info("ℹ️ No significant appointment changes to notify.");
+    }
+  }
+);
+
+// 📧 Email confirmation for new appointment creation
+exports.sendAppointmentConfirmationEmail = onDocumentCreated(
+  {
+    document: "users/{userId}/appointments/{appointmentId}",
+    region: "us-central1",
+  },
+  async (event) => {
+    const { userId } = event.params;
+    const appointment = event.data.data();
+
+    const userDoc = await db.collection("users").doc(userId).get();
+    const email = userDoc.exists ? userDoc.data().email : null;
+
+    if (!email) {
+      logger.warn(`⚠️ No email for patient ${userId}. Email skipped.`);
+      return;
+    }
+
+    const dateTime = appointment.dateTime.toDate().toLocaleString();
+    const note = appointment.note || "No notes";
+    const msg = {
+      to: email,
+      from: "noreply@safespace.app", // must be verified in SendGrid
+      subject: "Your Appointment is Confirmed",
+      text: `Dear Patient,\n\nYour appointment has been successfully booked.\n\n📅 Date: ${dateTime}\n📝 Note: ${note}\n\nThank you,\nSafe Space Team`,
+    };
+
+    try {
+      await sgMail.send(msg);
+      logger.info(`📧 Confirmation email sent to ${email}`);
+    } catch (error) {
+      logger.error("❌ Failed to send confirmation email:", error);
     }
   }
 );
