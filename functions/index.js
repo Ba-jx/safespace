@@ -77,10 +77,10 @@ exports.notifyAppointmentChanged = onDocumentUpdated(
   }
 );
 
-// ⏰ Scheduled Daily Symptom Reminder at 8:55 PM Jordan Time
+// ⏰ Scheduled Daily Symptom Reminder at 9:05 PM Jordan Time
 exports.dailySymptomReminder = onSchedule(
   {
-    schedule: "55 17 * * *", // 17:55 UTC = 20:55 (8:55 PM) Asia/Amman
+    schedule: "5 18 * * *", // 18:05 UTC = 21:05 (9:05 PM) Asia/Amman
     timeZone: "Asia/Amman",
   },
   async () => {
