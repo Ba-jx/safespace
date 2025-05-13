@@ -186,14 +186,11 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
             ElevatedButton(
               onPressed: () async {
-                if (selectedPatientId == null || selectedPatientName == null) {
-  if (existing == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Please select a patient')),
-    );
-    return;
-  }
-}
+                if ((selectedPatientId == null || selectedPatientName == null) && existing == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please select a patient')),
+                  );
+                  return;
                 }
 
                 final dateTime = DateTime(
