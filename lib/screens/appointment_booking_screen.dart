@@ -56,9 +56,9 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
     );
 
     // 🔒 Block appointments scheduled less than 24 hours from now
-    if (dateTime.difference(DateTime.now()).inHours < 24) {
+    if (dateTime.difference(DateTime.now()).inHours < 12) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Appointments must be booked at least 24 hours in advance.')),
+        const SnackBar(content: Text('Appointments must be booked at least 12 hours in advance.')),
       );
       return;
     }
@@ -69,8 +69,8 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception("User not logged in");
 
-      final startWindow = dateTime.subtract(const Duration(hours: 2));
-      final endWindow = dateTime.add(const Duration(hours: 2));
+      final startWindow = dateTime.subtract(const Duration(hours: 1));
+      final endWindow = dateTime.add(const Duration(hours: 1));
 
       final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
       final userDoc = await docRef.get();
@@ -86,7 +86,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
 
       if (conflictQuery.docs.isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('The selected time conflicts with an existing appointment.')),
+          const SnackBar(content: Text('The selected time conflicts with an existing appointment. Try booking an appointment within an hour.')),
         );
         return;
       }
