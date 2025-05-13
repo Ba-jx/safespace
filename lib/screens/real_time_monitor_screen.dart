@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../providers/device_provider.dart';
 
 class RealTimeMonitorScreen extends StatefulWidget {
@@ -14,6 +16,13 @@ class RealTimeMonitorScreen extends StatefulWidget {
 class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
   static const String authToken = 'IC_O52YQ1auEdxmNw345luxEMu5cwvnl';
   static const String baseUrl = 'https://blynk.cloud/external/api/get';
+
+  final int _saveEveryNthFetch = 3;
+  int _fetchCounter = 0;
+
+  int? _lastHeartRate;
+  int? _lastOxygenLevel;
+  double? _lastTemperature;
 
   Timer? _refreshTimer;
 
@@ -36,9 +45,9 @@ class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
   Future<void> fetchData() async {
     try {
       final responses = await Future.wait([
-        http.get(Uri.parse('$baseUrl?token=$authToken&v0')),
-        http.get(Uri.parse('$baseUrl?token=$authToken&v1')),
-        http.get(Uri.parse('$baseUrl?token=$authToken&v2')),
+        http.get(Uri.parse('$baseUrl?token=$authToken&v0')), // heart rate
+        http.get(Uri.parse('$baseUrl?token=$authToken&v1')), // oxygen level
+        http.get(Uri.parse('$baseUrl?token=$authToken&v2')), // temperature
       ]);
 
       if (responses.every((res) => res.statusCode == 200)) {
@@ -50,9 +59,40 @@ class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
         provider.updateHeartRate(bpm);
         provider.updateOxygenLevel(spo2);
         provider.updateTemperature(temp);
+
+        _fetchCounter++;
+
+        final isChanged = _lastHeartRate != bpm ||
+            _lastOxygenLevel != spo2 ||
+            _lastTemperature != temp;
+
+        if (_fetchCounter % _saveEveryNthFetch == 0 && isChanged) {
+          final patientId = FirebaseAuth.instance.currentUser?.uid;
+          if (patientId != null) {
+            await FirebaseFirestore.instance
+                .collection('patients')
+                .doc(patientId)
+                .collection('readings')
+                .add({
+              'heartRate': bpm,
+              'oxygenLevel': spo2,
+              'temperature': temp,
+              'timestamp': Timestamp.now(),
+              'patientId': patientId,
+            });
+
+            debugPrint('Saved reading #$_fetchCounter to Firestore');
+
+            _lastHeartRate = bpm;
+            _lastOxygenLevel = spo2;
+            _lastTemperature = temp;
+          }
+        } else {
+          debugPrint('Skipped save — no change or not nth fetch');
+        }
       }
     } catch (e) {
-      debugPrint('Failed to fetch Blynk data: $e');
+      debugPrint('Failed to fetch/save Blynk data: $e');
     }
   }
 
