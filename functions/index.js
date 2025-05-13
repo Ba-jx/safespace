@@ -97,9 +97,10 @@ exports.sendAppointmentConfirmationEmail = onDocumentCreated(
 
     const dateTime = appointment.dateTime.toDate().toLocaleString();
     const note = appointment.note || "No notes";
+
     const msg = {
       to: email,
-      from: "noreply@safespace.app", // must be verified in SendGrid
+      from: "bayanismail302@gmail.com", // ✅ Use verified Gmail sender for testing
       subject: "Your Appointment is Confirmed",
       text: `Dear Patient,\n\nYour appointment has been successfully booked.\n\n📅 Date: ${dateTime}\n📝 Note: ${note}\n\nThank you,\nSafe Space Team`,
     };
@@ -116,7 +117,7 @@ exports.sendAppointmentConfirmationEmail = onDocumentCreated(
 // ⏰ Daily symptom reminder at 9:50 PM Jordan Time (18:50 UTC)
 exports.dailySymptomReminder = onSchedule(
   {
-    schedule: "50 18 * * *", // 18:50 UTC = 9:50 PM Asia/Amman
+    schedule: "50 18 * * *",
     timeZone: "Asia/Amman",
   },
   async () => {
