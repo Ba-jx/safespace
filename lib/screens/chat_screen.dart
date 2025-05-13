@@ -56,6 +56,7 @@ class _ChatScreenState extends State<ChatScreen> {
         .add(message);
 
     _controller.clear();
+    FocusScope.of(context).unfocus(); // ✅ Dismiss keyboard after sending
     _scrollToBottom();
   }
 
@@ -80,10 +81,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildMessageBubble(Map<String, dynamic> msg, bool isMe) {
     final timestamp = msg['timestamp'] as Timestamp?;
-    final timeText =
-        timestamp != null
-            ? TimeOfDay.fromDateTime(timestamp.toDate()).format(context)
-            : '';
+    final timeText = timestamp != null
+        ? TimeOfDay.fromDateTime(timestamp.toDate()).format(context)
+        : '';
 
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
@@ -139,103 +139,105 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true, // ✅ Ensures keyboard pushes content up
       appBar: AppBar(title: Text(widget.peerName)),
-      body: Column(
-        children: [
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream:
-                  FirebaseFirestore.instance
-                      .collection('messages')
-                      .doc(chatId)
-                      .collection('chats')
-                      .orderBy('timestamp')
-                      .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return const Center(child: Text('Error loading messages'));
-                }
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('messages')
+                    .doc(chatId)
+                    .collection('chats')
+                    .orderBy('timestamp')
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return const Center(child: Text('Error loading messages'));
+                  }
+                  if (!snapshot.hasData) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
 
-                final messages = snapshot.data!.docs;
-                _scrollToBottom();
+                  final messages = snapshot.data!.docs;
+                  _scrollToBottom();
 
-                DateTime? lastDate;
+                  DateTime? lastDate;
 
-                return ListView.builder(
-                  controller: _scrollController,
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    final doc = messages[index];
-                    final msg = doc.data() as Map<String, dynamic>;
-                    final isMe = msg['senderId'] == currentUserId;
+                  return ListView.builder(
+                    controller: _scrollController,
+                    itemCount: messages.length,
+                    itemBuilder: (context, index) {
+                      final doc = messages[index];
+                      final msg = doc.data() as Map<String, dynamic>;
+                      final isMe = msg['senderId'] == currentUserId;
 
-                    final timestamp =
-                        (msg['timestamp'] as Timestamp?)?.toDate();
-                    final showDateDivider =
-                        timestamp != null &&
-                        (lastDate == null ||
-                            timestamp.day != lastDate!.day ||
-                            timestamp.month != lastDate!.month ||
-                            timestamp.year != lastDate!.year);
-                    if (timestamp != null) lastDate = timestamp;
+                      final timestamp = (msg['timestamp'] as Timestamp?)?.toDate();
+                      final showDateDivider = timestamp != null &&
+                          (lastDate == null ||
+                              timestamp.day != lastDate!.day ||
+                              timestamp.month != lastDate!.month ||
+                              timestamp.year != lastDate!.year);
+                      if (timestamp != null) lastDate = timestamp;
 
-                    _markMessageAsRead(doc);
+                      _markMessageAsRead(doc);
 
-                    return Column(
-                      children: [
-                        if (showDateDivider)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8.0),
-                            child: Text(
-                              DateFormat.yMMMMd().format(timestamp),
-                              style: const TextStyle(color: Colors.grey),
+                      return Column(
+                        children: [
+                          if (showDateDivider)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8.0),
+                              child: Text(
+                                DateFormat.yMMMMd().format(timestamp),
+                                style: const TextStyle(color: Colors.grey),
+                              ),
                             ),
-                          ),
-                        _buildMessageBubble(msg, isMe),
-                      ],
-                    );
-                  },
-                );
-              },
+                          _buildMessageBubble(msg, isMe),
+                        ],
+                      );
+                    },
+                  );
+                },
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: Colors.grey[300]!),
-                    ),
-                    child: TextField(
-                      controller: _controller,
-                      decoration: const InputDecoration(
-                        hintText: 'Type your message...',
-                        border: InputBorder.none,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: Colors.grey[300]!),
                       ),
-                      onSubmitted: (_) => _sendMessage(),
+                      child: TextField(
+                        controller: _controller,
+                        autofocus: true, // ✅ Automatically show keyboard
+                        onTap: _scrollToBottom, // ✅ Scroll chat when tapped
+                        decoration: const InputDecoration(
+                          hintText: 'Type your message...',
+                          border: InputBorder.none,
+                        ),
+                        onSubmitted: (_) => _sendMessage(),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                CircleAvatar(
-                  backgroundColor: Colors.deepPurple,
-                  child: IconButton(
-                    onPressed: _sendMessage,
-                    icon: const Icon(Icons.send, color: Colors.white),
+                  const SizedBox(width: 8),
+                  CircleAvatar(
+                    backgroundColor: Colors.deepPurple,
+                    child: IconButton(
+                      onPressed: _sendMessage,
+                      icon: const Icon(Icons.send, color: Colors.white),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
