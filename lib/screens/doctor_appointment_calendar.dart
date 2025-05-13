@@ -201,10 +201,23 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                   selectedTime.minute,
                 );
 
-                // Block creating or rescheduling if within 12 hours
                 if (dateTime.difference(DateTime.now()).inHours < 12) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Appointments must be scheduled at least 12 hours in advance.')),
+                  );
+                  return;
+                }
+
+                final existingAppointments = _getAppointmentsForDay(selectedDate);
+                final isConflict = existingAppointments.any((appt) {
+                  if (existing != null && appt['docId'] == existing['docId']) return false;
+                  final existingDateTime = (appt['dateTime'] as Timestamp).toDate();
+                  return (dateTime.difference(existingDateTime).inMinutes).abs() < 60;
+                });
+
+                if (isConflict) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('There must be at least 1 hour between appointments.')),
                   );
                   return;
                 }
