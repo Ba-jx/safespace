@@ -201,10 +201,10 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                   selectedTime.minute,
                 );
 
-                // Block creating or rescheduling if within 24 hours
-                if (dateTime.difference(DateTime.now()).inHours < 24) {
+                // Block creating or rescheduling if within 12 hours
+                if (dateTime.difference(DateTime.now()).inHours < 12) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Appointments must be scheduled at least 24 hours in advance.')),
+                    const SnackBar(content: Text('Appointments must be scheduled at least 12 hours in advance.')),
                   );
                   return;
                 }
