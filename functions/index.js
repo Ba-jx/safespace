@@ -7,18 +7,18 @@ const { getFirestore } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
 const logger = require("firebase-functions/logger");
 
-// 🔧 Initialize Firebase Admin
+// 🔧 Initialize Firebase Admin SDK
 initializeApp();
 const db = getFirestore();
 const messaging = getMessaging();
 
-// ✅ Test HTTP function (optional)
+// ✅ Simple test function
 exports.helloWorld = onRequest((req, res) => {
   logger.info("Hello logs!", { structuredData: true });
   res.send("Hello from Firebase!");
 });
 
-// 🔔 Notify patient when appointment is updated
+// 🔔 Triggered when an appointment document is updated
 exports.notifyAppointmentChanged = onDocumentUpdated(
   {
     document: "users/{userId}/appointments/{appointmentId}",
@@ -37,7 +37,7 @@ exports.notifyAppointmentChanged = onDocumentUpdated(
     const fcmToken = userDoc.exists && userDoc.data().fcmToken;
 
     if (!fcmToken) {
-      logger.warn("❌ No FCM token found for user. Notification skipped.");
+      logger.warn(`❌ No FCM token for user ${userId}. Notification skipped.`);
       return;
     }
 
@@ -55,19 +55,16 @@ exports.notifyAppointmentChanged = onDocumentUpdated(
       const newTime = after.dateTime.toDate().toLocaleString();
       title = "Appointment Updated";
       body = `Your appointment has been updated to ${newTime}.`;
-      logger.info("📝 Appointment date/time or note changed.");
+      logger.info("📝 Appointment note or date/time changed.");
     }
 
     if (title && body) {
       try {
         await messaging.send({
           token: fcmToken,
-          notification: {
-            title,
-            body,
-          },
+          notification: { title, body },
         });
-        logger.info("✅ Notification sent successfully.");
+        logger.info(`✅ Notification sent to patientId: ${userId}`);
       } catch (error) {
         logger.error("❌ Error sending notification", error);
       }
@@ -77,30 +74,34 @@ exports.notifyAppointmentChanged = onDocumentUpdated(
   }
 );
 
-// ⏰ Daily symptom reminder at 9:05 PM Jordan Time
+// ⏰ Daily reminder to log symptoms (9:05 PM Jordan Time)
 exports.dailySymptomReminder = onSchedule(
   {
     schedule: "5 18 * * *", // 18:05 UTC = 9:05 PM Asia/Amman
     timeZone: "Asia/Amman",
   },
   async () => {
-    logger.info("⏰ Running daily symptom reminder");
+    logger.info("⏰ Running daily symptom reminder...");
 
-    const patientsSnapshot = await db
+    const snapshot = await db
       .collection("users")
       .where("role", "==", "patient")
       .get();
 
-    const messagingPromises = [];
+    const tasks = [];
 
-    patientsSnapshot.forEach((doc) => {
+    snapshot.forEach((doc) => {
       const data = doc.data();
+
       if (data.fcmToken) {
+        const name = data.name || "N/A";
+        const email = data.email || "N/A";
+
         logger.info(
-          `🔔 Sending reminder to patientId: ${doc.id}, name: ${data.name || "N/A"}, email: ${data.email || "N/A"}`
+          `🔔 Reminder queued for patientId: ${doc.id}, name: ${name}, email: ${email}`
         );
 
-        messagingPromises.push(
+        tasks.push(
           messaging.send({
             token: data.fcmToken,
             notification: {
@@ -114,7 +115,7 @@ exports.dailySymptomReminder = onSchedule(
       }
     });
 
-    await Promise.all(messagingPromises);
-    logger.info(`📨 Sent ${messagingPromises.length} daily reminders.`);
+    await Promise.all(tasks);
+    logger.info(`📨 Sent ${tasks.length} daily symptom reminders.`);
   }
 );
