@@ -1,4 +1,4 @@
-const functions = require("firebase-functions/v2"); // ✅ Needed for v2
+const functions = require("firebase-functions/v2");
 const { onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { onRequest } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
@@ -77,10 +77,10 @@ exports.notifyAppointmentChanged = onDocumentUpdated(
   }
 );
 
-// ⏰ Scheduled Daily Symptom Reminder at 12:15 PM Jordan Time
+// ⏰ Scheduled Daily Symptom Reminder at 8:55 PM Jordan Time
 exports.dailySymptomReminder = onSchedule(
   {
-    schedule: "15 9 * * *", // 09:15 UTC = 12:15 Asia/Amman
+    schedule: "55 17 * * *", // 17:55 UTC = 20:55 (8:55 PM) Asia/Amman
     timeZone: "Asia/Amman",
   },
   async () => {
