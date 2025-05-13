@@ -18,7 +18,7 @@ exports.helloWorld = onRequest((req, res) => {
   res.send("Hello from Firebase!");
 });
 
-// 🔔 Cloud Function: Notify patient when appointment is updated
+// 🔔 Notify patient when appointment is updated
 exports.notifyAppointmentChanged = onDocumentUpdated(
   {
     document: "users/{userId}/appointments/{appointmentId}",
@@ -77,10 +77,10 @@ exports.notifyAppointmentChanged = onDocumentUpdated(
   }
 );
 
-// ⏰ Scheduled Daily Symptom Reminder at 9:05 PM Jordan Time
+// ⏰ Daily symptom reminder at 9:05 PM Jordan Time
 exports.dailySymptomReminder = onSchedule(
   {
-    schedule: "5 18 * * *", // 18:05 UTC = 21:05 (9:05 PM) Asia/Amman
+    schedule: "5 18 * * *", // 18:05 UTC = 9:05 PM Asia/Amman
     timeZone: "Asia/Amman",
   },
   async () => {
@@ -96,6 +96,10 @@ exports.dailySymptomReminder = onSchedule(
     patientsSnapshot.forEach((doc) => {
       const data = doc.data();
       if (data.fcmToken) {
+        logger.info(
+          `🔔 Sending reminder to patientId: ${doc.id}, name: ${data.name || "N/A"}, email: ${data.email || "N/A"}`
+        );
+
         messagingPromises.push(
           messaging.send({
             token: data.fcmToken,
@@ -105,7 +109,8 @@ exports.dailySymptomReminder = onSchedule(
             },
           })
         );
-        logger.info(`🔔 Reminder queued for ${doc.id}`);
+      } else {
+        logger.warn(`⚠️ No FCM token for patientId: ${doc.id}`);
       }
     });
 
