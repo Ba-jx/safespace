@@ -118,6 +118,26 @@ class _PatientAppointmentCalendarState extends State<PatientAppointmentCalendar>
                   selectedTime.minute,
                 );
 
+                final now = DateTime.now();
+                final hoursDiff = newDateTime.difference(now).inHours;
+
+                if (hoursDiff < 24) {
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Cannot Reschedule'),
+                      content: const Text('Appointments must be rescheduled at least 24 hours in advance.'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('OK'),
+                        ),
+                      ],
+                    ),
+                  );
+                  return;
+                }
+
                 final patientId = FirebaseAuth.instance.currentUser!.uid;
                 final docId = appt['docId'];
                 await FirebaseFirestore.instance
