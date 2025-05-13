@@ -25,6 +25,7 @@ class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
   double? _lastTemperature;
 
   Timer? _refreshTimer;
+  Timer? _uiUpdateTimer;
 
   @override
   void initState() {
@@ -34,11 +35,16 @@ class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
       const Duration(seconds: 5),
       (_) => fetchData(),
     );
+    _uiUpdateTimer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => setState(() {}),
+    );
   }
 
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    _uiUpdateTimer?.cancel();
     super.dispose();
   }
 
@@ -46,7 +52,7 @@ class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
     try {
       final responses = await Future.wait([
         http.get(Uri.parse('$baseUrl?token=$authToken&v0')), // heart rate
-        http.get(Uri.parse('$baseUrl?token=$authToken&v1')), // oxygen level
+        http.get(Uri.parse('$baseUrl?token=$authToken&v1')), // oxygen
         http.get(Uri.parse('$baseUrl?token=$authToken&v2')), // temperature
       ]);
 
@@ -99,6 +105,7 @@ class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
   @override
   Widget build(BuildContext context) {
     final device = Provider.of<DeviceProvider>(context);
+    final lastUpdated = device.lastUpdated;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Real-Time Monitor')),
@@ -126,6 +133,17 @@ class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
               value: '${device.temperature.toStringAsFixed(1)} °C',
               color: Colors.orange,
             ),
+            if (lastUpdated != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 24.0),
+                child: Text(
+                  'Last updated: ${_formatTimestamp(lastUpdated)}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[700],
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -150,5 +168,21 @@ class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
         ),
       ),
     );
+  }
+
+  String _formatTimestamp(DateTime timestamp) {
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
+
+    if (difference.inSeconds <= 3) {
+      return 'just now';
+    } else if (difference.inSeconds < 60) {
+      return '${difference.inSeconds} seconds ago';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes} minutes ago';
+    } else {
+      return '${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}'
+          ' on ${timestamp.day}/${timestamp.month}/${timestamp.year}';
+    }
   }
 }
