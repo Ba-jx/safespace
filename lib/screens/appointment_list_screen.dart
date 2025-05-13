@@ -121,12 +121,12 @@ class _PatientAppointmentCalendarState extends State<PatientAppointmentCalendar>
                 final now = DateTime.now();
                 final hoursDiff = newDateTime.difference(now).inHours;
 
-                if (hoursDiff < 24) {
+                if (hoursDiff < 12) {
                   showDialog(
                     context: context,
                     builder: (context) => AlertDialog(
                       title: const Text('Cannot Reschedule'),
-                      content: const Text('Appointments must be rescheduled at least 24 hours in advance.'),
+                      content: const Text('Appointments must be rescheduled at least 12 hours in advance.'),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(context),
