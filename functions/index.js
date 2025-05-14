@@ -2,7 +2,7 @@ const { onDocumentUpdated, onDocumentCreated } = require("firebase-functions/v2/
 const { onRequest } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { initializeApp } = require("firebase-admin/app");
-const { getFirestore } = require("firebase-admin/firestore");
+const { getFirestore, Timestamp } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
 const logger = require("firebase-functions/logger");
 const sgMail = require("@sendgrid/mail");
@@ -12,21 +12,21 @@ initializeApp();
 const db = getFirestore();
 const messaging = getMessaging();
 
-// HTTP Test Function
+// ✅ HTTP Test Function
 exports.helloWorld = onRequest((req, res) => {
   logger.info("Hello logs!", { structuredData: true });
   res.send("Hello from Firebase!");
 });
 
-// Notify on Appointment Update or Cancellation
+// ✅ Appointment status change/cancel notification
 exports.notifyAppointmentChanged = onDocumentUpdated({
   document: "users/{userId}/appointments/{appointmentId}",
   region: "us-central1",
   secrets: ["SENDGRID_API_KEY"],
 }, async (event) => {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-
   logger.info("✅ notifyAppointmentChanged function triggered");
+
   const before = event.data.before.data();
   const after = event.data.after.data();
   const userId = event.params.userId;
@@ -59,7 +59,7 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
       emailBody = `
 Dear ${name},
 
-This is to notify you that your scheduled appointment on **${formattedDate}** has been canceled by your healthcare provider.
+This is to notify you that your scheduled appointment on ${formattedDate} has been canceled by your healthcare provider.
 
 If this cancellation was unexpected or you require further assistance, please reach out to your doctor directly to clarify or to reschedule.
 
@@ -89,20 +89,6 @@ Safe Space Team
   ) {
     title = "Appointment Updated";
     body = `Your appointment has been updated to ${formattedDate}.`;
-    emailSubject = "Appointment Updated";
-    emailBody = `
-Dear ${name},
-
-Your appointment details have been updated.
-
-📅 New Date & Time: ${formattedDate}  
-📝 Note: ${after.note || "No notes"}
-
-Please check the app for more information.
-
-Thank you,  
-Safe Space Team
-    `.trim();
   }
 
   if (title && body && fcmToken) {
@@ -132,7 +118,7 @@ Safe Space Team
   }
 });
 
-// Send confirmation email when appointment is created
+// ✅ Email confirmation on appointment creation
 exports.sendAppointmentConfirmationEmail = onDocumentCreated({
   document: "users/{userId}/appointments/{appointmentId}",
   region: "us-central1",
@@ -188,7 +174,7 @@ Safe Space Team
   }
 });
 
-// Daily symptom reminder
+// ✅ Daily symptom reminder
 exports.dailySymptomReminder = onSchedule({
   schedule: "50 18 * * *",
   timeZone: "Asia/Amman",
@@ -217,4 +203,29 @@ exports.dailySymptomReminder = onSchedule({
 
   await Promise.all(messagingPromises);
   logger.info(`📨 Sent ${messagingPromises.length} daily reminders.`);
+});
+
+// ✅ Auto-complete past appointments
+exports.autoCompletePastAppointments = onSchedule({
+  schedule: "every 15 minutes",
+  timeZone: "Asia/Amman",
+}, async () => {
+  logger.info("🕓 Checking for past appointments to auto-complete...");
+
+  const now = Timestamp.now();
+  const snapshot = await db
+    .collectionGroup("appointments")
+    .where("status", "!=", "completed")
+    .where("dateTime", "<", now)
+    .get();
+
+  const batch = db.batch();
+
+  snapshot.forEach((doc) => {
+    batch.update(doc.ref, { status: "completed" });
+    logger.info(`✅ Auto-completed appointment ${doc.id}`);
+  });
+
+  await batch.commit();
+  logger.info(`✅ Updated ${snapshot.size} appointments to "completed".`);
 });
