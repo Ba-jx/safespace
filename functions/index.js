@@ -197,30 +197,40 @@ exports.dailySymptomReminder = onSchedule({
   logger.info(`📨 Sent ${messagingPromises.length} daily reminders.`);
 });
 
-// ✅ Automatically mark past appointments as completed
+// ✅ Automatically mark past appointments as completed (based on end time)
 exports.autoCompletePastAppointments = onSchedule({
   schedule: "every 15 minutes",
   timeZone: "Asia/Amman",
 }, async () => {
-  logger.info("🕓 Checking for past appointments to auto-complete...");
+  logger.info("🕓 Checking for appointments whose end time has passed...");
 
   try {
     const now = Timestamp.now();
+
     const snapshot = await db
       .collectionGroup("appointments")
-      .where("status", "!=", "completed")
-      .where("dateTime", "<", now)
+      .where("status", "==", "confirmed")
+      .where("dateTime", "<", Timestamp.fromMillis(now.toMillis() - 60 * 60 * 1000)) // 1 hour before now
       .get();
 
     if (snapshot.empty) {
-      logger.info("ℹ️ No appointments to auto-complete.");
+      logger.info("ℹ️ No appointments whose end time has passed.");
       return;
     }
 
     const batch = db.batch();
     snapshot.forEach((doc) => {
-      batch.update(doc.ref, { status: "completed" });
-      logger.info(`✅ Auto-completed appointment ${doc.id}`);
+      const data = doc.data();
+
+      if (data.status !== "confirmed" || !data.dateTime) return;
+
+      // Assume default duration is 1 hour
+      const endTimeMillis = data.dateTime.toMillis() + 60 * 60 * 1000;
+
+      if (endTimeMillis <= now.toMillis()) {
+        batch.update(doc.ref, { status: "completed" });
+        logger.info(`✅ Auto-completed appointment ${doc.id}`);
+      }
     });
 
     await batch.commit();
