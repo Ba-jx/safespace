@@ -50,16 +50,6 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
   let body = "";
   let emailSubject = "";
   let emailBody = "";
-  let doctorName = "Safe Space";
-  let replyToEmail = "noreply@safespace.app";
-
-  if (after.doctorId) {
-    const doctorDoc = await db.collection("users").doc(after.doctorId).get();
-    if (doctorDoc.exists) {
-      doctorName = doctorDoc.data().name || "Safe Space";
-      replyToEmail = doctorDoc.data().email || replyToEmail;
-    }
-  }
 
   if (before.status !== after.status) {
     if (after.status.toLowerCase() === "cancelled") {
@@ -69,7 +59,7 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
       emailBody = `
 Dear ${name},
 
-This is to notify you that your scheduled appointment on **${formattedDate}** has been cancelled by your healthcare provider.
+This is to notify you that your scheduled appointment on **${formattedDate}** has been canceled by your healthcare provider.
 
 If this cancellation was unexpected or you require further assistance, please reach out to your doctor directly to clarify or to reschedule.
 
@@ -99,18 +89,6 @@ Safe Space Team
   ) {
     title = "Appointment Updated";
     body = `Your appointment has been updated to ${formattedDate}.`;
-    emailSubject = "Appointment Updated";
-    emailBody = `
-Dear ${name},
-
-Your appointment has been successfully updated.
-
-📅 New Date: ${formattedDate}  
-📝 Note: ${after.note || "No notes"}
-
-Thank you,  
-Safe Space Team
-    `.trim();
   }
 
   if (title && body && fcmToken) {
@@ -129,11 +107,7 @@ Safe Space Team
     try {
       await sgMail.send({
         to: email,
-        from: {
-          email: "noreply@safespace.app",
-          name: `Dr. ${doctorName}`
-        },
-        replyTo: replyToEmail,
+        from: "bayanismail302@gmail.com",
         subject: emailSubject,
         text: emailBody,
       });
@@ -158,17 +132,6 @@ exports.sendAppointmentConfirmationEmail = onDocumentCreated({
   const email = userDoc.exists ? userDoc.data().email : null;
   const name = userDoc.exists ? userDoc.data().name || "Patient" : "Patient";
 
-  let doctorName = "Safe Space";
-  let replyToEmail = "noreply@safespace.app";
-
-  if (appointment.doctorId) {
-    const doctorDoc = await db.collection("users").doc(appointment.doctorId).get();
-    if (doctorDoc.exists) {
-      doctorName = doctorDoc.data().name || "Safe Space";
-      replyToEmail = doctorDoc.data().email || replyToEmail;
-    }
-  }
-
   if (!email) {
     logger.warn(`⚠️ No email for patient ${userId}. Email skipped.`);
     return;
@@ -188,11 +151,7 @@ exports.sendAppointmentConfirmationEmail = onDocumentCreated({
 
   const msg = {
     to: email,
-    from: {
-      email: "noreply@safespace.app",
-      name: `Dr. ${doctorName}`,
-    },
-    replyTo: replyToEmail,
+    from: "bayanismail302@gmail.com",
     subject: "Your Appointment is Confirmed",
     text: `
 Dear ${name},
