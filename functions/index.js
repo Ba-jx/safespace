@@ -19,13 +19,16 @@ exports.helloWorld = onRequest((req, res) => {
   res.send("Hello from Firebase!");
 });
 
-// 🔔 Notify patient when appointment is updated
+// 🔔 Notify patient when appointment is updated (includes cancellation email)
 exports.notifyAppointmentChanged = onDocumentUpdated(
   {
     document: "users/{userId}/appointments/{appointmentId}",
     region: "us-central1",
+    secrets: ["SENDGRID_API_KEY"], // ✅ Secret binding
   },
   async (event) => {
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
     logger.info("✅ notifyAppointmentChanged function triggered");
 
     const before = event.data.before.data();
@@ -35,38 +38,50 @@ exports.notifyAppointmentChanged = onDocumentUpdated(
     logger.info(`📍 Processing changes for user: ${userId}`);
     const userDoc = await db.collection("users").doc(userId).get();
     const fcmToken = userDoc.exists && userDoc.data().fcmToken;
+    const email = userDoc.exists ? userDoc.data().email : null;
 
     if (!fcmToken) {
       logger.warn(`❌ No FCM token found for user ${userId}. Notification skipped.`);
-      return;
     }
+
+    const dateTimeFormatted = after.dateTime.toDate().toLocaleString("en-US", {
+      timeZone: "Asia/Amman",
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
     let title = "";
     let body = "";
+    let emailSubject = "";
+    let emailBody = "";
 
     if (before.status !== after.status) {
-      title = "Appointment Status Updated";
-      body = `Your appointment status changed to "${after.status}".`;
       logger.info(`🔄 Status changed to: ${after.status}`);
+
+      if (after.status.toLowerCase() === "canceled") {
+        title = "Appointment Canceled";
+        body = "Your appointment has been canceled.";
+        emailSubject = "Appointment Cancellation Notice";
+        emailBody = `Dear Patient,\n\nWe regret to inform you that your appointment on ${dateTimeFormatted} has been canceled.\n\nThank you,\nSafe Space Team`;
+      } else {
+        title = "Appointment Status Updated";
+        body = `Your appointment status changed to "${after.status}".`;
+        emailSubject = "Appointment Status Changed";
+        emailBody = `Dear Patient,\n\nYour appointment status has changed to "${after.status}".\n\nDate: ${dateTimeFormatted}\n\nThank you,\nSafe Space Team`;
+      }
     } else if (
       before.note !== after.note ||
       before.dateTime.toMillis() !== after.dateTime.toMillis()
     ) {
-      const newTime = after.dateTime.toDate().toLocaleString("en-US", {
-        timeZone: "Asia/Amman",
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
       title = "Appointment Updated";
-      body = `Your appointment has been updated to ${newTime}.`;
-      logger.info("📝 Appointment date/time or note changed.");
+      body = `Your appointment has been updated to ${dateTimeFormatted}.`;
     }
 
-    if (title && body) {
+    if (title && body && fcmToken) {
       try {
         await messaging.send({
           token: fcmToken,
@@ -74,10 +89,24 @@ exports.notifyAppointmentChanged = onDocumentUpdated(
         });
         logger.info("✅ Notification sent successfully.");
       } catch (error) {
-        logger.error("❌ Error sending notification", error);
+        logger.error("❌ Error sending FCM notification", error);
+      }
+    }
+
+    if (email && emailSubject && emailBody) {
+      try {
+        await sgMail.send({
+          to: email,
+          from: "bayanismail302@gmail.com", // ✅ Verified sender
+          subject: emailSubject,
+          text: emailBody,
+        });
+        logger.info(`📧 Email sent to ${email}`);
+      } catch (error) {
+        logger.error("❌ Failed to send email:", error);
       }
     } else {
-      logger.info("ℹ️ No significant appointment changes to notify.");
+      logger.info("ℹ️ No email sent (no status change or email missing)");
     }
   }
 );
@@ -103,7 +132,6 @@ exports.sendAppointmentConfirmationEmail = onDocumentCreated(
       return;
     }
 
-    // ✅ Format time for Jordan (Asia/Amman)
     const dateTime = appointment.dateTime.toDate().toLocaleString("en-US", {
       timeZone: "Asia/Amman",
       weekday: "long",
@@ -118,7 +146,7 @@ exports.sendAppointmentConfirmationEmail = onDocumentCreated(
 
     const msg = {
       to: email,
-      from: "bayanismail302@gmail.com", // Verified sender
+      from: "bayanismail302@gmail.com", // ✅ Verified sender
       subject: "Your Appointment is Confirmed",
       text: `Dear Patient,\n\nYour appointment has been successfully booked.\n\n📅 Date: ${dateTime}\n📝 Note: ${note}\n\nThank you,\nSafe Space Team`,
     };
