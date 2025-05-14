@@ -1,4 +1,3 @@
-const functions = require("firebase-functions/v2");
 const { onDocumentUpdated, onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { onRequest } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
@@ -60,7 +59,7 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
       emailBody = `
 Dear ${name},
 
-This is to notify you that your scheduled appointment on **${formattedDate}** has been **canceled** by your healthcare provider.
+This is to notify you that your scheduled appointment on **${formattedDate}** has been canceled by your healthcare provider.
 
 If this cancellation was unexpected or you require further assistance, please reach out to your doctor directly to clarify or to reschedule.
 
@@ -71,12 +70,12 @@ Safe Space Team
       `.trim();
     } else {
       title = "Appointment Status Updated";
-      body = `Your appointment status changed to \"${after.status}\".`;
+      body = `Your appointment status changed to "${after.status}".`;
       emailSubject = "Appointment Status Changed";
       emailBody = `
 Dear ${name},
 
-Your appointment status has been updated to **\"${after.status}\"**.
+Your appointment status has been updated to "${after.status}".
 
 📅 Date: ${formattedDate}
 
@@ -187,7 +186,7 @@ exports.dailySymptomReminder = onSchedule({
   patientsSnapshot.forEach((doc) => {
     const data = doc.data();
     if (data.fcmToken) {
-      logger.info(`Reminder queued for patientId=\"${doc.id}\", name=\"${data.name || "N/A"}\", email=\"${data.email || "N/A"}\"`);
+      logger.info(`Reminder queued for patientId="${doc.id}", name="${data.name || "N/A"}", email="${data.email || "N/A"}`);
       messagingPromises.push(
         messaging.send({
           token: data.fcmToken,
@@ -198,7 +197,7 @@ exports.dailySymptomReminder = onSchedule({
         })
       );
     } else {
-      logger.warn(`No FCM token for patientId=\"${doc.id}\"`);
+      logger.warn(`No FCM token for patientId="${doc.id}"`);
     }
   });
 
