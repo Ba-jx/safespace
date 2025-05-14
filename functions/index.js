@@ -19,32 +19,27 @@ exports.helloWorld = onRequest((req, res) => {
   res.send("Hello from Firebase!");
 });
 
-// 🔔 Notify patient when appointment is updated (includes cancellation email)
+// 🔔 Notify patient when appointment is updated or canceled
 exports.notifyAppointmentChanged = onDocumentUpdated(
   {
     document: "users/{userId}/appointments/{appointmentId}",
     region: "us-central1",
-    secrets: ["SENDGRID_API_KEY"], // ✅ Secret binding
+    secrets: ["SENDGRID_API_KEY"],
   },
   async (event) => {
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-
     logger.info("✅ notifyAppointmentChanged function triggered");
 
     const before = event.data.before.data();
     const after = event.data.after.data();
     const userId = event.params.userId;
 
-    logger.info(`📍 Processing changes for user: ${userId}`);
     const userDoc = await db.collection("users").doc(userId).get();
     const fcmToken = userDoc.exists && userDoc.data().fcmToken;
     const email = userDoc.exists ? userDoc.data().email : null;
+    const name = userDoc.exists ? userDoc.data().name || "Patient" : "Patient";
 
-    if (!fcmToken) {
-      logger.warn(`❌ No FCM token found for user ${userId}. Notification skipped.`);
-    }
-
-    const dateTimeFormatted = after.dateTime.toDate().toLocaleString("en-US", {
+    const formattedDate = after.dateTime.toDate().toLocaleString("en-US", {
       timeZone: "Asia/Amman",
       weekday: "long",
       year: "numeric",
@@ -60,27 +55,44 @@ exports.notifyAppointmentChanged = onDocumentUpdated(
     let emailBody = "";
 
     if (before.status !== after.status) {
-      logger.info(`🔄 Status changed to: ${after.status}`);
-
       if (after.status.toLowerCase() === "canceled") {
         title = "Appointment Canceled";
         body = "Your appointment has been canceled.";
-        emailSubject = "Appointment Cancellation Notice";
-        emailBody = `Dear Patient,\n\nWe regret to inform you that your appointment on ${dateTimeFormatted} has been canceled.\n\nThank you,\nSafe Space Team`;
+        emailSubject = "Your Appointment Has Been Canceled";
+        emailBody = `
+Dear ${name},
+
+We regret to inform you that your appointment scheduled on **${formattedDate}** has been **canceled**.
+
+If you have any questions or would like to reschedule, please contact your doctor.
+
+Thank you,  
+Safe Space Team
+        `.trim();
       } else {
         title = "Appointment Status Updated";
         body = `Your appointment status changed to "${after.status}".`;
         emailSubject = "Appointment Status Changed";
-        emailBody = `Dear Patient,\n\nYour appointment status has changed to "${after.status}".\n\nDate: ${dateTimeFormatted}\n\nThank you,\nSafe Space Team`;
+        emailBody = `
+Dear ${name},
+
+Your appointment status has been updated to **"${after.status}"**.
+
+📅 Date: ${formattedDate}
+
+Thank you,  
+Safe Space Team
+        `.trim();
       }
     } else if (
       before.note !== after.note ||
       before.dateTime.toMillis() !== after.dateTime.toMillis()
     ) {
       title = "Appointment Updated";
-      body = `Your appointment has been updated to ${dateTimeFormatted}.`;
+      body = `Your appointment has been updated to ${formattedDate}.`;
     }
 
+    // Send push notification
     if (title && body && fcmToken) {
       try {
         await messaging.send({
@@ -93,11 +105,12 @@ exports.notifyAppointmentChanged = onDocumentUpdated(
       }
     }
 
+    // Send email
     if (email && emailSubject && emailBody) {
       try {
         await sgMail.send({
           to: email,
-          from: "bayanismail302@gmail.com", // ✅ Verified sender
+          from: "bayanismail302@gmail.com",
           subject: emailSubject,
           text: emailBody,
         });
@@ -105,13 +118,11 @@ exports.notifyAppointmentChanged = onDocumentUpdated(
       } catch (error) {
         logger.error("❌ Failed to send email:", error);
       }
-    } else {
-      logger.info("ℹ️ No email sent (no status change or email missing)");
     }
   }
 );
 
-// 📧 Email confirmation for new appointment creation
+// 📧 Confirmation email when appointment is created
 exports.sendAppointmentConfirmationEmail = onDocumentCreated(
   {
     document: "users/{userId}/appointments/{appointmentId}",
@@ -126,6 +137,7 @@ exports.sendAppointmentConfirmationEmail = onDocumentCreated(
 
     const userDoc = await db.collection("users").doc(userId).get();
     const email = userDoc.exists ? userDoc.data().email : null;
+    const name = userDoc.exists ? userDoc.data().name || "Patient" : "Patient";
 
     if (!email) {
       logger.warn(`⚠️ No email for patient ${userId}. Email skipped.`);
@@ -146,9 +158,19 @@ exports.sendAppointmentConfirmationEmail = onDocumentCreated(
 
     const msg = {
       to: email,
-      from: "bayanismail302@gmail.com", // ✅ Verified sender
+      from: "bayanismail302@gmail.com", // Verified sender
       subject: "Your Appointment is Confirmed",
-      text: `Dear Patient,\n\nYour appointment has been successfully booked.\n\n📅 Date: ${dateTime}\n📝 Note: ${note}\n\nThank you,\nSafe Space Team`,
+      text: `
+Dear ${name},
+
+Your appointment has been successfully booked.
+
+📅 Date: ${dateTime}  
+📝 Note: ${note}
+
+Thank you,  
+Safe Space Team
+      `.trim(),
     };
 
     try {
