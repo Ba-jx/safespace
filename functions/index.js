@@ -52,10 +52,10 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
   let emailBody = "";
 
   if (before.status !== after.status) {
-    if (after.status.toLowerCase() === "canceled") {
+    if (after.status.toLowerCase() === "cancelled") {
       title = "Appointment Canceled";
-      body = "Your appointment has been canceled.";
-      emailSubject = "Your Appointment Has Been Canceled";
+      body = "Your appointment has been cancelled.";
+      emailSubject = "Your Appointment Has Been Cancelled";
       emailBody = `
 Dear ${name},
 
