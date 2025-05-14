@@ -15,7 +15,50 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
   TimeOfDay? selectedTime;
   final TextEditingController _noteController = TextEditingController();
   bool _isSubmitting = false;
-  List<TimeOfDay> availableSlots = [];
+
+  String? doctorId;
+  Map<DateTime, int> _appointmentCounts = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDoctorAndAppointments();
+  }
+
+  Future<void> _fetchDoctorAndAppointments() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+    doctorId = userDoc.data()?['doctorId'];
+
+    if (doctorId == null) return;
+
+    final snapshot = await FirebaseFirestore.instance
+        .collectionGroup('appointments')
+        .where('doctorId', isEqualTo: doctorId)
+        .where('status', isEqualTo: 'confirmed')
+        .get();
+
+    final Map<DateTime, int> counts = {};
+    for (var doc in snapshot.docs) {
+      final timestamp = doc['dateTime'];
+      if (timestamp is Timestamp) {
+        final dt = timestamp.toDate();
+        final date = DateTime(dt.year, dt.month, dt.day);
+        counts[date] = (counts[date] ?? 0) + 1;
+      }
+    }
+
+    setState(() {
+      _appointmentCounts = counts;
+    });
+  }
+
+  bool _isDateFullyBooked(DateTime date) {
+    final day = DateTime(date.year, date.month, date.day);
+    return (_appointmentCounts[day] ?? 0) >= 8;
+  }
 
   Future<void> _pickDate() async {
     final today = DateTime.now();
@@ -24,53 +67,21 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
       initialDate: today,
       firstDate: today,
       lastDate: today.add(const Duration(days: 30)),
+      selectableDayPredicate: (day) => !_isDateFullyBooked(day),
     );
     if (picked != null) {
-      setState(() {
-        selectedDate = picked;
-        selectedTime = null;
-        availableSlots = [];
-      });
-      await _loadAvailableSlots(picked);
+      setState(() => selectedDate = picked);
     }
   }
 
-  Future<void> _loadAvailableSlots(DateTime day) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-    final doctorId = userDoc.data()?['doctorId'];
-    if (doctorId == null) return;
-
-    final startOfDay = DateTime(day.year, day.month, day.day, 0, 0);
-    final endOfDay = DateTime(day.year, day.month, day.day, 23, 59);
-
-    final snapshot = await FirebaseFirestore.instance
-        .collectionGroup('appointments')
-        .where('doctorId', isEqualTo: doctorId)
-        .where('status', isEqualTo: 'confirmed')
-        .where('dateTime', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-        .where('dateTime', isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
-        .get();
-
-    final bookedTimes = snapshot.docs
-        .map((doc) => (doc['dateTime'] as Timestamp).toDate())
-        .toList();
-
-    final List<TimeOfDay> slots = [];
-    for (int hour = 9; hour < 17; hour++) {
-      final slotDateTime = DateTime(day.year, day.month, day.day, hour);
-      final conflict = bookedTimes.any((booked) =>
-          (slotDateTime.difference(booked).inMinutes).abs() < 60);
-      if (!conflict) {
-        slots.add(TimeOfDay(hour: hour, minute: 0));
-      }
+  Future<void> _pickTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+    if (picked != null) {
+      setState(() => selectedTime = picked);
     }
-
-    setState(() {
-      availableSlots = slots;
-    });
   }
 
   Future<void> _submitAppointment() async {
@@ -81,7 +92,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
       return;
     }
 
-    final dateTime = DateTime(
+    final DateTime dateTime = DateTime(
       selectedDate!.year,
       selectedDate!.month,
       selectedDate!.day,
@@ -102,15 +113,28 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception("User not logged in");
 
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-      final doctorId = userDoc.data()?['doctorId'];
+      final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+      final userDoc = await docRef.get();
       final patientName = userDoc.data()?['name'];
 
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('appointments')
-          .add({
+      final startWindow = dateTime.subtract(const Duration(hours: 1));
+      final endWindow = dateTime.add(const Duration(hours: 1));
+
+      final conflictQuery = await FirebaseFirestore.instance
+          .collectionGroup('appointments')
+          .where('doctorId', isEqualTo: doctorId)
+          .where('dateTime', isGreaterThanOrEqualTo: Timestamp.fromDate(startWindow))
+          .where('dateTime', isLessThanOrEqualTo: Timestamp.fromDate(endWindow))
+          .get();
+
+      if (conflictQuery.docs.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('The selected time conflicts with an existing appointment. Try another time.')),
+        );
+        return;
+      }
+
+      await docRef.collection('appointments').add({
         'dateTime': Timestamp.fromDate(dateTime),
         'note': _noteController.text.trim(),
         'createdAt': Timestamp.now(),
@@ -126,9 +150,10 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
       setState(() {
         selectedDate = null;
         selectedTime = null;
-        availableSlots = [];
         _noteController.clear();
       });
+
+      await _fetchDoctorAndAppointments(); // Refresh after booking
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error booking appointment: $e')),
@@ -159,26 +184,12 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
               trailing: const Icon(Icons.calendar_today),
               onTap: _pickDate,
             ),
-            if (availableSlots.isNotEmpty)
-              DropdownButton<TimeOfDay>(
-                value: selectedTime,
-                hint: const Text('Select Available Time'),
-                items: availableSlots
-                    .map((slot) => DropdownMenuItem(
-                          value: slot,
-                          child: Text(slot.format(context)),
-                        ))
-                    .toList(),
-                onChanged: (value) {
-                  setState(() => selectedTime = value);
-                },
-              )
-            else if (selectedDate != null)
-              const Padding(
-                padding: EdgeInsets.all(8),
-                child: Text('No available time slots for this day.'),
-              ),
-            const SizedBox(height: 12),
+            ListTile(
+              title: const Text('Time'),
+              subtitle: Text(formattedTime),
+              trailing: const Icon(Icons.access_time),
+              onTap: _pickTime,
+            ),
             TextField(
               controller: _noteController,
               decoration: const InputDecoration(
