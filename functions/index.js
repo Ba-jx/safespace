@@ -52,7 +52,15 @@ exports.notifyAppointmentChanged = onDocumentUpdated(
       before.note !== after.note ||
       before.dateTime.toMillis() !== after.dateTime.toMillis()
     ) {
-      const newTime = after.dateTime.toDate().toLocaleString();
+      const newTime = after.dateTime.toDate().toLocaleString("en-US", {
+        timeZone: "Asia/Amman",
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
       title = "Appointment Updated";
       body = `Your appointment has been updated to ${newTime}.`;
       logger.info("📝 Appointment date/time or note changed.");
@@ -74,15 +82,15 @@ exports.notifyAppointmentChanged = onDocumentUpdated(
   }
 );
 
-// 📧 Email confirmation for new appointment creation (with secret binding)
+// 📧 Email confirmation for new appointment creation
 exports.sendAppointmentConfirmationEmail = onDocumentCreated(
   {
     document: "users/{userId}/appointments/{appointmentId}",
     region: "us-central1",
-    secrets: ["SENDGRID_API_KEY"], // ✅ Required for Firebase v2
+    secrets: ["SENDGRID_API_KEY"],
   },
   async (event) => {
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY); // ✅ Uses bound secret
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
     const { userId } = event.params;
     const appointment = event.data.data();
@@ -95,12 +103,22 @@ exports.sendAppointmentConfirmationEmail = onDocumentCreated(
       return;
     }
 
-    const dateTime = appointment.dateTime.toDate().toLocaleString();
+    // ✅ Format time for Jordan (Asia/Amman)
+    const dateTime = appointment.dateTime.toDate().toLocaleString("en-US", {
+      timeZone: "Asia/Amman",
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
     const note = appointment.note || "No notes";
 
     const msg = {
       to: email,
-      from: "bayanismail302@gmail.com", // ✅ Verified sender
+      from: "bayanismail302@gmail.com", // Verified sender
       subject: "Your Appointment is Confirmed",
       text: `Dear Patient,\n\nYour appointment has been successfully booked.\n\n📅 Date: ${dateTime}\n📝 Note: ${note}\n\nThank you,\nSafe Space Team`,
     };
@@ -114,7 +132,7 @@ exports.sendAppointmentConfirmationEmail = onDocumentCreated(
   }
 );
 
-// ⏰ Daily symptom reminder at 9:50 PM Jordan Time (18:50 UTC)
+// ⏰ Daily symptom reminder at 9:50 PM Jordan Time
 exports.dailySymptomReminder = onSchedule(
   {
     schedule: "50 18 * * *",
