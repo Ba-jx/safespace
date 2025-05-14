@@ -23,10 +23,11 @@ exports.helloWorld = onRequest((req, res) => {
 });
 
 // 🔔 Notify patient when appointment is updated
-exports.notifyAppointmentChanged = onDocumentUpdated(
+exports.sendAppointmentConfirmationEmail = onDocumentCreated(
   {
     document: "users/{userId}/appointments/{appointmentId}",
     region: "us-central1",
+    secrets: ["SENDGRID_API_KEY"], // ✅ THIS IS MANDATORY
   },
   async (event) => {
     logger.info("✅ notifyAppointmentChanged function triggered");
