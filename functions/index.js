@@ -12,13 +12,13 @@ initializeApp();
 const db = getFirestore();
 const messaging = getMessaging();
 
-// ✅ HTTP Test Function
+// ✅ HTTP Test
 exports.helloWorld = onRequest((req, res) => {
   logger.info("Hello logs!", { structuredData: true });
   res.send("Hello from Firebase!");
 });
 
-// ✅ Appointment status change/cancel notification
+// ✅ Notify on appointment update or cancel
 exports.notifyAppointmentChanged = onDocumentUpdated({
   document: "users/{userId}/appointments/{appointmentId}",
   region: "us-central1",
@@ -38,12 +38,8 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
 
   const formattedDate = after.dateTime.toDate().toLocaleString("en-US", {
     timeZone: "Asia/Amman",
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+    weekday: "long", year: "numeric", month: "long", day: "numeric",
+    hour: "2-digit", minute: "2-digit"
   });
 
   let title = "";
@@ -118,7 +114,7 @@ Safe Space Team
   }
 });
 
-// ✅ Email confirmation on appointment creation
+// ✅ Send confirmation email on appointment creation
 exports.sendAppointmentConfirmationEmail = onDocumentCreated({
   document: "users/{userId}/appointments/{appointmentId}",
   region: "us-central1",
@@ -139,12 +135,8 @@ exports.sendAppointmentConfirmationEmail = onDocumentCreated({
 
   const dateTime = appointment.dateTime.toDate().toLocaleString("en-US", {
     timeZone: "Asia/Amman",
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+    weekday: "long", year: "numeric", month: "long", day: "numeric",
+    hour: "2-digit", minute: "2-digit"
   });
 
   const note = appointment.note || "No notes";
@@ -186,7 +178,7 @@ exports.dailySymptomReminder = onSchedule({
   patientsSnapshot.forEach((doc) => {
     const data = doc.data();
     if (data.fcmToken) {
-      logger.info(`Reminder queued for patientId="${doc.id}", name="${data.name || "N/A"}", email="${data.email || "N/A"}`);
+      logger.info(`Reminder queued for patientId="${doc.id}", name="${data.name || "N/A"}", email="${data.email || "N/A"}"`);
       messagingPromises.push(
         messaging.send({
           token: data.fcmToken,
@@ -205,27 +197,35 @@ exports.dailySymptomReminder = onSchedule({
   logger.info(`📨 Sent ${messagingPromises.length} daily reminders.`);
 });
 
-// ✅ Auto-complete past appointments
+// ✅ Automatically mark past appointments as completed
 exports.autoCompletePastAppointments = onSchedule({
   schedule: "every 15 minutes",
   timeZone: "Asia/Amman",
 }, async () => {
   logger.info("🕓 Checking for past appointments to auto-complete...");
 
-  const now = Timestamp.now();
-  const snapshot = await db
-    .collectionGroup("appointments")
-    .where("status", "!=", "completed")
-    .where("dateTime", "<", now)
-    .get();
+  try {
+    const now = Timestamp.now();
+    const snapshot = await db
+      .collectionGroup("appointments")
+      .where("status", "!=", "completed")
+      .where("dateTime", "<", now)
+      .get();
 
-  const batch = db.batch();
+    if (snapshot.empty) {
+      logger.info("ℹ️ No appointments to auto-complete.");
+      return;
+    }
 
-  snapshot.forEach((doc) => {
-    batch.update(doc.ref, { status: "completed" });
-    logger.info(`✅ Auto-completed appointment ${doc.id}`);
-  });
+    const batch = db.batch();
+    snapshot.forEach((doc) => {
+      batch.update(doc.ref, { status: "completed" });
+      logger.info(`✅ Auto-completed appointment ${doc.id}`);
+    });
 
-  await batch.commit();
-  logger.info(`✅ Updated ${snapshot.size} appointments to "completed".`);
+    await batch.commit();
+    logger.info(`✅ Updated ${snapshot.size} appointments to "completed".`);
+  } catch (error) {
+    logger.error("❌ Error in autoCompletePastAppointments:", error);
+  }
 });
