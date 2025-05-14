@@ -8,9 +8,6 @@ const { getMessaging } = require("firebase-admin/messaging");
 const logger = require("firebase-functions/logger");
 const sgMail = require("@sendgrid/mail");
 
-// 🔐 Use secret key set with: firebase functions:secrets:set SENDGRID_API_KEY
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-
 // 🔧 Initialize Firebase Admin
 initializeApp();
 const db = getFirestore();
@@ -23,11 +20,10 @@ exports.helloWorld = onRequest((req, res) => {
 });
 
 // 🔔 Notify patient when appointment is updated
-exports.sendAppointmentConfirmationEmail = onDocumentCreated(
+exports.notifyAppointmentChanged = onDocumentUpdated(
   {
     document: "users/{userId}/appointments/{appointmentId}",
     region: "us-central1",
-    secrets: ["SENDGRID_API_KEY"], // ✅ THIS IS MANDATORY
   },
   async (event) => {
     logger.info("✅ notifyAppointmentChanged function triggered");
@@ -78,13 +74,16 @@ exports.sendAppointmentConfirmationEmail = onDocumentCreated(
   }
 );
 
-// 📧 Email confirmation for new appointment creation
+// 📧 Email confirmation for new appointment creation (with secret binding)
 exports.sendAppointmentConfirmationEmail = onDocumentCreated(
   {
     document: "users/{userId}/appointments/{appointmentId}",
     region: "us-central1",
+    secrets: ["SENDGRID_API_KEY"], // ✅ Required for Firebase v2
   },
   async (event) => {
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY); // ✅ Uses bound secret
+
     const { userId } = event.params;
     const appointment = event.data.data();
 
@@ -101,7 +100,7 @@ exports.sendAppointmentConfirmationEmail = onDocumentCreated(
 
     const msg = {
       to: email,
-      from: "bayanismail302@gmail.com", // ✅ Use verified Gmail sender for testing
+      from: "bayanismail302@gmail.com", // ✅ Verified sender
       subject: "Your Appointment is Confirmed",
       text: `Dear Patient,\n\nYour appointment has been successfully booked.\n\n📅 Date: ${dateTime}\n📝 Note: ${note}\n\nThank you,\nSafe Space Team`,
     };
