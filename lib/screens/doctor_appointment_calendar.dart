@@ -43,7 +43,9 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
           timestamp.toDate().day,
         );
         grouped[date] = grouped[date] ?? [];
-        grouped[date]!.add({...data, 'docId': doc.id, 'ref': doc.reference});
+        if (grouped[date]!.length < 8) { // Limit to 8 appointments per day
+          grouped[date]!.add({...data, 'docId': doc.id, 'ref': doc.reference});
+        }
       }
     }
 
@@ -58,11 +60,44 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
     return _appointmentsByDate[date] ?? [];
   }
 
+  bool _isDateFullyBooked(DateTime date) {
+    final day = DateTime(date.year, date.month, date.day);
+    return (_appointmentsByDate[day]?.length ?? 0) >= 8;
+  }
+
   void _showAppointmentDialog({Map<String, dynamic>? existing}) async {
     final doctorId = FirebaseAuth.instance.currentUser!.uid;
     final noteController = TextEditingController(text: existing?['note'] ?? '');
     String? selectedPatientId = existing?['patientId'];
     String? selectedPatientName = existing?['patientName'];
+    DateTime selectedDate = existing != null
+        ? (existing['dateTime'] as Timestamp).toDate()
+        : (_selectedDay ?? _focusedDay);
+
+    TimeOfDay? selectedTime;
+    List<TimeOfDay> availableSlots = [];
+
+    Future<void> _computeAvailableSlots(DateTime date) async {
+      final allAppointments = _getAppointmentsForDay(date).map((appt) {
+        return (appt['dateTime'] as Timestamp).toDate();
+      }).toList();
+
+      availableSlots = [];
+      for (int hour = 9; hour < 17; hour++) {
+        final slot = DateTime(date.year, date.month, date.day, hour);
+        final hasConflict = allAppointments.any((appt) =>
+            (slot.difference(appt).inMinutes).abs() < 60 &&
+            (existing == null || (existing['dateTime'] as Timestamp).toDate() != appt));
+        if (!hasConflict) {
+          availableSlots.add(TimeOfDay(hour: hour, minute: 0));
+        }
+      }
+    }
+
+    await _computeAvailableSlots(selectedDate);
+    if (existing != null) {
+      selectedTime = TimeOfDay.fromDateTime((existing['dateTime'] as Timestamp).toDate());
+    }
 
     final patientsSnapshot = await FirebaseFirestore.instance
         .collection('users')
@@ -76,14 +111,6 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
       final data = doc.data();
       return {'id': doc.id, 'name': data['name'] ?? 'Unknown'};
     }).toList();
-
-    TimeOfDay selectedTime = existing != null
-        ? TimeOfDay.fromDateTime((existing['dateTime'] as Timestamp).toDate())
-        : const TimeOfDay(hour: 9, minute: 0);
-
-    DateTime selectedDate = existing != null
-        ? (existing['dateTime'] as Timestamp).toDate()
-        : (_selectedDay ?? _focusedDay);
 
     showDialog(
       context: context,
@@ -140,10 +167,13 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                           initialDate: selectedDate,
                           firstDate: DateTime.now(),
                           lastDate: DateTime.now().add(const Duration(days: 365)),
+                          selectableDayPredicate: (date) => !_isDateFullyBooked(date),
                         );
                         if (picked != null) {
-                          setModalState(() {
+                          setModalState(() async {
                             selectedDate = picked;
+                            selectedTime = null;
+                            await _computeAvailableSlots(selectedDate);
                           });
                         }
                       },
@@ -152,22 +182,20 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Text('Time:'),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: () async {
-                        final picked = await showTimePicker(context: context, initialTime: selectedTime);
-                        if (picked != null) {
-                          setModalState(() {
-                            selectedTime = picked;
-                          });
-                        }
-                      },
-                      child: Text(selectedTime.format(context)),
-                    ),
-                  ],
+                DropdownButtonFormField<TimeOfDay>(
+                  value: selectedTime,
+                  decoration: const InputDecoration(labelText: 'Available Time Slots'),
+                  items: availableSlots.map((slot) {
+                    return DropdownMenuItem(
+                      value: slot,
+                      child: Text(slot.format(context)),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setModalState(() {
+                      selectedTime = value;
+                    });
+                  },
                 ),
               ],
             ),
@@ -192,32 +220,24 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                   );
                   return;
                 }
+                if (selectedTime == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please select a time slot')),
+                  );
+                  return;
+                }
 
                 final dateTime = DateTime(
                   selectedDate.year,
                   selectedDate.month,
                   selectedDate.day,
-                  selectedTime.hour,
-                  selectedTime.minute,
+                  selectedTime!.hour,
+                  selectedTime!.minute,
                 );
 
                 if (dateTime.difference(DateTime.now()).inHours < 12) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Appointments must be scheduled at least 12 hours in advance.')),
-                  );
-                  return;
-                }
-
-                final existingAppointments = _getAppointmentsForDay(selectedDate);
-                final isConflict = existingAppointments.any((appt) {
-                  if (existing != null && appt['docId'] == existing['docId']) return false;
-                  final existingDateTime = (appt['dateTime'] as Timestamp).toDate();
-                  return (dateTime.difference(existingDateTime).inMinutes).abs() < 60;
-                });
-
-                if (isConflict) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('There must be at least 1 hour between appointments.')),
                   );
                   return;
                 }
@@ -290,11 +310,13 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
             focusedDay: _focusedDay,
             selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
             onDaySelected: (selectedDay, focusedDay) {
+              if (_isDateFullyBooked(selectedDay)) return;
               setState(() {
                 _selectedDay = selectedDay;
                 _focusedDay = focusedDay;
               });
             },
+            enabledDayPredicate: (day) => !_isDateFullyBooked(day),
             eventLoader: _getAppointmentsForDay,
             availableCalendarFormats: const {CalendarFormat.month: 'Month'},
             headerStyle: const HeaderStyle(formatButtonVisible: false),
