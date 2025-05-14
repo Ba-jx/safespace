@@ -89,6 +89,20 @@ Safe Space Team
   ) {
     title = "Appointment Updated";
     body = `Your appointment has been updated to ${formattedDate}.`;
+    emailSubject = "Appointment Updated";
+    emailBody = `
+Dear ${name},
+
+Your appointment details have been updated.
+
+📅 New Date & Time: ${formattedDate}  
+📝 Note: ${after.note || "No notes"}
+
+Please check the app for more information.
+
+Thank you,  
+Safe Space Team
+    `.trim();
   }
 
   if (title && body && fcmToken) {
