@@ -166,9 +166,9 @@ Safe Space Team
   }
 });
 
-// ✅ Daily symptom reminder — RESCHEDULED to 11:15 PM Amman time
+// ✅ Daily symptom reminder — UPDATED to 11:30 PM Amman time
 exports.dailySymptomReminder = onSchedule({
-  schedule: "15 23 * * *", // ⏰ 11:15 PM daily
+  schedule: "30 23 * * *", // ⏰ 11:30 PM daily
   timeZone: "Asia/Amman",
 }, async () => {
   logger.info("⏰ Running daily symptom reminder");
