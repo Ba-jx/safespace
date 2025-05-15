@@ -207,7 +207,6 @@ exports.autoCompletePastAppointments = onSchedule({
   try {
     const now = Timestamp.now();
 
-    // ✅ FIX: Use "in" operator to avoid Firestore query issues
     const snapshot = await db
       .collectionGroup("appointments")
       .where("status", "in", ["confirmed", "pending"])
@@ -229,5 +228,40 @@ exports.autoCompletePastAppointments = onSchedule({
     logger.info(`✅ Updated ${snapshot.size} appointments to "completed".`);
   } catch (error) {
     logger.error("❌ Error in autoCompletePastAppointments:", error);
+  }
+});
+
+// ✅ Automatically delete pending appointments older than 24 hours
+exports.deleteStalePendingAppointments = onSchedule({
+  schedule: "every 30 minutes",
+  timeZone: "Asia/Amman",
+}, async () => {
+  logger.info("🧹 Checking for stale pending appointments to delete...");
+
+  try {
+    const now = Timestamp.now();
+    const oneDayAgo = Timestamp.fromMillis(now.toMillis() - 24 * 60 * 60 * 1000);
+
+    const snapshot = await db
+      .collectionGroup("appointments")
+      .where("status", "==", "pending")
+      .where("dateTime", "<", oneDayAgo)
+      .get();
+
+    if (snapshot.empty) {
+      logger.info("ℹ️ No stale pending appointments to delete.");
+      return;
+    }
+
+    const batch = db.batch();
+    snapshot.forEach((doc) => {
+      batch.delete(doc.ref);
+      logger.info(`🗑️ Deleted stale pending appointment ${doc.id}`);
+    });
+
+    await batch.commit();
+    logger.info(`✅ Deleted ${snapshot.size} stale pending appointments.`);
+  } catch (error) {
+    logger.error("❌ Error deleting stale pending appointments:", error);
   }
 });
