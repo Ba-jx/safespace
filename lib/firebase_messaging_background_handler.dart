@@ -27,6 +27,7 @@ void showLocalNotification(RemoteMessage message) {
         android: AndroidNotificationDetails(
           'default_channel',
           'Notifications',
+          channelDescription: 'App notification channel',
           importance: Importance.max,
           priority: Priority.high,
         ),
