@@ -166,7 +166,7 @@ Safe Space Team
   }
 });
 
-// ✅ Daily symptom reminder
+// ✅ Daily symptom reminder (scheduled)
 exports.dailySymptomReminder = onSchedule({
   schedule: "50 18 * * *",
   timeZone: "Asia/Amman",
@@ -178,7 +178,7 @@ exports.dailySymptomReminder = onSchedule({
   patientsSnapshot.forEach((doc) => {
     const data = doc.data();
     if (data.fcmToken) {
-      logger.info(`Reminder queued for patientId="${doc.id}", name="${data.name || "N/A"}", email="${data.email || "N/A"}"`);
+      logger.info(`Reminder queued for patientId="${doc.id}"`);
       messagingPromises.push(
         messaging.send({
           token: data.fcmToken,
@@ -195,6 +195,32 @@ exports.dailySymptomReminder = onSchedule({
 
   await Promise.all(messagingPromises);
   logger.info(`📨 Sent ${messagingPromises.length} daily reminders.`);
+});
+
+// ✅ Manual trigger for testing daily reminder
+exports.testDailyReminder = onRequest(async (req, res) => {
+  logger.info("🚨 Manually triggered dailySymptomReminder");
+
+  const patientsSnapshot = await db.collection("users").where("role", "==", "patient").get();
+  const messagingPromises = [];
+
+  patientsSnapshot.forEach((doc) => {
+    const data = doc.data();
+    if (data.fcmToken) {
+      messagingPromises.push(
+        messaging.send({
+          token: data.fcmToken,
+          notification: {
+            title: "Daily Symptom Check-in",
+            body: "Please remember to log your symptoms today.",
+          },
+        })
+      );
+    }
+  });
+
+  await Promise.all(messagingPromises);
+  res.send(`✅ Sent ${messagingPromises.length} test reminders.`);
 });
 
 // ✅ Automatically mark past appointments as completed
