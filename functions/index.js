@@ -7,7 +7,6 @@ const { getMessaging } = require("firebase-admin/messaging");
 const logger = require("firebase-functions/logger");
 const sgMail = require("@sendgrid/mail");
 
-// Initialize Firebase Admin
 initializeApp();
 const db = getFirestore();
 const messaging = getMessaging();
@@ -166,9 +165,9 @@ Safe Space Team
   }
 });
 
-// ✅ Daily symptom reminder — UPDATED to 11:37 PM Amman time
+// ✅ Daily symptom reminder at 4:00 PM
 exports.dailySymptomReminder = onSchedule({
-  schedule: "37 23 * * *", // ⏰ 11:37 PM daily
+  schedule: "0 16 * * *",
   timeZone: "Asia/Amman",
 }, async () => {
   logger.info("⏰ Running daily symptom reminder");
@@ -182,7 +181,7 @@ exports.dailySymptomReminder = onSchedule({
   patientsSnapshot.forEach((doc) => {
     const data = doc.data();
     if (data.fcmToken) {
-      logger.info(`Reminder queued for patientId="${doc.id}", name="${data.name || "N/A"}", email="${data.email || "N/A"}"`);
+      logger.info(`Reminder queued for patientId="${doc.id}", name="${data.name || "N/A"}"`);
       messagingPromises.push(
         messaging.send({
           token: data.fcmToken,
@@ -201,7 +200,7 @@ exports.dailySymptomReminder = onSchedule({
   logger.info(`📨 Sent ${messagingPromises.length} daily reminders.`);
 });
 
-// ✅ Automatically mark past appointments as completed
+// ✅ Auto-complete past appointments
 exports.autoCompletePastAppointments = onSchedule({
   schedule: "every 15 minutes",
   timeZone: "Asia/Amman",
@@ -232,5 +231,67 @@ exports.autoCompletePastAppointments = onSchedule({
     logger.info(`✅ Updated ${snapshot.size} appointments to "completed".`);
   } catch (error) {
     logger.error("❌ Error in autoCompletePastAppointments:", error);
+  }
+});
+
+// ✅ 24-hour appointment reminder
+exports.send24HourAppointmentReminder = onSchedule({
+  schedule: "every 60 minutes",
+  timeZone: "Asia/Amman",
+}, async () => {
+  logger.info("⏰ Checking for 24-hour upcoming appointments...");
+
+  const now = Timestamp.now();
+  const lowerBound = Timestamp.fromMillis(now.toMillis() + 23 * 60 * 60 * 1000 + 55 * 60 * 1000);
+  const upperBound = Timestamp.fromMillis(now.toMillis() + 24 * 60 * 60 * 1000 + 5 * 60 * 1000);
+
+  try {
+    const snapshot = await db
+      .collectionGroup("appointments")
+      .where("status", "==", "confirmed")
+      .where("dateTime", ">=", lowerBound)
+      .where("dateTime", "<=", upperBound)
+      .get();
+
+    if (snapshot.empty) {
+      logger.info("ℹ️ No appointments found within 24-hour reminder window.");
+      return;
+    }
+
+    const sendPromises = [];
+
+    for (const doc of snapshot.docs) {
+      const data = doc.data();
+      const pathParts = doc.ref.path.split("/");
+      const userId = pathParts[1]; // users/{userId}/appointments/{appointmentId}
+
+      const userDoc = await db.collection("users").doc(userId).get();
+      const fcmToken = userDoc.exists && userDoc.data().fcmToken;
+      const name = userDoc.exists ? userDoc.data().name || "Patient" : "Patient";
+
+      const formattedDate = data.dateTime.toDate().toLocaleString("en-US", {
+        timeZone: "Asia/Amman",
+        weekday: "long", year: "numeric", month: "long", day: "numeric",
+        hour: "2-digit", minute: "2-digit"
+      });
+
+      if (fcmToken) {
+        logger.info(`🔔 Sending 24-hour reminder to ${name} for appointment on ${formattedDate}`);
+        sendPromises.push(
+          messaging.send({
+            token: fcmToken,
+            notification: {
+              title: "⏰ Appointment Reminder",
+              body: `You have an appointment on ${formattedDate}.`,
+            },
+          })
+        );
+      }
+    }
+
+    await Promise.all(sendPromises);
+    logger.info(`✅ Sent ${sendPromises.length} 24-hour appointment reminders.`);
+  } catch (error) {
+    logger.error("❌ Error sending 24-hour reminders:", error);
   }
 });
