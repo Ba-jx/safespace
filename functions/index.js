@@ -7,6 +7,7 @@ const { getMessaging } = require("firebase-admin/messaging");
 const logger = require("firebase-functions/logger");
 const sgMail = require("@sendgrid/mail");
 
+// Initialize Firebase Admin
 initializeApp();
 const db = getFirestore();
 const messaging = getMessaging();
@@ -24,7 +25,7 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
   secrets: ["SENDGRID_API_KEY"],
 }, async (event) => {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-  logger.info("✅ notifyAppointmentChanged function triggered");
+  logger.info("✅ notifyAppointmentChanged triggered");
 
   const before = event.data.before.data();
   const after = event.data.after.data();
@@ -54,13 +55,8 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
       emailBody = `
 Dear ${name},
 
-This is to notify you that your scheduled appointment on ${formattedDate} has been canceled by your healthcare provider.
+Your appointment on ${formattedDate} has been cancelled.
 
-If this cancellation was unexpected or you require further assistance, please reach out to your doctor directly to clarify or to reschedule.
-
-We’re here to support your wellbeing.
-
-Sincerely,  
 Safe Space Team
       `.trim();
     } else {
@@ -72,7 +68,7 @@ Dear ${name},
 
 Your appointment status has been updated to "${after.status}".
 
-📅 Date: ${formattedDate}
+📅 ${formattedDate}
 
 Thank you,  
 Safe Space Team
@@ -92,9 +88,9 @@ Safe Space Team
         token: fcmToken,
         notification: { title, body },
       });
-      logger.info("✅ Notification sent successfully.");
+      logger.info("✅ FCM notification sent");
     } catch (error) {
-      logger.error("❌ Error sending FCM notification", error);
+      logger.error("❌ FCM send error", error);
     }
   }
 
@@ -108,7 +104,7 @@ Safe Space Team
       });
       logger.info(`📧 Email sent to ${email}`);
     } catch (error) {
-      logger.error("❌ Failed to send email:", error);
+      logger.error("❌ Email send error", error);
     }
   }
 });
@@ -128,7 +124,7 @@ exports.sendAppointmentConfirmationEmail = onDocumentCreated({
   const name = userDoc.exists ? userDoc.data().name || "Patient" : "Patient";
 
   if (!email) {
-    logger.warn(`⚠️ No email for patient ${userId}. Email skipped.`);
+    logger.warn(`⚠️ No email for ${userId}, skipping.`);
     return;
   }
 
@@ -149,8 +145,8 @@ Dear ${name},
 
 Your appointment has been successfully booked.
 
-📅 Date: ${dateTime}  
-📝 Note: ${note}
+📅 ${dateTime}  
+📝 ${note}
 
 Thank you,  
 Safe Space Team
@@ -159,9 +155,9 @@ Safe Space Team
 
   try {
     await sgMail.send(msg);
-    logger.info(`📧 Confirmation email sent to ${email}`);
+    logger.info(`📧 Confirmation sent to ${email}`);
   } catch (error) {
-    logger.error("❌ Failed to send confirmation email:", error);
+    logger.error("❌ Email error", error);
   }
 });
 
@@ -176,122 +172,131 @@ exports.dailySymptomReminder = onSchedule({
     .where("role", "==", "patient")
     .get();
 
-  const messagingPromises = [];
+  const sendTasks = [];
 
   patientsSnapshot.forEach((doc) => {
     const data = doc.data();
     if (data.fcmToken) {
-      logger.info(`Reminder queued for patientId="${doc.id}", name="${data.name || "N/A"}"`);
-      messagingPromises.push(
+      sendTasks.push(
         messaging.send({
           token: data.fcmToken,
           notification: {
-            title: "Daily Symptom Check-in",
-            body: "Please remember to log your symptoms today.",
+            title: "🩺 Daily Symptom Check-in",
+            body: "Don't forget to track your symptoms today.",
           },
         })
       );
-    } else {
-      logger.warn(`No FCM token for patientId="${doc.id}"`);
     }
   });
 
-  await Promise.all(messagingPromises);
-  logger.info(`📨 Sent ${messagingPromises.length} daily reminders.`);
+  await Promise.all(sendTasks);
+  logger.info(`📨 Sent ${sendTasks.length} symptom reminders.`);
 });
 
-// ✅ Auto-complete past appointments
-exports.autoCompletePastAppointments = onSchedule({
-  schedule: "every 15 minutes",
+// ✅ Tomorrow’s confirmed appointment reminder (with times)
+exports.appointmentReminderForNextDay = onSchedule({
+  schedule: "0 16 * * *", // 4:00 PM
   timeZone: "Asia/Amman",
 }, async () => {
-  logger.info("🕓 Checking for past appointments to auto-complete...");
+  logger.info("📅 Running next-day appointment reminders");
+
+  const now = new Date();
+  const startOfTomorrow = new Date(now);
+  startOfTomorrow.setDate(now.getDate() + 1);
+  startOfTomorrow.setHours(0, 0, 0, 0);
+
+  const startOfDayAfterTomorrow = new Date(startOfTomorrow);
+  startOfDayAfterTomorrow.setDate(startOfTomorrow.getDate() + 1);
+
+  const lower = Timestamp.fromDate(startOfTomorrow);
+  const upper = Timestamp.fromDate(startOfDayAfterTomorrow);
+
+  const snapshot = await db
+    .collectionGroup("appointments")
+    .where("status", "==", "confirmed")
+    .where("dateTime", ">=", lower)
+    .where("dateTime", "<", upper)
+    .get();
+
+  if (snapshot.empty) {
+    logger.info("ℹ️ No appointments for tomorrow.");
+    return;
+  }
+
+  const appointmentsByPatient = new Map();
+
+  snapshot.docs.forEach((doc) => {
+    const userId = doc.ref.path.split("/")[1];
+    const time = doc.data().dateTime.toDate().toLocaleTimeString("en-US", {
+      timeZone: "Asia/Amman",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+
+    if (!appointmentsByPatient.has(userId)) {
+      appointmentsByPatient.set(userId, []);
+    }
+    appointmentsByPatient.get(userId).push(time);
+  });
+
+  const sendPromises = [];
+
+  for (const [userId, times] of appointmentsByPatient.entries()) {
+    const userDoc = await db.collection("users").doc(userId).get();
+    const fcmToken = userDoc.exists && userDoc.data().fcmToken;
+    const name = userDoc.exists ? userDoc.data().name || "Patient" : "Patient";
+
+    if (!fcmToken) continue;
+
+    const formattedTimes = times.join(", ");
+    logger.info(`🔔 Notifying ${name}: ${formattedTimes}`);
+
+    sendPromises.push(
+      messaging.send({
+        token: fcmToken,
+        notification: {
+          title: "📅 Tomorrow’s Appointments",
+          body: `You have appointments tomorrow at: ${formattedTimes}`,
+        },
+      })
+    );
+  }
+
+  await Promise.all(sendPromises);
+  logger.info(`✅ Sent ${sendPromises.length} next-day appointment reminders.`);
+});
+
+// ✅ Delete stale pending appointments (older than 24h)
+exports.deleteStalePendingAppointments = onSchedule({
+  schedule: "every 30 minutes",
+  timeZone: "Asia/Amman",
+}, async () => {
+  logger.info("🧹 Checking for stale pending appointments...");
+
+  const now = Timestamp.now();
+  const twentyFourHoursAgo = Timestamp.fromMillis(now.toMillis() - 24 * 60 * 60 * 1000);
 
   try {
-    const now = Timestamp.now();
-
     const snapshot = await db
       .collectionGroup("appointments")
-      .where("status", "in", ["confirmed", "pending"])
-      .where("dateTime", "<", now)
+      .where("status", "==", "pending")
+      .where("dateTime", "<", twentyFourHoursAgo)
       .get();
 
     if (snapshot.empty) {
-      logger.info("ℹ️ No appointments to auto-complete.");
+      logger.info("ℹ️ No stale pending appointments found.");
       return;
     }
 
     const batch = db.batch();
     snapshot.forEach((doc) => {
-      batch.update(doc.ref, { status: "completed" });
-      logger.info(`✅ Auto-completed appointment ${doc.id}`);
+      batch.delete(doc.ref);
+      logger.info(`🗑️ Deleted pending appointment: ${doc.id}`);
     });
 
     await batch.commit();
-    logger.info(`✅ Updated ${snapshot.size} appointments to "completed".`);
+    logger.info(`✅ Deleted ${snapshot.size} stale pending appointments.`);
   } catch (error) {
-    logger.error("❌ Error in autoCompletePastAppointments:", error);
-  }
-});
-
-// ✅ 24-hour appointment reminder
-exports.send24HourAppointmentReminder = onSchedule({
-  schedule: "every 60 minutes",
-  timeZone: "Asia/Amman",
-}, async () => {
-  logger.info("⏰ Checking for 24-hour upcoming appointments...");
-
-  const now = Timestamp.now();
-  const lowerBound = Timestamp.fromMillis(now.toMillis() + 23 * 60 * 60 * 1000 + 55 * 60 * 1000);
-  const upperBound = Timestamp.fromMillis(now.toMillis() + 24 * 60 * 60 * 1000 + 5 * 60 * 1000);
-
-  try {
-    const snapshot = await db
-      .collectionGroup("appointments")
-      .where("status", "==", "confirmed")
-      .where("dateTime", ">=", lowerBound)
-      .where("dateTime", "<=", upperBound)
-      .get();
-
-    if (snapshot.empty) {
-      logger.info("ℹ️ No appointments found within 24-hour reminder window.");
-      return;
-    }
-
-    const sendPromises = [];
-
-    for (const doc of snapshot.docs) {
-      const data = doc.data();
-      const pathParts = doc.ref.path.split("/");
-      const userId = pathParts[1]; // users/{userId}/appointments/{appointmentId}
-
-      const userDoc = await db.collection("users").doc(userId).get();
-      const fcmToken = userDoc.exists && userDoc.data().fcmToken;
-      const name = userDoc.exists ? userDoc.data().name || "Patient" : "Patient";
-
-      const formattedDate = data.dateTime.toDate().toLocaleString("en-US", {
-        timeZone: "Asia/Amman",
-        weekday: "long", year: "numeric", month: "long", day: "numeric",
-        hour: "2-digit", minute: "2-digit"
-      });
-
-      if (fcmToken) {
-        logger.info(`🔔 Sending 24-hour reminder to ${name} for appointment on ${formattedDate}`);
-        sendPromises.push(
-          messaging.send({
-            token: fcmToken,
-            notification: {
-              title: "⏰ Appointment Reminder",
-              body: `You have an appointment on ${formattedDate}.`,
-            },
-          })
-        );
-      }
-    }
-
-    await Promise.all(sendPromises);
-    logger.info(`✅ Sent ${sendPromises.length} 24-hour appointment reminders.`);
-  } catch (error) {
-    logger.error("❌ Error sending 24-hour reminders:", error);
+    logger.error("❌ Error deleting stale pending appointments:", error);
   }
 });
