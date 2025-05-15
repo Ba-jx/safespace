@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 // Providers
 import 'providers/user_provider.dart';
@@ -28,6 +29,10 @@ import 'screens/manage_appointments_screen.dart';
 import 'screens/doctor_create_patient_screen.dart';
 import 'screens/doctor_appointment_calendar.dart';
 
+// 🔔 Local Notifications
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   print("⏪ Background message: ${message.notification?.title} - ${message.notification?.body}");
@@ -37,6 +42,15 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  const AndroidInitializationSettings initializationSettingsAndroid =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+
+  const InitializationSettings initializationSettings = InitializationSettings(
+    android: initializationSettingsAndroid,
+  );
+
+  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
 
   runApp(const SafeSpaceApp());
 }
@@ -73,16 +87,41 @@ class _MaterialAppWithFCMState extends State<MaterialAppWithFCM> {
 
   Future<void> _initializeFCM() async {
     final fcm = FirebaseMessaging.instance;
-    await fcm.requestPermission();
 
+    await fcm.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    // Foreground handler
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      if (message.notification != null) {
-        print('🔔 Foreground Notification: ${message.notification!.title} - ${message.notification!.body}');
+      RemoteNotification? notification = message.notification;
+      AndroidNotification? android = message.notification?.android;
+
+      if (notification != null && android != null) {
+        flutterLocalNotificationsPlugin.show(
+          notification.hashCode,
+          notification.title,
+          notification.body,
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              'default_channel',
+              'Notifications',
+              channelDescription: 'General app notifications',
+              importance: Importance.max,
+              priority: Priority.high,
+            ),
+          ),
+        );
       }
+
+      print('🔔 Foreground Notification: ${notification?.title} - ${notification?.body}');
     });
 
     final token = await fcm.getToken();
     final user = FirebaseAuth.instance.currentUser;
+
     print("📱 FCM Token: $token");
 
     if (user != null && token != null) {
