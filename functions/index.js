@@ -66,7 +66,7 @@ Safe Space Team
       `.trim();
     } else {
       title = "Appointment Status Updated";
-      body = `Your appointment status changed to "${after.status}".`;
+      body = Your appointment status changed to "${after.status}".;
       emailSubject = "Appointment Status Changed";
       emailBody = `
 Dear ${name},
@@ -84,7 +84,7 @@ Safe Space Team
     before.dateTime.toMillis() !== after.dateTime.toMillis()
   ) {
     title = "Appointment Updated";
-    body = `Your appointment has been updated to ${formattedDate}.`;
+    body = Your appointment has been updated to ${formattedDate}.;
   }
 
   if (title && body && fcmToken) {
@@ -107,7 +107,7 @@ Safe Space Team
         subject: emailSubject,
         text: emailBody,
       });
-      logger.info(`📧 Email sent to ${email}`);
+      logger.info(📧 Email sent to ${email});
     } catch (error) {
       logger.error("❌ Failed to send email:", error);
     }
@@ -129,7 +129,7 @@ exports.sendAppointmentConfirmationEmail = onDocumentCreated({
   const name = userDoc.exists ? userDoc.data().name || "Patient" : "Patient";
 
   if (!email) {
-    logger.warn(`⚠️ No email for patient ${userId}. Email skipped.`);
+    logger.warn(⚠ No email for patient ${userId}. Email skipped.);
     return;
   }
 
@@ -160,15 +160,15 @@ Safe Space Team
 
   try {
     await sgMail.send(msg);
-    logger.info(`📧 Confirmation email sent to ${email}`);
+    logger.info(📧 Confirmation email sent to ${email});
   } catch (error) {
     logger.error("❌ Failed to send confirmation email:", error);
   }
 });
 
-// ✅ Daily symptom reminder (scheduled)
+// ✅ Daily symptom reminder
 exports.dailySymptomReminder = onSchedule({
-  schedule: "50 18 * * *",
+  schedule: "15 23 * * *",
   timeZone: "Asia/Amman",
 }, async () => {
   logger.info("⏰ Running daily symptom reminder");
@@ -178,7 +178,7 @@ exports.dailySymptomReminder = onSchedule({
   patientsSnapshot.forEach((doc) => {
     const data = doc.data();
     if (data.fcmToken) {
-      logger.info(`Reminder queued for patientId="${doc.id}"`);
+      logger.info(Reminder queued for patientId="${doc.id}", name="${data.name || "N/A"}", email="${data.email || "N/A"}");
       messagingPromises.push(
         messaging.send({
           token: data.fcmToken,
@@ -189,38 +189,12 @@ exports.dailySymptomReminder = onSchedule({
         })
       );
     } else {
-      logger.warn(`No FCM token for patientId="${doc.id}"`);
+      logger.warn(No FCM token for patientId="${doc.id}");
     }
   });
 
   await Promise.all(messagingPromises);
-  logger.info(`📨 Sent ${messagingPromises.length} daily reminders.`);
-});
-
-// ✅ Manual trigger for testing daily reminder
-exports.testDailyReminder = onRequest(async (req, res) => {
-  logger.info("🚨 Manually triggered dailySymptomReminder");
-
-  const patientsSnapshot = await db.collection("users").where("role", "==", "patient").get();
-  const messagingPromises = [];
-
-  patientsSnapshot.forEach((doc) => {
-    const data = doc.data();
-    if (data.fcmToken) {
-      messagingPromises.push(
-        messaging.send({
-          token: data.fcmToken,
-          notification: {
-            title: "Daily Symptom Check-in",
-            body: "Please remember to log your symptoms today.",
-          },
-        })
-      );
-    }
-  });
-
-  await Promise.all(messagingPromises);
-  res.send(`✅ Sent ${messagingPromises.length} test reminders.`);
+  logger.info(📨 Sent ${messagingPromises.length} daily reminders.);
 });
 
 // ✅ Automatically mark past appointments as completed
@@ -233,6 +207,7 @@ exports.autoCompletePastAppointments = onSchedule({
   try {
     const now = Timestamp.now();
 
+    // ✅ FIX: Use "in" operator to avoid Firestore query issues
     const snapshot = await db
       .collectionGroup("appointments")
       .where("status", "in", ["confirmed", "pending"])
@@ -240,54 +215,19 @@ exports.autoCompletePastAppointments = onSchedule({
       .get();
 
     if (snapshot.empty) {
-      logger.info("ℹ️ No appointments to auto-complete.");
+      logger.info("ℹ No appointments to auto-complete.");
       return;
     }
 
     const batch = db.batch();
     snapshot.forEach((doc) => {
       batch.update(doc.ref, { status: "completed" });
-      logger.info(`✅ Auto-completed appointment ${doc.id}`);
+      logger.info(✅ Auto-completed appointment ${doc.id});
     });
 
     await batch.commit();
-    logger.info(`✅ Updated ${snapshot.size} appointments to "completed".`);
+    logger.info(✅ Updated ${snapshot.size} appointments to "completed".);
   } catch (error) {
     logger.error("❌ Error in autoCompletePastAppointments:", error);
-  }
-});
-
-// ✅ Automatically delete pending appointments older than 24 hours
-exports.deleteStalePendingAppointments = onSchedule({
-  schedule: "every 30 minutes",
-  timeZone: "Asia/Amman",
-}, async () => {
-  logger.info("🧹 Checking for stale pending appointments to delete...");
-
-  try {
-    const now = Timestamp.now();
-    const oneDayAgo = Timestamp.fromMillis(now.toMillis() - 24 * 60 * 60 * 1000);
-
-    const snapshot = await db
-      .collectionGroup("appointments")
-      .where("status", "==", "pending")
-      .where("dateTime", "<", oneDayAgo)
-      .get();
-
-    if (snapshot.empty) {
-      logger.info("ℹ️ No stale pending appointments to delete.");
-      return;
-    }
-
-    const batch = db.batch();
-    snapshot.forEach((doc) => {
-      batch.delete(doc.ref);
-      logger.info(`🗑️ Deleted stale pending appointment ${doc.id}`);
-    });
-
-    await batch.commit();
-    logger.info(`✅ Deleted ${snapshot.size} stale pending appointments.`);
-  } catch (error) {
-    logger.error("❌ Error deleting stale pending appointments:", error);
   }
 });
