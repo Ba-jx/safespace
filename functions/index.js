@@ -29,7 +29,7 @@ async function createNotification(userId, title, body) {
   logger.info(`🔔 Notification created for user: ${userId}`);
 }
 
-// ✅ Notify on appointment update or cancel (FCM + Firestore)
+// ✅ Appointment update/cancel notification
 exports.notifyAppointmentChanged = onDocumentUpdated({
   document: "users/{userId}/appointments/{appointmentId}",
   region: "us-central1",
@@ -42,7 +42,6 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
 
   const userDoc = await db.collection("users").doc(userId).get();
   const fcmToken = userDoc.exists && userDoc.data().fcmToken;
-  const name = userDoc.exists ? userDoc.data().name || "Patient" : "Patient";
 
   const formattedDate = after.dateTime.toDate().toLocaleString("en-US", {
     timeZone: "Asia/Amman",
@@ -70,17 +69,11 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
   }
 
   if (title && body) {
-    // 🔔 Save notification in Firestore
     await createNotification(userId, title, body);
 
-    // 📲 Send FCM if available
     if (fcmToken) {
       try {
-        await messaging.send({
-          token: fcmToken,
-          notification: { title, body },
-        });
-        logger.info("✅ FCM notification sent");
+        await messaging.send({ token: fcmToken, notification: { title, body } });
       } catch (error) {
         logger.error("❌ FCM send error", error);
       }
@@ -88,21 +81,17 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
   }
 });
 
-// ✅ Daily symptom reminder at 7:00 PM
+// ✅ Daily symptom reminder (7 PM)
 exports.dailySymptomReminder = onSchedule({
   schedule: "0 19 * * *",
   timeZone: "Asia/Amman",
 }, async () => {
-  logger.info("⏰ Running daily symptom reminder");
-
-  const patientsSnapshot = await db.collection("users")
-    .where("role", "==", "patient")
-    .get();
+  const patients = await db.collection("users").where("role", "==", "patient").get();
 
   const sendTasks = [];
 
-  patientsSnapshot.forEach((doc) => {
-    const data = doc.data();
+  for (let i = 0; i < patients.docs.length; i++) {
+    const data = patients.docs[i].data();
     if (data.fcmToken) {
       sendTasks.push(
         messaging.send({
@@ -114,222 +103,153 @@ exports.dailySymptomReminder = onSchedule({
         })
       );
     }
-  });
+  }
 
   await Promise.all(sendTasks);
-  logger.info(`📨 Sent ${sendTasks.length} symptom reminders.`);
 });
 
-// ✅ Tomorrow’s confirmed appointment reminder (FCM) at 6:00 PM
+// ✅ Tomorrow’s confirmed appointment reminder (6 PM)
 exports.appointmentReminderForNextDay = onSchedule({
   schedule: "0 18 * * *",
   timeZone: "Asia/Amman",
 }, async () => {
-  logger.info("📅 Running next-day appointment reminders");
-
   const now = new Date();
-  const startOfTomorrow = new Date(now);
-  startOfTomorrow.setDate(now.getDate() + 1);
-  startOfTomorrow.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(now);
+  tomorrow.setDate(now.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
 
-  const startOfDayAfterTomorrow = new Date(startOfTomorrow);
-  startOfDayAfterTomorrow.setDate(startOfTomorrow.getDate() + 1);
+  const afterTomorrow = new Date(tomorrow);
+  afterTomorrow.setDate(tomorrow.getDate() + 1);
 
-  const lower = Timestamp.fromDate(startOfTomorrow);
-  const upper = Timestamp.fromDate(startOfDayAfterTomorrow);
+  const lower = Timestamp.fromDate(tomorrow);
+  const upper = Timestamp.fromDate(afterTomorrow);
 
-  const snapshot = await db
-    .collectionGroup("appointments")
+  const snapshot = await db.collectionGroup("appointments")
     .where("status", "==", "confirmed")
     .where("dateTime", ">=", lower)
     .where("dateTime", "<", upper)
     .get();
 
-  if (snapshot.empty) {
-    logger.info("ℹ️ No confirmed appointments for tomorrow.");
-    return;
-  }
+  const byPatient = {};
 
-  const appointmentsByPatient = new Map();
-
-  snapshot.docs.forEach((doc) => {
+  for (let i = 0; i < snapshot.docs.length; i++) {
+    const doc = snapshot.docs[i];
     const userId = doc.ref.path.split("/")[1];
     const time = doc.data().dateTime.toDate().toLocaleTimeString("en-US", {
       timeZone: "Asia/Amman",
-      hour: "2-digit",
-      minute: "2-digit"
+      hour: "2-digit", minute: "2-digit"
     });
 
-    if (!appointmentsByPatient.has(userId)) {
-      appointmentsByPatient.set(userId, []);
-    }
-    appointmentsByPatient.get(userId).push(time);
-  });
-
-  const sendPromises = [];
-
-  for (const [userId, times] of appointmentsByPatient.entries()) {
-    const userDoc = await db.collection("users").doc(userId).get();
-    const fcmToken = userDoc.exists && userDoc.data().fcmToken;
-
-    const formattedTimes = times.join(", ");
-    const title = "📅 Tomorrow’s Appointments";
-    const body = `You have confirmed appointments tomorrow at: ${formattedTimes}`;
-
-    // 🔔 Create Firestore notification
-    await createNotification(userId, title, body);
-
-    // 📲 FCM
-    if (fcmToken) {
-      sendPromises.push(
-        messaging.send({
-          token: fcmToken,
-          notification: { title, body },
-        })
-      );
-    }
+    if (!byPatient[userId]) byPatient[userId] = [];
+    byPatient[userId].push(time);
   }
 
-  await Promise.all(sendPromises);
-  logger.info(`✅ Sent ${sendPromises.length} next-day reminders.`);
+  for (const userId in byPatient) {
+    const times = byPatient[userId];
+    const userDoc = await db.collection("users").doc(userId).get();
+    const fcmToken = userDoc.exists && userDoc.data().fcmToken;
+    const title = "📅 Tomorrow’s Appointments";
+    const body = `You have confirmed appointments tomorrow at: ${times.join(", ")}`;
+
+    await createNotification(userId, title, body);
+
+    if (fcmToken) {
+      await messaging.send({ token: fcmToken, notification: { title, body } });
+    }
+  }
 });
 
-// ✅ Email digest for unread notifications ≥ 3
+// ✅ Digest email for unread notifications
 exports.sendUnreadNotificationDigest = onSchedule({
   schedule: "30 18 * * *",
   timeZone: "Asia/Amman",
   secrets: ["SENDGRID_API_KEY"],
 }, async () => {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-  logger.info("📬 Running unread notification digest");
 
-  const usersSnapshot = await db.collection("users")
-    .where("role", "==", "patient")
-    .get();
+  const users = await db.collection("users").where("role", "==", "patient").get();
 
-  const sendTasks = [];
-
-  for (const userDoc of usersSnapshot.docs) {
+  for (let i = 0; i < users.docs.length; i++) {
+    const userDoc = users.docs[i];
     const userId = userDoc.id;
     const userData = userDoc.data();
 
-    const notifSnapshot = await db
-      .collection("users").doc(userId)
-      .collection("notifications")
+    const notifs = await db.collection("users").doc(userId).collection("notifications")
       .where("read", "==", false)
       .where("digestSent", "==", false)
       .get();
 
-    if (notifSnapshot.size < 3) continue;
+    if (notifs.size < 3) continue;
 
-    const messages = notifSnapshot.docs.map((doc) => {
+    const content = notifs.docs.map(doc => {
       const n = doc.data();
       const time = n.timestamp?.toDate().toLocaleString("en-US", {
         timeZone: "Asia/Amman",
-        hour: "2-digit",
-        minute: "2-digit",
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
+        hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short", year: "numeric",
       }) || "Unknown Time";
-
       return `🕒 ${time}\n🔔 ${n.title}\n${n.body}`;
     }).join("\n\n");
 
-    const emailContent = `
+    const emailText = `
 Dear ${userData.name || "Patient"},
 
-You have ${notifSnapshot.size} unread notifications in your Safe Space app.
+You have ${notifs.size} unread notifications in your Safe Space app.
 
-Here is a summary of your recent notifications:
+Here is a summary:
 
-${messages}
+${content}
 
 👉 [Open Safe Space App](https://your-app-link.com/open)
 
-Please log into the app to read or respond.
-
 – Safe Space Team
-`.trim();
+    `.trim();
 
     if (userData.email) {
-      const sendTask = sgMail.send({
+      await sgMail.send({
         to: userData.email,
         from: "bayanismail302@gmail.com",
         subject: "📬 You Have Unread Notifications – Safe Space Digest",
-        text: emailContent,
+        text: emailText,
       });
 
-      sendTasks.push(sendTask);
-
-      // ✅ Mark all included as sent
       const batch = db.batch();
-      notifSnapshot.docs.forEach((doc) => {
-        batch.update(doc.ref, { digestSent: true });
-      });
+      notifs.docs.forEach(doc => batch.update(doc.ref, { digestSent: true }));
       await batch.commit();
-
-      logger.info(`📧 Digest sent to ${userData.email}`);
     }
   }
-
-  await Promise.all(sendTasks);
-  logger.info(`✅ Digest emails processed: ${sendTasks.length}`);
 });
 
-// ✅ Delete stale pending appointments (older than 24h)
+// ✅ Delete stale pending appointments
 exports.deleteStalePendingAppointments = onSchedule({
   schedule: "every 30 minutes",
   timeZone: "Asia/Amman",
 }, async () => {
-  logger.info("🧹 Checking for stale pending appointments...");
-
   const now = Timestamp.now();
   const expired = Timestamp.fromMillis(now.toMillis() - 24 * 60 * 60 * 1000);
 
-  const snapshot = await db
-    .collectionGroup("appointments")
+  const snapshot = await db.collectionGroup("appointments")
     .where("status", "==", "pending")
     .where("dateTime", "<", expired)
     .get();
 
-  if (snapshot.empty) {
-    logger.info("ℹ️ No stale appointments.");
-    return;
-  }
-
   const batch = db.batch();
-  snapshot.forEach((doc) => batch.delete(doc.ref));
+  snapshot.forEach(doc => batch.delete(doc.ref));
   await batch.commit();
-
-  logger.info(`✅ Deleted ${snapshot.size} stale pending appointments.`);
 });
 
-// ✅ Auto-complete confirmed appointments in the past
+// ✅ Auto-complete past confirmed appointments
 exports.markPastAppointmentsAsCompleted = onSchedule({
   schedule: "every 30 minutes",
   timeZone: "Asia/Amman",
 }, async () => {
-  logger.info("🔁 Running appointment completion check...");
-
   const now = Timestamp.now();
 
-  const snapshot = await db
-    .collectionGroup("appointments")
+  const snapshot = await db.collectionGroup("appointments")
     .where("status", "==", "confirmed")
     .where("dateTime", "<", now)
     .get();
 
-  if (snapshot.empty) {
-    logger.info("ℹ️ No appointments to complete.");
-    return;
-  }
-
   const batch = db.batch();
-  snapshot.forEach((doc) => {
-    batch.update(doc.ref, { status: "completed" });
-  });
-
+  snapshot.forEach(doc => batch.update(doc.ref, { status: "completed" }));
   await batch.commit();
-  logger.info(`✅ Marked ${snapshot.size} appointments as completed.`);
 });
