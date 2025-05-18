@@ -241,8 +241,9 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                         onTap: () => _showEditDialog(appt),
                       );
                     }).toList(),
+                  ),
           ),
-        ),
+        ],
       ),
     );
   }
