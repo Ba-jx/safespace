@@ -120,12 +120,12 @@ exports.dailySymptomReminder = onSchedule({
   logger.info(`📨 Sent ${sendTasks.length} symptom reminders.`);
 });
 
-// ✅ Tomorrow’s confirmed appointment reminder (with times)
+// ✅ Tomorrow’s confirmed appointment reminder (with times) at 6:00 PM
 exports.appointmentReminderForNextDay = onSchedule({
-  schedule: "0 16 * * *", // 4:00 PM
+  schedule: "0 18 * * *", // 6:00 PM
   timeZone: "Asia/Amman",
 }, async () => {
-  logger.info("📅 Running next-day appointment reminders");
+  logger.info("📅 Running next-day appointment reminders (6 PM)");
 
   const now = new Date();
   const startOfTomorrow = new Date(now);
@@ -146,7 +146,7 @@ exports.appointmentReminderForNextDay = onSchedule({
     .get();
 
   if (snapshot.empty) {
-    logger.info("ℹ️ No appointments for tomorrow.");
+    logger.info("ℹ️ No confirmed appointments for tomorrow.");
     return;
   }
 
@@ -183,7 +183,7 @@ exports.appointmentReminderForNextDay = onSchedule({
         token: fcmToken,
         notification: {
           title: "📅 Tomorrow’s Appointments",
-          body: `You have appointments tomorrow at: ${formattedTimes}`,
+          body: `You have confirmed appointments tomorrow at: ${formattedTimes}`,
         },
       })
     );
