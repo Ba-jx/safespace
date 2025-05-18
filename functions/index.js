@@ -24,8 +24,7 @@ async function createNotification(userId, title, body) {
 
 exports.notifyNewMessage = onDocumentCreated({
   document: "messages/{chatId}/chats/{messageId}",
-  region: "us-central1",
-  platform: "gcfv1"
+  region: "us-central1"
 }, async (event) => {
   const message = event.data.data();
   const chatId = event.params.chatId;
@@ -56,8 +55,7 @@ exports.notifyNewMessage = onDocumentCreated({
 exports.sendUnreadMessageDigest = onSchedule({
   schedule: "0 17 * * *",
   timeZone: "Asia/Amman",
-  region: "us-central1",
-  platform: "gcfv1"
+  region: "us-central1"
 }, async () => {
   const patients = await db.collection("users").where("role", "==", "patient").get();
 
@@ -96,8 +94,7 @@ exports.sendUnreadMessageDigest = onSchedule({
 
 exports.notifyAppointmentChanged = onDocumentUpdated({
   document: "users/{userId}/appointments/{appointmentId}",
-  region: "us-central1",
-  platform: "gcfv1"
+  region: "us-central1"
 }, async (event) => {
   logger.info("✅ notifyAppointmentChanged triggered");
 
