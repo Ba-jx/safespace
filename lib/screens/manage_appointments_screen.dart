@@ -14,8 +14,34 @@ class _ManageAppointmentsScreenState extends State<ManageAppointmentsScreen> {
   String _searchQuery = '';
 
   Future<void> _updateStatus(DocumentSnapshot doc, String newStatus) async {
+    final currentStatus = doc['status'] ?? '';
+    if (currentStatus == newStatus) return; // Prevent duplicate update
+
     await doc.reference.update({'status': newStatus});
-    setState(() {});
+    setState(() {}); // Refresh
+  }
+
+  Widget _buildStatusChip(String status) {
+    Color color;
+    switch (status) {
+      case 'confirmed':
+        color = Colors.green;
+        break;
+      case 'cancelled':
+        color = Colors.red;
+        break;
+      case 'rescheduled':
+        color = Colors.orange;
+        break;
+      default:
+        color = Colors.grey;
+    }
+
+    return Chip(
+      label: Text(status.toUpperCase()),
+      backgroundColor: color.withOpacity(0.2),
+      labelStyle: TextStyle(color: color, fontWeight: FontWeight.bold),
+    );
   }
 
   @override
@@ -52,7 +78,7 @@ class _ManageAppointmentsScreenState extends State<ManageAppointmentsScreen> {
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
-                  return Center(child: Text('Error loading appointments: ${snapshot.error}'));
+                  return Center(child: Text('Error: ${snapshot.error}'));
                 }
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return const Center(child: Text('No appointments found.'));
@@ -65,7 +91,7 @@ class _ManageAppointmentsScreenState extends State<ManageAppointmentsScreen> {
                 }).toList();
 
                 if (appointments.isEmpty) {
-                  return const Center(child: Text('No appointments found.'));
+                  return const Center(child: Text('No matching results.'));
                 }
 
                 return ListView.builder(
@@ -74,13 +100,10 @@ class _ManageAppointmentsScreenState extends State<ManageAppointmentsScreen> {
                     final doc = appointments[index];
                     final data = doc.data() as Map<String, dynamic>;
 
-                    final timestamp = data['dateTime'] ?? data['date'];
-                    DateTime? dateTime;
-                    if (timestamp is Timestamp) {
-                      dateTime = timestamp.toDate();
-                    }
+                    final timestamp = data['dateTime'];
+                    final dateTime = (timestamp is Timestamp) ? timestamp.toDate() : null;
 
-                    final formattedDate = dateTime != null
+                    final formattedDate = (dateTime != null)
                         ? DateFormat('MMM dd, yyyy – hh:mm a').format(dateTime)
                         : 'Unknown Date';
 
@@ -97,14 +120,19 @@ class _ManageAppointmentsScreenState extends State<ManageAppointmentsScreen> {
                           children: [
                             Text('Date: $formattedDate'),
                             if (note.isNotEmpty) Text('Note: $note'),
-                            Text('Status: $status'),
+                            const SizedBox(height: 4),
+                            _buildStatusChip(status),
                           ],
                         ),
                         trailing: PopupMenuButton<String>(
                           onSelected: (value) => _updateStatus(doc, value),
                           itemBuilder: (context) => [
-                            const PopupMenuItem(value: 'confirmed', child: Text('Confirmed')),
-                            const PopupMenuItem(value: 'cancelled', child: Text('Cancelled')),
+                            if (status != 'confirmed')
+                              const PopupMenuItem(
+                                  value: 'confirmed', child: Text('Mark as Confirmed')),
+                            if (status != 'cancelled')
+                              const PopupMenuItem(
+                                  value: 'cancelled', child: Text('Mark as Cancelled')),
                           ],
                           icon: const Icon(Icons.more_vert),
                         ),
