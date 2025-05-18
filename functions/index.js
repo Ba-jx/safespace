@@ -1,5 +1,4 @@
-const { onDocumentUpdated, onDocumentCreated } = require("firebase-functions/v2/firestore");
-const { onRequest } = require("firebase-functions/v2/https");
+const { onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, Timestamp } = require("firebase-admin/firestore");
@@ -7,180 +6,261 @@ const { getMessaging } = require("firebase-admin/messaging");
 const logger = require("firebase-functions/logger");
 const sgMail = require("@sendgrid/mail");
 
-// Initialize Firebase Admin SDK
 initializeApp();
 const db = getFirestore();
 const messaging = getMessaging();
 
-// ✅ HTTP test function
-exports.helloWorld = onRequest({
-  region: "us-central1",
-  platform: "gcfv1",
-}, (req, res) => {
-  logger.info("Hello logs!", { structuredData: true });
-  res.send("Hello from Firebase!");
-});
+// ✅ Reusable: Create Firestore notification
+async function createNotification(userId, title, body) {
+  const notifRef = db
+    .collection("users")
+    .doc(userId)
+    .collection("notifications")
+    .doc();
 
-// ✅ Notify patient about appointment update or cancel
+  await notifRef.set({
+    title,
+    body,
+    timestamp: Timestamp.now(),
+    read: false,
+    digestSent: false,
+  });
+
+  logger.info(`🔔 Notification created for user: ${userId}`);
+}
+
+// ✅ Notify on appointment update or cancel (FCM + Firestore)
 exports.notifyAppointmentChanged = onDocumentUpdated({
   document: "users/{userId}/appointments/{appointmentId}",
   region: "us-central1",
-  platform: "gcfv1",
-  secrets: ["SENDGRID_API_KEY"],
 }, async (event) => {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+  logger.info("✅ notifyAppointmentChanged triggered");
 
   const before = event.data.before.data();
   const after = event.data.after.data();
+  const userId = event.params.userId;
 
-  // Send only if status changed
+  const userDoc = await db.collection("users").doc(userId).get();
+  const fcmToken = userDoc.exists && userDoc.data().fcmToken;
+
+  const formattedDate = after.dateTime.toDate().toLocaleString("en-US", {
+    timeZone: "Asia/Amman",
+    weekday: "long", year: "numeric", month: "long", day: "numeric",
+    hour: "2-digit", minute: "2-digit"
+  });
+
+  let title = "";
+  let body = "";
+
   if (before.status !== after.status) {
-    const userId = event.params.userId;
-    const userDoc = await db.collection("users").doc(userId).get();
-    const user = userDoc.data();
-
-    const msg = {
-      to: user.email,
-      from: after.doctorEmail || "no-reply@safespace.com",
-      subject: "Appointment Status Updated",
-      text: `Your appointment on ${new Date(after.dateTime._seconds * 1000).toLocaleString()} is now "${after.status}".`,
-    };
-
-    await sgMail.send(msg);
-    logger.info("📧 Email sent to", user.email);
-  }
-});
-
-// ✅ Daily symptom reminder at 4 PM
-exports.dailySymptomReminder = onSchedule({
-  schedule: "every day 16:00",
-  timeZone: "Asia/Amman",
-  region: "us-central1",
-  platform: "gcfv1",
-}, async () => {
-  const usersSnapshot = await db.collection("users").get();
-
-  for (const doc of usersSnapshot.docs) {
-    const user = doc.data();
-    if (user.fcmToken) {
-      await messaging.send({
-        token: user.fcmToken,
-        notification: {
-          title: "Daily Check-In Reminder",
-          body: "Please log your symptoms in Safe Space today.",
-        },
-      });
+    if (after.status.toLowerCase() === "cancelled") {
+      title = "Appointment Canceled";
+      body = "Your appointment has been cancelled.";
+    } else {
+      title = "Appointment Status Updated";
+      body = `Your appointment status changed to "${after.status}".`;
     }
+  } else if (
+    before.note !== after.note ||
+    before.dateTime.toMillis() !== after.dateTime.toMillis()
+  ) {
+    title = "Appointment Updated";
+    body = `Your appointment has been updated to ${formattedDate}.`;
   }
 
-  logger.info("✅ Daily reminders sent");
-});
+  if (title && body) {
+    await createNotification(userId, title, body);
 
-// ✅ Reminder 24 hours before confirmed appointment
-exports.appointmentReminderForNextDay = onSchedule({
-  schedule: "every day 16:00",
-  timeZone: "Asia/Amman",
-  region: "us-central1",
-  platform: "gcfv1",
-}, async () => {
-  const tomorrow = Timestamp.fromDate(new Date(Date.now() + 24 * 60 * 60 * 1000));
-  const snapshot = await db.collectionGroup("appointments")
-    .where("status", "==", "confirmed")
-    .get();
-
-  for (const doc of snapshot.docs) {
-    const appointment = doc.data();
-    const time = appointment.dateTime;
-
-    if (
-      Math.abs(time.seconds - tomorrow.seconds) < 3600 * 3 // ±3h window
-    ) {
-      const userRef = doc.ref.parent.parent;
-      const userSnap = await userRef.get();
-      const user = userSnap.data();
-
-      if (user.fcmToken) {
-        await messaging.send({
-          token: user.fcmToken,
-          notification: {
-            title: "Appointment Reminder",
-            body: `You have an appointment tomorrow at ${new Date(time.seconds * 1000).toLocaleTimeString()}.`,
-          },
-        });
+    if (fcmToken) {
+      try {
+        await messaging.send({ token: fcmToken, notification: { title, body } });
+      } catch (error) {
+        logger.error("❌ FCM send error", error);
       }
     }
   }
-
-  logger.info("✅ 24-hour appointment reminders sent");
 });
 
-// ✅ Delete pending appointments older than 48 hours
-exports.deleteStalePendingAppointments = onSchedule({
-  schedule: "every 6 hours",
+// ✅ Daily symptom reminder at 7:00 PM
+exports.dailySymptomReminder = onSchedule({
+  schedule: "0 19 * * *",
   timeZone: "Asia/Amman",
-  region: "us-central1",
-  platform: "gcfv1",
 }, async () => {
-  const threshold = Timestamp.fromDate(new Date(Date.now() - 48 * 3600 * 1000));
-  const snapshot = await db.collectionGroup("appointments")
-    .where("status", "==", "pending")
-    .get();
+  const patients = await db.collection("users").where("role", "==", "patient").get();
 
-  for (const doc of snapshot.docs) {
-    const data = doc.data();
-    if (data.createdAt && data.createdAt.toDate() < threshold.toDate()) {
-      await doc.ref.delete();
-      logger.info(`🗑️ Deleted stale pending appointment: ${doc.id}`);
+  const sendTasks = [];
+
+  for (let i = 0; i < patients.docs.length; i++) {
+    const data = patients.docs[i].data();
+    if (data.fcmToken) {
+      sendTasks.push(
+        messaging.send({
+          token: data.fcmToken,
+          notification: {
+            title: "🩺 Daily Symptom Check-in",
+            body: "Don't forget to track your symptoms today.",
+          },
+        })
+      );
     }
   }
+
+  await Promise.all(sendTasks);
+});
+
+// ✅ Tomorrow’s confirmed appointment reminder at 6:00 PM
+exports.appointmentReminderForNextDay = onSchedule({
+  schedule: "0 18 * * *",
+  timeZone: "Asia/Amman",
+}, async () => {
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(now.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
+
+  const afterTomorrow = new Date(tomorrow);
+  afterTomorrow.setDate(tomorrow.getDate() + 1);
+
+  const lower = Timestamp.fromDate(tomorrow);
+  const upper = Timestamp.fromDate(afterTomorrow);
+
+  const snapshot = await db.collectionGroup("appointments")
+    .where("status", "==", "confirmed")
+    .where("dateTime", ">=", lower)
+    .where("dateTime", "<", upper)
+    .get();
+
+  const byPatient = {};
+
+  for (let i = 0; i < snapshot.docs.length; i++) {
+    const doc = snapshot.docs[i];
+    const userId = doc.ref.path.split("/")[1];
+    const time = doc.data().dateTime.toDate().toLocaleTimeString("en-US", {
+      timeZone: "Asia/Amman",
+      hour: "2-digit", minute: "2-digit"
+    });
+
+    if (!byPatient[userId]) byPatient[userId] = [];
+    byPatient[userId].push(time);
+  }
+
+  for (const userId in byPatient) {
+    const times = byPatient[userId];
+    const userDoc = await db.collection("users").doc(userId).get();
+    const fcmToken = userDoc.exists && userDoc.data().fcmToken;
+    const title = "📅 Tomorrow’s Appointments";
+    const body = `You have confirmed appointments tomorrow at: ${times.join(", ")}`;
+
+    await createNotification(userId, title, body);
+
+    if (fcmToken) {
+      await messaging.send({ token: fcmToken, notification: { title, body } });
+    }
+  }
+});
+
+// ✅ Email digest from doctor (without app link)
+exports.sendUnreadNotificationDigest = onSchedule({
+  schedule: "30 18 * * *",
+  timeZone: "Asia/Amman",
+  secrets: ["SENDGRID_API_KEY"],
+}, async () => {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+  logger.info("📬 Running unread notification digest");
+
+  const usersSnapshot = await db.collection("users")
+    .where("role", "==", "patient")
+    .get();
+
+  for (let i = 0; i < usersSnapshot.docs.length; i++) {
+    const patientDoc = usersSnapshot.docs[i];
+    const patientId = patientDoc.id;
+    const patientData = patientDoc.data();
+
+    if (!patientData.email || !patientData.doctorId) continue;
+
+    const doctorDoc = await db.collection("users").doc(patientData.doctorId).get();
+    if (!doctorDoc.exists || !doctorDoc.data().email) continue;
+    const doctorEmail = doctorDoc.data().email;
+
+    const notifSnapshot = await db
+      .collection("users")
+      .doc(patientId)
+      .collection("notifications")
+      .where("read", "==", false)
+      .where("digestSent", "==", false)
+      .get();
+
+    if (notifSnapshot.size < 3) continue;
+
+    const messages = notifSnapshot.docs.map(doc => {
+      const n = doc.data();
+      const time = n.timestamp?.toDate().toLocaleString("en-US", {
+        timeZone: "Asia/Amman",
+        hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short", year: "numeric",
+      }) || "Unknown Time";
+
+      return `🕒 ${time}\n🔔 ${n.title}\n${n.body}`;
+    }).join("\n\n");
+
+    const emailText = `
+Dear ${patientData.name || "Patient"},
+
+You have ${notifSnapshot.size} unread notifications in your Safe Space app.
+
+Here is a summary:
+
+${messages}
+
+– Safe Space Team
+    `.trim();
+
+    await sgMail.send({
+      to: patientData.email,
+      from: doctorEmail,
+      subject: "📬 You Have Unread Notifications – Safe Space Digest",
+      text: emailText,
+    });
+
+    const batch = db.batch();
+    notifSnapshot.docs.forEach(doc => batch.update(doc.ref, { digestSent: true }));
+    await batch.commit();
+
+    logger.info(`📧 Digest sent to ${patientData.email} from ${doctorEmail}`);
+  }
+});
+
+// ✅ Delete stale pending appointments
+exports.deleteStalePendingAppointments = onSchedule({
+  schedule: "every 30 minutes",
+  timeZone: "Asia/Amman",
+}, async () => {
+  const now = Timestamp.now();
+  const expired = Timestamp.fromMillis(now.toMillis() - 24 * 60 * 60 * 1000);
+
+  const snapshot = await db.collectionGroup("appointments")
+    .where("status", "==", "pending")
+    .where("dateTime", "<", expired)
+    .get();
+
+  const batch = db.batch();
+  snapshot.forEach(doc => batch.delete(doc.ref));
+  await batch.commit();
 });
 
 // ✅ Auto-complete past confirmed appointments
 exports.markPastAppointmentsAsCompleted = onSchedule({
-  schedule: "every 6 hours",
+  schedule: "every 30 minutes",
   timeZone: "Asia/Amman",
-  region: "us-central1",
-  platform: "gcfv1",
 }, async () => {
   const now = Timestamp.now();
+
   const snapshot = await db.collectionGroup("appointments")
     .where("status", "==", "confirmed")
     .where("dateTime", "<", now)
     .get();
 
-  for (const doc of snapshot.docs) {
-    await doc.ref.update({ status: "completed" });
-    logger.info(`✅ Marked appointment as completed: ${doc.id}`);
-  }
-});
-
-// ✅ Digest notification of unread messages daily
-exports.sendUnreadNotificationDigest = onSchedule({
-  schedule: "every day 17:00",
-  timeZone: "Asia/Amman",
-  region: "us-central1",
-  platform: "gcfv1",
-}, async () => {
-  const userDocs = await db.collection("users").get();
-
-  for (const doc of userDocs.docs) {
-    const user = doc.data();
-    const chatsSnapshot = await db
-      .collection(`messages/${doc.id}/chats`)
-      .where("isRead", "==", false)
-      .get();
-
-    const unreadCount = chatsSnapshot.size;
-    if (unreadCount > 0 && user.fcmToken) {
-      await messaging.send({
-        token: user.fcmToken,
-        notification: {
-          title: "Unread Messages",
-          body: `You have ${unreadCount} unread messages. Open Safe Space to check them.`,
-        },
-      });
-    }
-  }
-
-  logger.info("📨 Unread message digests sent");
+  const batch = db.batch();
+  snapshot.forEach(doc => batch.update(doc.ref, { status: "completed" }));
+  await batch.commit();
 });
