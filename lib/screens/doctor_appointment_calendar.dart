@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 class DoctorAppointmentCalendar extends StatefulWidget {
@@ -61,6 +62,21 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
   bool _isDateFullyBooked(DateTime date) {
     final day = DateTime(date.year, date.month, date.day);
     return (_appointmentsByDate[day]?.length ?? 0) >= 8;
+  }
+
+  Future<void> _sendRescheduleNotification(String patientId, String patientName, DateTime newDateTime) async {
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(patientId).get();
+    final fcmToken = userDoc.data()?['fcmToken'];
+
+    if (fcmToken != null) {
+      await FirebaseMessaging.instance.sendMessage(
+        to: fcmToken,
+        data: {
+          'title': 'Appointment Rescheduled',
+          'body': 'Your appointment has been rescheduled to ${newDateTime.toLocal()}.'
+        },
+      );
+    }
   }
 
   void _showEditDialog(Map<String, dynamic> appt) async {
@@ -132,6 +148,8 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                   'dateTime': Timestamp.fromDate(updatedDateTime),
                   'status': 'rescheduled',
                 });
+
+                await _sendRescheduleNotification(appt['patientId'], appt['patientName'], updatedDateTime);
 
                 if (!mounted) return;
                 Navigator.pop(context);
