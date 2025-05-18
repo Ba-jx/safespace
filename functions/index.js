@@ -23,7 +23,7 @@ async function createNotification(userId, title, body) {
   logger.info(`🔔 Notification created for user: ${userId}`);
 }
 
-// ✅ Real-time FCM for new messages (only notify patients if doctor is sender)
+// ✅ Real-time FCM for new messages (doctor → patient only)
 exports.notifyNewMessage = onDocumentCreated({
   document: "messages/{chatId}/chats/{messageId}",
   region: "us-central1",
@@ -40,7 +40,6 @@ exports.notifyNewMessage = onDocumentCreated({
   const sender = senderDoc.data();
   const recipient = recipientDoc.data();
 
-  // Only notify if sender is the assigned doctor of the patient recipient
   if (
     recipient.role === "patient" &&
     recipient.doctorId === message.senderId &&
@@ -56,7 +55,7 @@ exports.notifyNewMessage = onDocumentCreated({
   }
 });
 
-// ✅ Daily FCM digest for unread messages from doctors (for patients only)
+// ✅ Daily unread message digest (patients only)
 exports.sendUnreadMessageDigest = onSchedule({
   schedule: "0 17 * * *",
   timeZone: "Asia/Amman",
@@ -98,7 +97,7 @@ exports.sendUnreadMessageDigest = onSchedule({
   }
 });
 
-// ✅ Notify on appointment update or cancel
+// ✅ Notify patient when appointment is updated or canceled
 exports.notifyAppointmentChanged = onDocumentUpdated({
   document: "users/{userId}/appointments/{appointmentId}",
   region: "us-central1",
@@ -146,6 +145,53 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
       }
     }
   }
+});
+
+// ✅ Notify doctor when patient creates or reschedules appointment
+exports.notifyDoctorOnAppointmentRequestOrReschedule = onDocumentCreated({
+  document: "users/{userId}/appointments/{appointmentId}",
+  region: "us-central1",
+  platform: "gcfv1",
+}, async (event) => {
+  const appointment = event.data.data();
+  const patientId = event.params.userId;
+  const doctorId = appointment.doctorId;
+
+  if (!doctorId) return;
+
+  const doctorDoc = await db.collection("users").doc(doctorId).get();
+  const patientDoc = await db.collection("users").doc(patientId).get();
+  if (!doctorDoc.exists || !patientDoc.exists) return;
+
+  const doctor = doctorDoc.data();
+  const patient = patientDoc.data();
+  const fcmToken = doctor.fcmToken;
+  if (!fcmToken) return;
+
+  let title = "";
+  let body = "";
+
+  if (appointment.status === "pending") {
+    title = "New Appointment Request";
+    body = `Patient ${patient.name} has requested an appointment.`;
+  } else if (appointment.status === "rescheduled") {
+    title = "Appointment Rescheduled";
+    body = `Patient ${patient.name} has rescheduled their appointment.`;
+  } else {
+    return;
+  }
+
+  await messaging.send({
+    token: fcmToken,
+    notification: { title, body },
+    data: {
+      type: "appointment",
+      patientId,
+      appointmentId: event.params.appointmentId,
+    },
+  });
+
+  logger.info(`📨 Doctor ${doctorId} notified about ${appointment.status} from patient ${patientId}`);
 });
 
 // ✅ Daily symptom reminder
