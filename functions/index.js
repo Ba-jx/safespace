@@ -144,16 +144,18 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
   }
 });
 
-exports.notifyDoctorOnAppointmentRequestOrReschedule = onDocumentCreated({
+exports.notifyDoctorOnAppointmentRequestOrReschedule = onDocumentUpdated({
   document: "users/{userId}/appointments/{appointmentId}",
   region: "us-central1",
   platform: "gcfv1"
 }, async (event) => {
-  const appointment = event.data.data();
-  const patientId = event.params.userId;
-  const doctorId = appointment.doctorId;
+  const before = event.data.before.data();
+  const after = event.data.after.data();
 
-  if (!doctorId) return;
+  const patientId = event.params.userId;
+  const doctorId = after.doctorId;
+
+  if (!doctorId || before.status === after.status || after.status !== "rescheduled") return;
 
   const doctorDoc = await db.collection("users").doc(doctorId).get();
   const patientDoc = await db.collection("users").doc(patientId).get();
@@ -161,33 +163,24 @@ exports.notifyDoctorOnAppointmentRequestOrReschedule = onDocumentCreated({
 
   const doctor = doctorDoc.data();
   const patient = patientDoc.data();
-  const fcmToken = doctor.fcmToken;
-  if (!fcmToken) return;
 
-  let title = "";
-  let body = "";
+  if (!doctor.fcmToken) return;
 
-  if (appointment.status === "pending") {
-    title = "New Appointment Request";
-    body = `Patient ${patient.name} has requested an appointment.`;
-  } else if (appointment.status === "rescheduled") {
-    title = "Appointment Rescheduled";
-    body = `Patient ${patient.name} has rescheduled their appointment.`;
-  } else {
-    return;
-  }
+  const title = "Appointment Rescheduled";
+  const body = `Patient ${patient.name} has rescheduled their appointment.`;
 
   await messaging.send({
-    token: fcmToken,
+    token: doctor.fcmToken,
     notification: { title, body },
     data: {
       type: "appointment",
       patientId,
       appointmentId: event.params.appointmentId,
-    },
+      status: after.status
+    }
   });
 
-  logger.info(`📨 Doctor ${doctorId} notified about ${appointment.status} from patient ${patientId}`);
+  logger.info(`📨 Doctor ${doctorId} notified about rescheduled appointment from patient ${patientId}`);
 });
 
 exports.dailySymptomReminder = onSchedule({
