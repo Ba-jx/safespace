@@ -6,12 +6,30 @@ const { getMessaging } = require("firebase-admin/messaging");
 const logger = require("firebase-functions/logger");
 const sgMail = require("@sendgrid/mail");
 
-// Initialize Firebase Admin
 initializeApp();
 const db = getFirestore();
 const messaging = getMessaging();
 
-// ✅ Notify on appointment update or cancel (FCM only)
+// ✅ Reusable: Create Firestore notification
+async function createNotification(userId, title, body) {
+  const notifRef = db
+    .collection("users")
+    .doc(userId)
+    .collection("notifications")
+    .doc();
+
+  await notifRef.set({
+    title,
+    body,
+    timestamp: Timestamp.now(),
+    read: false,
+    digestSent: false,
+  });
+
+  logger.info(`🔔 Notification created for user: ${userId}`);
+}
+
+// ✅ Notify on appointment update or cancel (FCM + Firestore)
 exports.notifyAppointmentChanged = onDocumentUpdated({
   document: "users/{userId}/appointments/{appointmentId}",
   region: "us-central1",
@@ -51,15 +69,21 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
     body = `Your appointment has been updated to ${formattedDate}.`;
   }
 
-  if (title && body && fcmToken) {
-    try {
-      await messaging.send({
-        token: fcmToken,
-        notification: { title, body },
-      });
-      logger.info("✅ FCM notification sent");
-    } catch (error) {
-      logger.error("❌ FCM send error", error);
+  if (title && body) {
+    // 🔔 Save notification in Firestore
+    await createNotification(userId, title, body);
+
+    // 📲 Send FCM if available
+    if (fcmToken) {
+      try {
+        await messaging.send({
+          token: fcmToken,
+          notification: { title, body },
+        });
+        logger.info("✅ FCM notification sent");
+      } catch (error) {
+        logger.error("❌ FCM send error", error);
+      }
     }
   }
 });
@@ -96,12 +120,12 @@ exports.dailySymptomReminder = onSchedule({
   logger.info(`📨 Sent ${sendTasks.length} symptom reminders.`);
 });
 
-// ✅ Tomorrow’s confirmed appointment reminder (with times) at 6:00 PM
+// ✅ Tomorrow’s confirmed appointment reminder (FCM) at 6:00 PM
 exports.appointmentReminderForNextDay = onSchedule({
   schedule: "0 18 * * *",
   timeZone: "Asia/Amman",
 }, async () => {
-  logger.info("📅 Running next-day appointment reminders (6 PM)");
+  logger.info("📅 Running next-day appointment reminders");
 
   const now = new Date();
   const startOfTomorrow = new Date(now);
@@ -147,105 +171,37 @@ exports.appointmentReminderForNextDay = onSchedule({
   for (const [userId, times] of appointmentsByPatient.entries()) {
     const userDoc = await db.collection("users").doc(userId).get();
     const fcmToken = userDoc.exists && userDoc.data().fcmToken;
-    const name = userDoc.exists ? userDoc.data().name || "Patient" : "Patient";
-
-    if (!fcmToken) continue;
 
     const formattedTimes = times.join(", ");
-    logger.info(`🔔 Notifying ${name}: ${formattedTimes}`);
+    const title = "📅 Tomorrow’s Appointments";
+    const body = `You have confirmed appointments tomorrow at: ${formattedTimes}`;
 
-    sendPromises.push(
-      messaging.send({
-        token: fcmToken,
-        notification: {
-          title: "📅 Tomorrow’s Appointments",
-          body: `You have confirmed appointments tomorrow at: ${formattedTimes}`,
-        },
-      })
-    );
+    // 🔔 Create Firestore notification
+    await createNotification(userId, title, body);
+
+    // 📲 FCM
+    if (fcmToken) {
+      sendPromises.push(
+        messaging.send({
+          token: fcmToken,
+          notification: { title, body },
+        })
+      );
+    }
   }
 
   await Promise.all(sendPromises);
-  logger.info(`✅ Sent ${sendPromises.length} next-day appointment reminders.`);
+  logger.info(`✅ Sent ${sendPromises.length} next-day reminders.`);
 });
 
-// ✅ Delete stale pending appointments (older than 24h)
-exports.deleteStalePendingAppointments = onSchedule({
-  schedule: "every 30 minutes",
-  timeZone: "Asia/Amman",
-}, async () => {
-  logger.info("🧹 Checking for stale pending appointments...");
-
-  const now = Timestamp.now();
-  const twentyFourHoursAgo = Timestamp.fromMillis(now.toMillis() - 24 * 60 * 60 * 1000);
-
-  try {
-    const snapshot = await db
-      .collectionGroup("appointments")
-      .where("status", "==", "pending")
-      .where("dateTime", "<", twentyFourHoursAgo)
-      .get();
-
-    if (snapshot.empty) {
-      logger.info("ℹ️ No stale pending appointments found.");
-      return;
-    }
-
-    const batch = db.batch();
-    snapshot.forEach((doc) => {
-      batch.delete(doc.ref);
-      logger.info(`🗑️ Deleted pending appointment: ${doc.id}`);
-    });
-
-    await batch.commit();
-    logger.info(`✅ Deleted ${snapshot.size} stale pending appointments.`);
-  } catch (error) {
-    logger.error("❌ Error deleting stale pending appointments:", error);
-  }
-});
-
-// ✅ Automatically mark past confirmed appointments as completed
-exports.markPastAppointmentsAsCompleted = onSchedule({
-  schedule: "every 30 minutes",
-  timeZone: "Asia/Amman",
-}, async () => {
-  logger.info("🔁 Running appointment completion check...");
-
-  const now = Timestamp.now();
-
-  try {
-    const snapshot = await db
-      .collectionGroup("appointments")
-      .where("status", "==", "confirmed")
-      .where("dateTime", "<", now)
-      .get();
-
-    if (snapshot.empty) {
-      logger.info("ℹ️ No appointments to mark as completed.");
-      return;
-    }
-
-    const batch = db.batch();
-    snapshot.forEach((doc) => {
-      batch.update(doc.ref, { status: "completed" });
-      logger.info(`✅ Marked appointment as completed: ${doc.id}`);
-    });
-
-    await batch.commit();
-    logger.info(`✅ Completed ${snapshot.size} appointments.`);
-  } catch (error) {
-    logger.error("❌ Error marking appointments as completed:", error);
-  }
-});
-
-// ✅ Send email digest if unread notification count ≥ 3
+// ✅ Email digest for unread notifications ≥ 3
 exports.sendUnreadNotificationDigest = onSchedule({
-  schedule: "30 18 * * *", // 6:30 PM
+  schedule: "30 18 * * *",
   timeZone: "Asia/Amman",
   secrets: ["SENDGRID_API_KEY"],
 }, async () => {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-  logger.info("📨 Running unread notification digest");
+  logger.info("📬 Running unread notification digest");
 
   const usersSnapshot = await db.collection("users")
     .where("role", "==", "patient")
@@ -257,17 +213,16 @@ exports.sendUnreadNotificationDigest = onSchedule({
     const userId = userDoc.id;
     const userData = userDoc.data();
 
-    const notificationsSnapshot = await db
-      .collection("users")
-      .doc(userId)
+    const notifSnapshot = await db
+      .collection("users").doc(userId)
       .collection("notifications")
       .where("read", "==", false)
       .where("digestSent", "==", false)
       .get();
 
-    if (notificationsSnapshot.empty || notificationsSnapshot.size < 3) continue;
+    if (notifSnapshot.size < 3) continue;
 
-    const messages = notificationsSnapshot.docs.map((doc) => {
+    const messages = notifSnapshot.docs.map((doc) => {
       const n = doc.data();
       const time = n.timestamp?.toDate().toLocaleString("en-US", {
         timeZone: "Asia/Amman",
@@ -284,7 +239,7 @@ exports.sendUnreadNotificationDigest = onSchedule({
     const emailContent = `
 Dear ${userData.name || "Patient"},
 
-You have ${notificationsSnapshot.size} unread notifications in your Safe Space app.
+You have ${notifSnapshot.size} unread notifications in your Safe Space app.
 
 Here is a summary of your recent notifications:
 
@@ -307,16 +262,74 @@ Please log into the app to read or respond.
 
       sendTasks.push(sendTask);
 
+      // ✅ Mark all included as sent
       const batch = db.batch();
-      notificationsSnapshot.docs.forEach((doc) => {
+      notifSnapshot.docs.forEach((doc) => {
         batch.update(doc.ref, { digestSent: true });
       });
       await batch.commit();
 
-      logger.info(`📧 Digest sent and marked for ${userData.email}`);
+      logger.info(`📧 Digest sent to ${userData.email}`);
     }
   }
 
   await Promise.all(sendTasks);
   logger.info(`✅ Digest emails processed: ${sendTasks.length}`);
+});
+
+// ✅ Delete stale pending appointments (older than 24h)
+exports.deleteStalePendingAppointments = onSchedule({
+  schedule: "every 30 minutes",
+  timeZone: "Asia/Amman",
+}, async () => {
+  logger.info("🧹 Checking for stale pending appointments...");
+
+  const now = Timestamp.now();
+  const expired = Timestamp.fromMillis(now.toMillis() - 24 * 60 * 60 * 1000);
+
+  const snapshot = await db
+    .collectionGroup("appointments")
+    .where("status", "==", "pending")
+    .where("dateTime", "<", expired)
+    .get();
+
+  if (snapshot.empty) {
+    logger.info("ℹ️ No stale appointments.");
+    return;
+  }
+
+  const batch = db.batch();
+  snapshot.forEach((doc) => batch.delete(doc.ref));
+  await batch.commit();
+
+  logger.info(`✅ Deleted ${snapshot.size} stale pending appointments.`);
+});
+
+// ✅ Auto-complete confirmed appointments in the past
+exports.markPastAppointmentsAsCompleted = onSchedule({
+  schedule: "every 30 minutes",
+  timeZone: "Asia/Amman",
+}, async () => {
+  logger.info("🔁 Running appointment completion check...");
+
+  const now = Timestamp.now();
+
+  const snapshot = await db
+    .collectionGroup("appointments")
+    .where("status", "==", "confirmed")
+    .where("dateTime", "<", now)
+    .get();
+
+  if (snapshot.empty) {
+    logger.info("ℹ️ No appointments to complete.");
+    return;
+  }
+
+  const batch = db.batch();
+  snapshot.forEach((doc) => {
+    batch.update(doc.ref, { status: "completed" });
+  });
+
+  await batch.commit();
+  logger.info(`✅ Marked ${snapshot.size} appointments as completed.`);
 });
