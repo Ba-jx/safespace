@@ -5,20 +5,17 @@ const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, Timestamp } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
 const logger = require("firebase-functions/logger");
-const sgMail = require("@sendgrid/mail");
 
 // Initialize Firebase Admin
 initializeApp();
 const db = getFirestore();
 const messaging = getMessaging();
 
-// ✅ Notify on appointment update or cancel
+// ✅ Notify on appointment update or cancel (FCM only)
 exports.notifyAppointmentChanged = onDocumentUpdated({
   document: "users/{userId}/appointments/{appointmentId}",
   region: "us-central1",
-  secrets: ["SENDGRID_API_KEY"],
 }, async (event) => {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
   logger.info("✅ notifyAppointmentChanged triggered");
 
   const before = event.data.before.data();
@@ -27,7 +24,6 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
 
   const userDoc = await db.collection("users").doc(userId).get();
   const fcmToken = userDoc.exists && userDoc.data().fcmToken;
-  const email = userDoc.exists ? userDoc.data().email : null;
   const name = userDoc.exists ? userDoc.data().name || "Patient" : "Patient";
 
   const formattedDate = after.dateTime.toDate().toLocaleString("en-US", {
@@ -38,20 +34,14 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
 
   let title = "";
   let body = "";
-  let emailSubject = "";
-  let emailBody = "";
 
   if (before.status !== after.status) {
     if (after.status.toLowerCase() === "cancelled") {
       title = "Appointment Canceled";
       body = "Your appointment has been cancelled.";
-      emailSubject = "Your Appointment Has Been Cancelled";
-      emailBody = `Dear ${name},\n\nYour appointment on ${formattedDate} has been cancelled.\n\nSafe Space Team`;
     } else {
       title = "Appointment Status Updated";
       body = `Your appointment status changed to "${after.status}".`;
-      emailSubject = "Appointment Status Changed";
-      emailBody = `Dear ${name},\n\nYour appointment status has been updated to "${after.status}".\n📅 ${formattedDate}\n\nThank you,\nSafe Space Team`;
     }
   } else if (
     before.note !== after.note ||
@@ -70,20 +60,6 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
       logger.info("✅ FCM notification sent");
     } catch (error) {
       logger.error("❌ FCM send error", error);
-    }
-  }
-
-  if (email && emailSubject && emailBody) {
-    try {
-      await sgMail.send({
-        to: email,
-        from: "bayanismail302@gmail.com",
-        subject: emailSubject,
-        text: emailBody,
-      });
-      logger.info(`📧 Email sent to ${email}`);
-    } catch (error) {
-      logger.error("❌ Email send error", error);
     }
   }
 });
