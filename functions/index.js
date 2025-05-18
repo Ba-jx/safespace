@@ -25,7 +25,7 @@ async function createNotification(userId, title, body) {
 exports.notifyNewMessage = onDocumentCreated({
   document: "messages/{chatId}/chats/{messageId}",
   region: "us-central1",
-  
+  platform: "gcfv1"
 }, async (event) => {
   const message = event.data.data();
   const chatId = event.params.chatId;
@@ -57,7 +57,7 @@ exports.sendUnreadMessageDigest = onSchedule({
   schedule: "0 17 * * *",
   timeZone: "Asia/Amman",
   region: "us-central1",
-  
+  platform: "gcfv1"
 }, async () => {
   const patients = await db.collection("users").where("role", "==", "patient").get();
 
@@ -97,7 +97,7 @@ exports.sendUnreadMessageDigest = onSchedule({
 exports.notifyAppointmentChanged = onDocumentUpdated({
   document: "users/{userId}/appointments/{appointmentId}",
   region: "us-central1",
-  
+  platform: "gcfv1"
 }, async (event) => {
   logger.info("✅ notifyAppointmentChanged triggered");
 
@@ -147,7 +147,7 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
 exports.notifyDoctorOnAppointmentRequestOrReschedule = onDocumentUpdated({
   document: "users/{userId}/appointments/{appointmentId}",
   region: "us-central1",
-  
+  platform: "gcfv1"
 }, async (event) => {
   const before = event.data.before.data();
   const after = event.data.after.data();
@@ -186,7 +186,7 @@ exports.notifyDoctorOnAppointmentRequestOrReschedule = onDocumentUpdated({
 exports.dailySymptomReminder = onSchedule({
   schedule: "0 19 * * *",
   timeZone: "Asia/Amman",
-  
+  platform: "gcfv1"
 }, async () => {
   const patients = await db.collection("users").where("role", "==", "patient").get();
   const sendTasks = [];
@@ -212,7 +212,7 @@ exports.dailySymptomReminder = onSchedule({
 exports.appointmentReminderForNextDay = onSchedule({
   schedule: "0 18 * * *",
   timeZone: "Asia/Amman",
-  
+  platform: "gcfv1"
 }, async () => {
   const now = new Date();
   const tomorrow = new Date(now);
@@ -261,7 +261,7 @@ exports.appointmentReminderForNextDay = onSchedule({
 exports.deleteStalePendingAppointments = onSchedule({
   schedule: "every 30 minutes",
   timeZone: "Asia/Amman",
-  
+  platform: "gcfv1"
 }, async () => {
   const now = Timestamp.now();
   const expired = Timestamp.fromMillis(now.toMillis() - 24 * 60 * 60 * 1000);
@@ -279,7 +279,7 @@ exports.deleteStalePendingAppointments = onSchedule({
 exports.markPastAppointmentsAsCompleted = onSchedule({
   schedule: "every 30 minutes",
   timeZone: "Asia/Amman",
-  
+  platform: "gcfv1"
 }, async () => {
   const now = Timestamp.now();
   const snapshot = await db.collectionGroup("appointments")
