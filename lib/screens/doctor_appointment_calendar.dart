@@ -65,81 +65,82 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
 
   void _showEditDialog(Map<String, dynamic> appt) async {
     final noteController = TextEditingController(text: appt['note'] ?? '');
-    final status = appt['status'] ?? 'confirmed';
     final dateTime = (appt['dateTime'] as Timestamp).toDate();
     TimeOfDay selectedTime = TimeOfDay.fromDateTime(dateTime);
     DateTime selectedDate = dateTime;
 
     await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Appointment'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: noteController,
-              decoration: const InputDecoration(labelText: 'Note'),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => AlertDialog(
+          title: const Text('Edit Appointment'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: noteController,
+                decoration: const InputDecoration(labelText: 'Note'),
+              ),
+              const SizedBox(height: 12),
+              ListTile(
+                title: const Text('Date'),
+                subtitle: Text('${selectedDate.toLocal()}'.split(' ')[0]),
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: selectedDate,
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                  );
+                  if (picked != null) {
+                    setModalState(() => selectedDate = picked);
+                  }
+                },
+              ),
+              ListTile(
+                title: const Text('Time'),
+                subtitle: Text(selectedTime.format(context)),
+                onTap: () async {
+                  final picked = await showTimePicker(
+                    context: context,
+                    initialTime: selectedTime,
+                  );
+                  if (picked != null) {
+                    setModalState(() => selectedTime = picked);
+                  }
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
             ),
-            const SizedBox(height: 12),
-            ListTile(
-              title: const Text('Date'),
-              subtitle: Text('${selectedDate.toLocal()}'.split(' ')[0]),
-              onTap: () async {
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: selectedDate,
-                  firstDate: DateTime.now(),
-                  lastDate: DateTime.now().add(const Duration(days: 365)),
+            ElevatedButton(
+              onPressed: () async {
+                final updatedDateTime = DateTime(
+                  selectedDate.year,
+                  selectedDate.month,
+                  selectedDate.day,
+                  selectedTime.hour,
+                  selectedTime.minute,
                 );
-                if (picked != null) {
-                  selectedDate = picked;
-                }
+
+                await (appt['ref'] as DocumentReference).update({
+                  'note': noteController.text.trim(),
+                  'dateTime': Timestamp.fromDate(updatedDateTime),
+                  'status': 'rescheduled',
+                });
+
+                if (!mounted) return;
+                Navigator.pop(context);
+                await _fetchAppointments();
               },
-            ),
-            ListTile(
-              title: const Text('Time'),
-              subtitle: Text(selectedTime.format(context)),
-              onTap: () async {
-                final picked = await showTimePicker(
-                  context: context,
-                  initialTime: selectedTime,
-                );
-                if (picked != null) {
-                  selectedTime = picked;
-                }
-              },
+              child: const Text('Save'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final updatedDateTime = DateTime(
-                selectedDate.year,
-                selectedDate.month,
-                selectedDate.day,
-                selectedTime.hour,
-                selectedTime.minute,
-              );
-
-              await (appt['ref'] as DocumentReference).update({
-                'note': noteController.text.trim(),
-                'dateTime': Timestamp.fromDate(updatedDateTime),
-                'status': 'rescheduled',
-              });
-
-              if (!mounted) return;
-              Navigator.pop(context);
-              await _fetchAppointments();
-            },
-            child: const Text('Save'),
-          ),
-        ],
       ),
     );
   }
@@ -171,7 +172,7 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
             headerStyle: const HeaderStyle(formatButtonVisible: false),
             calendarBuilders: CalendarBuilders(
               markerBuilder: (context, date, events) {
-                final statuses = events.map((e) => e?['status'] ?? '').where((s) => s.isNotEmpty).toSet();
+                final statuses = events.map((e) => (e as Map<String, dynamic>)['status'] ?? '').where((s) => s.isNotEmpty).toSet();
                 return Positioned(
                   bottom: 1,
                   child: Row(
@@ -240,9 +241,8 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                         onTap: () => _showEditDialog(appt),
                       );
                     }).toList(),
-                  ),
           ),
-        ],
+        ),
       ),
     );
   }
