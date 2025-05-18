@@ -145,7 +145,10 @@ class _PatientAppointmentCalendarState extends State<PatientAppointmentCalendar>
                     .doc(patientId)
                     .collection('appointments')
                     .doc(docId)
-                    .update({'dateTime': Timestamp.fromDate(newDateTime)});
+                    .update({
+                      'dateTime': Timestamp.fromDate(newDateTime),
+                      'status': 'rescheduled',
+                    });
 
                 if (!mounted) return;
                 Navigator.pop(context);
@@ -274,19 +277,24 @@ class _PatientAppointmentCalendarState extends State<PatientAppointmentCalendar>
                         ),
                         subtitle: Text('Status: $status'),
                         leading: const Icon(Icons.calendar_today),
-                        trailing: PopupMenuButton<String>(
-                          onSelected: (value) {
-                            if (value == 'edit') {
-                              _showEditDialog(appt);
-                            } else if (value == 'delete') {
-                              _deleteAppointment(docId);
-                            }
-                          },
-                          itemBuilder: (context) => [
-                            const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                            const PopupMenuItem(value: 'delete', child: Text('Delete')),
-                          ],
-                        ),
+                        trailing: (status == 'confirmed' || status == 'cancelled')
+                            ? const Tooltip(
+                                message: 'Cannot edit confirmed or cancelled appointments',
+                                child: Icon(Icons.lock, color: Colors.grey),
+                              )
+                            : PopupMenuButton<String>(
+                                onSelected: (value) {
+                                  if (value == 'edit') {
+                                    _showEditDialog(appt);
+                                  } else if (value == 'delete') {
+                                    _deleteAppointment(docId);
+                                  }
+                                },
+                                itemBuilder: (context) => [
+                                  const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                                  const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                                ],
+                              ),
                       );
                     }).toList(),
                   ),
