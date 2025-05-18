@@ -10,7 +10,6 @@ initializeApp();
 const db = getFirestore();
 const messaging = getMessaging();
 
-// ✅ Reusable: Create Firestore notification
 async function createNotification(userId, title, body) {
   const notifRef = db.collection("users").doc(userId).collection("notifications").doc();
   await notifRef.set({
@@ -23,11 +22,9 @@ async function createNotification(userId, title, body) {
   logger.info(`🔔 Notification created for user: ${userId}`);
 }
 
-// ✅ Real-time FCM for new messages (doctor → patient only)
 exports.notifyNewMessage = onDocumentCreated({
   document: "messages/{chatId}/chats/{messageId}",
-  region: "us-central1",
-  platform: "gcfv1",
+  region: "us-central1"
 }, async (event) => {
   const message = event.data.data();
   const chatId = event.params.chatId;
@@ -55,12 +52,10 @@ exports.notifyNewMessage = onDocumentCreated({
   }
 });
 
-// ✅ Daily unread message digest (patients only)
 exports.sendUnreadMessageDigest = onSchedule({
   schedule: "0 17 * * *",
   timeZone: "Asia/Amman",
-  region: "us-central1",
-  platform: "gcfv1",
+  region: "us-central1"
 }, async () => {
   const patients = await db.collection("users").where("role", "==", "patient").get();
 
@@ -97,10 +92,9 @@ exports.sendUnreadMessageDigest = onSchedule({
   }
 });
 
-// ✅ Notify patient when appointment is updated or canceled
 exports.notifyAppointmentChanged = onDocumentUpdated({
   document: "users/{userId}/appointments/{appointmentId}",
-  region: "us-central1",
+  region: "us-central1"
 }, async (event) => {
   logger.info("✅ notifyAppointmentChanged triggered");
 
@@ -125,7 +119,7 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
       body = "Your appointment has been cancelled.";
     } else {
       title = "Appointment Status Updated";
-      body = `Your appointment status changed to "${after.status}".`;
+      body = `Your appointment status changed to \"${after.status}\".`;
     }
   } else if (
     before.note !== after.note ||
@@ -147,11 +141,9 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
   }
 });
 
-// ✅ Notify doctor when patient creates or reschedules appointment
 exports.notifyDoctorOnAppointmentRequestOrReschedule = onDocumentCreated({
   document: "users/{userId}/appointments/{appointmentId}",
-  region: "us-central1",
-  platform: "gcfv1",
+  region: "us-central1"
 }, async (event) => {
   const appointment = event.data.data();
   const patientId = event.params.userId;
@@ -194,10 +186,9 @@ exports.notifyDoctorOnAppointmentRequestOrReschedule = onDocumentCreated({
   logger.info(`📨 Doctor ${doctorId} notified about ${appointment.status} from patient ${patientId}`);
 });
 
-// ✅ Daily symptom reminder
 exports.dailySymptomReminder = onSchedule({
   schedule: "0 19 * * *",
-  timeZone: "Asia/Amman",
+  timeZone: "Asia/Amman"
 }, async () => {
   const patients = await db.collection("users").where("role", "==", "patient").get();
   const sendTasks = [];
@@ -220,10 +211,9 @@ exports.dailySymptomReminder = onSchedule({
   await Promise.all(sendTasks);
 });
 
-// ✅ Tomorrow’s confirmed appointment reminder
 exports.appointmentReminderForNextDay = onSchedule({
   schedule: "0 18 * * *",
-  timeZone: "Asia/Amman",
+  timeZone: "Asia/Amman"
 }, async () => {
   const now = new Date();
   const tomorrow = new Date(now);
@@ -269,10 +259,9 @@ exports.appointmentReminderForNextDay = onSchedule({
   }
 });
 
-// ✅ Delete stale pending appointments
 exports.deleteStalePendingAppointments = onSchedule({
   schedule: "every 30 minutes",
-  timeZone: "Asia/Amman",
+  timeZone: "Asia/Amman"
 }, async () => {
   const now = Timestamp.now();
   const expired = Timestamp.fromMillis(now.toMillis() - 24 * 60 * 60 * 1000);
@@ -287,10 +276,9 @@ exports.deleteStalePendingAppointments = onSchedule({
   await batch.commit();
 });
 
-// ✅ Auto-complete past confirmed appointments
 exports.markPastAppointmentsAsCompleted = onSchedule({
   schedule: "every 30 minutes",
-  timeZone: "Asia/Amman",
+  timeZone: "Asia/Amman"
 }, async () => {
   const now = Timestamp.now();
   const snapshot = await db.collectionGroup("appointments")
