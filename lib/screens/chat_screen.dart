@@ -4,9 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class ChatScreen extends StatefulWidget {
+  final String patientId;
+  final String doctorId;
+  final String peerName;
   final bool isPatient;
 
-  const ChatScreen({super.key, required this.isPatient});
+  const ChatScreen({
+    super.key,
+    required this.patientId,
+    required this.doctorId,
+    required this.peerName,
+    required this.isPatient,
+  });
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -15,30 +24,36 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final currentUserId = FirebaseAuth.instance.currentUser!.uid;
+  late final String currentUserId;
+  late final String chatId;
 
-  String? selectedPeerId;
-  String? selectedPeerName;
-  String get chatId => _getChatId(currentUserId, selectedPeerId!);
+  @override
+  void initState() {
+    super.initState();
+    currentUserId = FirebaseAuth.instance.currentUser!.uid;
+    chatId = _getChatId(widget.patientId, widget.doctorId);
+  }
 
   String _getChatId(String user1, String user2) =>
-      user1.hashCode <= user2.hashCode ? '$user1$user2' : '$user2$user1';
+      user1.hashCode <= user2.hashCode ? '${user1}_$user2' : '${user2}_$user1';
 
   Future<void> _sendMessage() async {
     final text = _controller.text.trim();
-    if (text.isEmpty || selectedPeerId == null) return;
+    if (text.isEmpty) return;
+
+    final message = {
+      'senderId': currentUserId,
+      'receiverId': widget.isPatient ? widget.doctorId : widget.patientId,
+      'message': text,
+      'timestamp': FieldValue.serverTimestamp(),
+      'isRead': false,
+    };
 
     await FirebaseFirestore.instance
         .collection('messages')
         .doc(chatId)
         .collection('chats')
-        .add({
-      'senderId': currentUserId,
-      'receiverId': selectedPeerId,
-      'message': text,
-      'timestamp': FieldValue.serverTimestamp(),
-      'isRead': false,
-    });
+        .add(message);
 
     _controller.clear();
     _scrollToBottom();
@@ -120,185 +135,105 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildChatList() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('users')
-          .where('role', isEqualTo: widget.isPatient ? 'doctor' : 'patient')
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) return const CircularProgressIndicator();
-
-        final users = snapshot.data!.docs;
-
-        return ListView.builder(
-          shrinkWrap: true,
-          itemCount: users.length,
-          itemBuilder: (context, index) {
-            final peer = users[index];
-            final peerId = peer.id;
-            final peerName = peer['name'] ?? 'No Name';
-            final id = _getChatId(currentUserId, peerId);
-
-            return StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('messages')
-                  .doc(id)
-                  .collection('chats')
-                  .where('receiverId', isEqualTo: currentUserId)
-                  .where('isRead', isEqualTo: false)
-                  .snapshots(),
-              builder: (context, unreadSnapshot) {
-                final unreadCount = unreadSnapshot.data?.docs.length ?? 0;
-
-                return ListTile(
-                  onTap: () {
-                    setState(() {
-                      selectedPeerId = peerId;
-                      selectedPeerName = peerName;
-                    });
-                  },
-                  leading: CircleAvatar(child: Text(peerName[0])),
-                  title: Text(peerName),
-                  trailing: unreadCount > 0
-                      ? Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            unreadCount.toString(),
-                            style: const TextStyle(
-                                color: Colors.white, fontSize: 12),
-                          ),
-                        )
-                      : null,
-                );
-              },
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildChatMessages() {
-    return Column(
-      children: [
-        Expanded(
-          child: StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('messages')
-                .doc(chatId)
-                .collection('chats')
-                .orderBy('timestamp')
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              final messages = snapshot.data!.docs;
-              _scrollToBottom();
-
-              DateTime? lastDate;
-
-              return ListView.builder(
-                controller: _scrollController,
-                itemCount: messages.length,
-                itemBuilder: (context, index) {
-                  final doc = messages[index];
-                  final msg = doc.data() as Map<String, dynamic>;
-                  final isMe = msg['senderId'] == currentUserId;
-
-                  final timestamp =
-                      (msg['timestamp'] as Timestamp?)?.toDate();
-                  final showDateDivider = timestamp != null &&
-                      (lastDate == null ||
-                          timestamp.day != lastDate!.day ||
-                          timestamp.month != lastDate!.month ||
-                          timestamp.year != lastDate!.year);
-                  if (timestamp != null) lastDate = timestamp;
-
-                  _markMessageAsRead(doc);
-
-                  return Column(
-                    children: [
-                      if (showDateDivider)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8.0),
-                          child: Text(
-                            DateFormat.yMMMMd().format(timestamp),
-                            style: const TextStyle(color: Colors.grey),
-                          ),
-                        ),
-                      _buildMessageBubble(msg, isMe),
-                    ],
-                  );
-                },
-              );
-            },
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Row(
-            children: [
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: Colors.grey[300]!),
-                  ),
-                  child: TextField(
-                    controller: _controller,
-                    decoration: const InputDecoration(
-                      hintText: 'Type your message...',
-                      border: InputBorder.none,
-                    ),
-                    onSubmitted: (_) => _sendMessage(),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              CircleAvatar(
-                backgroundColor: Colors.deepPurple,
-                child: IconButton(
-                  onPressed: _sendMessage,
-                  icon: const Icon(Icons.send, color: Colors.white),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(selectedPeerName == null ? "Chats" : selectedPeerName!),
-        leading: selectedPeerId != null
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () {
-                  setState(() {
-                    selectedPeerId = null;
-                    selectedPeerName = null;
-                  });
-                },
-              )
-            : null,
+      appBar: AppBar(title: Text(widget.peerName)),
+      body: Column(
+        children: [
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('messages')
+                  .doc(chatId)
+                  .collection('chats')
+                  .orderBy('timestamp')
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return const Center(child: Text('Error loading messages'));
+                }
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final messages = snapshot.data!.docs;
+                _scrollToBottom();
+
+                DateTime? lastDate;
+
+                return ListView.builder(
+                  controller: _scrollController,
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    final doc = messages[index];
+                    final msg = doc.data() as Map<String, dynamic>;
+                    final isMe = msg['senderId'] == currentUserId;
+
+                    final timestamp =
+                        (msg['timestamp'] as Timestamp?)?.toDate();
+                    final showDateDivider = timestamp != null &&
+                        (lastDate == null ||
+                            timestamp.day != lastDate!.day ||
+                            timestamp.month != lastDate!.month ||
+                            timestamp.year != lastDate!.year);
+                    if (timestamp != null) lastDate = timestamp;
+
+                    _markMessageAsRead(doc);
+
+                    return Column(
+                      children: [
+                        if (showDateDivider)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: Text(
+                              DateFormat.yMMMMd().format(timestamp),
+                              style: const TextStyle(color: Colors.grey),
+                            ),
+                          ),
+                        _buildMessageBubble(msg, isMe),
+                      ],
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: TextField(
+                      controller: _controller,
+                      decoration: const InputDecoration(
+                        hintText: 'Type your message...',
+                        border: InputBorder.none,
+                      ),
+                      onSubmitted: (_) => _sendMessage(),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                CircleAvatar(
+                  backgroundColor: Colors.deepPurple,
+                  child: IconButton(
+                    onPressed: _sendMessage,
+                    icon: const Icon(Icons.send, color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
-      body: selectedPeerId == null
-          ? _buildChatList()
-          : _buildChatMessages(),
     );
   }
 }
