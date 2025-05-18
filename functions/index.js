@@ -1,10 +1,10 @@
 const { onDocumentUpdated } = require("firebase-functions/v2/firestore");
-const { onRequest } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, Timestamp } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
 const logger = require("firebase-functions/logger");
+const sgMail = require("@sendgrid/mail");
 
 // Initialize Firebase Admin
 initializeApp();
@@ -66,7 +66,7 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
 
 // ✅ Daily symptom reminder at 7:00 PM
 exports.dailySymptomReminder = onSchedule({
-  schedule: "0 19 * * *", // 7:00 PM
+  schedule: "0 19 * * *",
   timeZone: "Asia/Amman",
 }, async () => {
   logger.info("⏰ Running daily symptom reminder");
@@ -98,7 +98,7 @@ exports.dailySymptomReminder = onSchedule({
 
 // ✅ Tomorrow’s confirmed appointment reminder (with times) at 6:00 PM
 exports.appointmentReminderForNextDay = onSchedule({
-  schedule: "0 18 * * *", // 6:00 PM
+  schedule: "0 18 * * *",
   timeZone: "Asia/Amman",
 }, async () => {
   logger.info("📅 Running next-day appointment reminders (6 PM)");
@@ -236,4 +236,87 @@ exports.markPastAppointmentsAsCompleted = onSchedule({
   } catch (error) {
     logger.error("❌ Error marking appointments as completed:", error);
   }
+});
+
+// ✅ Send email digest if unread notification count ≥ 3
+exports.sendUnreadNotificationDigest = onSchedule({
+  schedule: "30 18 * * *", // 6:30 PM
+  timeZone: "Asia/Amman",
+  secrets: ["SENDGRID_API_KEY"],
+}, async () => {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+  logger.info("📨 Running unread notification digest");
+
+  const usersSnapshot = await db.collection("users")
+    .where("role", "==", "patient")
+    .get();
+
+  const sendTasks = [];
+
+  for (const userDoc of usersSnapshot.docs) {
+    const userId = userDoc.id;
+    const userData = userDoc.data();
+
+    const notificationsSnapshot = await db
+      .collection("users")
+      .doc(userId)
+      .collection("notifications")
+      .where("read", "==", false)
+      .where("digestSent", "==", false)
+      .get();
+
+    if (notificationsSnapshot.empty || notificationsSnapshot.size < 3) continue;
+
+    const messages = notificationsSnapshot.docs.map((doc) => {
+      const n = doc.data();
+      const time = n.timestamp?.toDate().toLocaleString("en-US", {
+        timeZone: "Asia/Amman",
+        hour: "2-digit",
+        minute: "2-digit",
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }) || "Unknown Time";
+
+      return `🕒 ${time}\n🔔 ${n.title}\n${n.body}`;
+    }).join("\n\n");
+
+    const emailContent = `
+Dear ${userData.name || "Patient"},
+
+You have ${notificationsSnapshot.size} unread notifications in your Safe Space app.
+
+Here is a summary of your recent notifications:
+
+${messages}
+
+👉 [Open Safe Space App](https://your-app-link.com/open)
+
+Please log into the app to read or respond.
+
+– Safe Space Team
+`.trim();
+
+    if (userData.email) {
+      const sendTask = sgMail.send({
+        to: userData.email,
+        from: "bayanismail302@gmail.com",
+        subject: "📬 You Have Unread Notifications – Safe Space Digest",
+        text: emailContent,
+      });
+
+      sendTasks.push(sendTask);
+
+      const batch = db.batch();
+      notificationsSnapshot.docs.forEach((doc) => {
+        batch.update(doc.ref, { digestSent: true });
+      });
+      await batch.commit();
+
+      logger.info(`📧 Digest sent and marked for ${userData.email}`);
+    }
+  }
+
+  await Promise.all(sendTasks);
+  logger.info(`✅ Digest emails processed: ${sendTasks.length}`);
 });
