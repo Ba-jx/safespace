@@ -1,4 +1,4 @@
-const { onDocumentUpdated } = require("firebase-functions/v2/firestore");
+const { onDocumentUpdated, onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, Timestamp } = require("firebase-admin/firestore");
@@ -12,12 +12,7 @@ const messaging = getMessaging();
 
 // ✅ Reusable: Create Firestore notification
 async function createNotification(userId, title, body) {
-  const notifRef = db
-    .collection("users")
-    .doc(userId)
-    .collection("notifications")
-    .doc();
-
+  const notifRef = db.collection("users").doc(userId).collection("notifications").doc();
   await notifRef.set({
     title,
     body,
@@ -25,11 +20,85 @@ async function createNotification(userId, title, body) {
     read: false,
     digestSent: false,
   });
-
   logger.info(`🔔 Notification created for user: ${userId}`);
 }
 
-// ✅ Notify on appointment update or cancel (FCM + Firestore)
+// ✅ Real-time FCM for new messages (only notify patients if doctor is sender)
+exports.notifyNewMessage = onDocumentCreated({
+  document: "messages/{chatId}/chats/{messageId}",
+  region: "us-central1",
+  platform: "gcfv1",
+}, async (event) => {
+  const message = event.data.data();
+  const chatId = event.params.chatId;
+  const [userA, userB] = chatId.split("_");
+  const recipientId = message.senderId === userA ? userB : userA;
+
+  const senderDoc = await db.collection("users").doc(message.senderId).get();
+  const recipientDoc = await db.collection("users").doc(recipientId).get();
+
+  const sender = senderDoc.data();
+  const recipient = recipientDoc.data();
+
+  // Only notify if sender is the assigned doctor of the patient recipient
+  if (
+    recipient.role === "patient" &&
+    recipient.doctorId === message.senderId &&
+    recipient.fcmToken
+  ) {
+    const title = "New Message from Your Doctor";
+    const body = `${sender.name || "Doctor"}: ${message.text || "Sent a message"}`;
+    await messaging.send({
+      token: recipient.fcmToken,
+      notification: { title, body },
+    });
+    logger.info(`📨 Message notification sent to patient ${recipientId}`);
+  }
+});
+
+// ✅ Daily FCM digest for unread messages from doctors (for patients only)
+exports.sendUnreadMessageDigest = onSchedule({
+  schedule: "0 17 * * *",
+  timeZone: "Asia/Amman",
+  region: "us-central1",
+  platform: "gcfv1",
+}, async () => {
+  const patients = await db.collection("users").where("role", "==", "patient").get();
+
+  for (const patientDoc of patients.docs) {
+    const patient = patientDoc.data();
+    const patientId = patientDoc.id;
+
+    if (!patient.fcmToken || !patient.doctorId) continue;
+
+    const chatsSnapshot = await db
+      .collection(`messages/${patientId}/chats`)
+      .where("isRead", "==", false)
+      .get();
+
+    let countFromDoctor = 0;
+    for (const chat of chatsSnapshot.docs) {
+      const data = chat.data();
+      if (data.senderId === patient.doctorId) {
+        countFromDoctor++;
+      }
+    }
+
+    if (countFromDoctor > 0) {
+      const title = "Unread Messages from Your Doctor";
+      const body = `You have ${countFromDoctor} unread message(s) from your doctor. Open Safe Space to read them.`;
+
+      await messaging.send({
+        token: patient.fcmToken,
+        notification: { title, body },
+      });
+
+      logger.info(`📬 Unread message digest sent to ${patientId}`);
+    }
+  }
+});
+
+// ✅ Notify on appointment update or cancel
 exports.notifyAppointmentChanged = onDocumentUpdated({
   document: "users/{userId}/appointments/{appointmentId}",
   region: "us-central1",
@@ -49,8 +118,7 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
     hour: "2-digit", minute: "2-digit"
   });
 
-  let title = "";
-  let body = "";
+  let title = "", body = "";
 
   if (before.status !== after.status) {
     if (after.status.toLowerCase() === "cancelled") {
@@ -70,7 +138,6 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
 
   if (title && body) {
     await createNotification(userId, title, body);
-
     if (fcmToken) {
       try {
         await messaging.send({ token: fcmToken, notification: { title, body } });
@@ -81,17 +148,16 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
   }
 });
 
-// ✅ Daily symptom reminder at 7:00 PM
+// ✅ Daily symptom reminder
 exports.dailySymptomReminder = onSchedule({
   schedule: "0 19 * * *",
   timeZone: "Asia/Amman",
 }, async () => {
   const patients = await db.collection("users").where("role", "==", "patient").get();
-
   const sendTasks = [];
 
-  for (let i = 0; i < patients.docs.length; i++) {
-    const data = patients.docs[i].data();
+  for (let doc of patients.docs) {
+    const data = doc.data();
     if (data.fcmToken) {
       sendTasks.push(
         messaging.send({
@@ -108,7 +174,7 @@ exports.dailySymptomReminder = onSchedule({
   await Promise.all(sendTasks);
 });
 
-// ✅ Tomorrow’s confirmed appointment reminder at 6:00 PM
+// ✅ Tomorrow’s confirmed appointment reminder
 exports.appointmentReminderForNextDay = onSchedule({
   schedule: "0 18 * * *",
   timeZone: "Asia/Amman",
@@ -132,8 +198,7 @@ exports.appointmentReminderForNextDay = onSchedule({
 
   const byPatient = {};
 
-  for (let i = 0; i < snapshot.docs.length; i++) {
-    const doc = snapshot.docs[i];
+  for (let doc of snapshot.docs) {
     const userId = doc.ref.path.split("/")[1];
     const time = doc.data().dateTime.toDate().toLocaleTimeString("en-US", {
       timeZone: "Asia/Amman",
@@ -152,81 +217,9 @@ exports.appointmentReminderForNextDay = onSchedule({
     const body = `You have confirmed appointments tomorrow at: ${times.join(", ")}`;
 
     await createNotification(userId, title, body);
-
     if (fcmToken) {
       await messaging.send({ token: fcmToken, notification: { title, body } });
     }
-  }
-});
-
-// ✅ Email digest from doctor (without app link)
-exports.sendUnreadNotificationDigest = onSchedule({
-  schedule: "30 18 * * *",
-  timeZone: "Asia/Amman",
-  secrets: ["SENDGRID_API_KEY"],
-}, async () => {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-  logger.info("📬 Running unread notification digest");
-
-  const usersSnapshot = await db.collection("users")
-    .where("role", "==", "patient")
-    .get();
-
-  for (let i = 0; i < usersSnapshot.docs.length; i++) {
-    const patientDoc = usersSnapshot.docs[i];
-    const patientId = patientDoc.id;
-    const patientData = patientDoc.data();
-
-    if (!patientData.email || !patientData.doctorId) continue;
-
-    const doctorDoc = await db.collection("users").doc(patientData.doctorId).get();
-    if (!doctorDoc.exists || !doctorDoc.data().email) continue;
-    const doctorEmail = doctorDoc.data().email;
-
-    const notifSnapshot = await db
-      .collection("users")
-      .doc(patientId)
-      .collection("notifications")
-      .where("read", "==", false)
-      .where("digestSent", "==", false)
-      .get();
-
-    if (notifSnapshot.size < 3) continue;
-
-    const messages = notifSnapshot.docs.map(doc => {
-      const n = doc.data();
-      const time = n.timestamp?.toDate().toLocaleString("en-US", {
-        timeZone: "Asia/Amman",
-        hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short", year: "numeric",
-      }) || "Unknown Time";
-
-      return `🕒 ${time}\n🔔 ${n.title}\n${n.body}`;
-    }).join("\n\n");
-
-    const emailText = `
-Dear ${patientData.name || "Patient"},
-
-You have ${notifSnapshot.size} unread notifications in your Safe Space app.
-
-Here is a summary:
-
-${messages}
-
-– Safe Space Team
-    `.trim();
-
-    await sgMail.send({
-      to: patientData.email,
-      from: doctorEmail,
-      subject: "📬 You Have Unread Notifications – Safe Space Digest",
-      text: emailText,
-    });
-
-    const batch = db.batch();
-    notifSnapshot.docs.forEach(doc => batch.update(doc.ref, { digestSent: true }));
-    await batch.commit();
-
-    logger.info(`📧 Digest sent to ${patientData.email} from ${doctorEmail}`);
   }
 });
 
@@ -254,7 +247,6 @@ exports.markPastAppointmentsAsCompleted = onSchedule({
   timeZone: "Asia/Amman",
 }, async () => {
   const now = Timestamp.now();
-
   const snapshot = await db.collectionGroup("appointments")
     .where("status", "==", "confirmed")
     .where("dateTime", "<", now)
