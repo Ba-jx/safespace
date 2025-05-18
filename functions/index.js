@@ -1,4 +1,4 @@
-const { onDocumentUpdated, onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { onRequest } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { initializeApp } = require("firebase-admin/app");
@@ -46,27 +46,12 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
       title = "Appointment Canceled";
       body = "Your appointment has been cancelled.";
       emailSubject = "Your Appointment Has Been Cancelled";
-      emailBody = `
-Dear ${name},
-
-Your appointment on ${formattedDate} has been cancelled.
-
-Safe Space Team
-      `.trim();
+      emailBody = `Dear ${name},\n\nYour appointment on ${formattedDate} has been cancelled.\n\nSafe Space Team`;
     } else {
       title = "Appointment Status Updated";
       body = `Your appointment status changed to "${after.status}".`;
       emailSubject = "Appointment Status Changed";
-      emailBody = `
-Dear ${name},
-
-Your appointment status has been updated to "${after.status}".
-
-📅 ${formattedDate}
-
-Thank you,  
-Safe Space Team
-      `.trim();
+      emailBody = `Dear ${name},\n\nYour appointment status has been updated to "${after.status}".\n📅 ${formattedDate}\n\nThank you,\nSafe Space Team`;
     }
   } else if (
     before.note !== after.note ||
@@ -103,10 +88,9 @@ Safe Space Team
   }
 });
 
-
-// ✅ Daily symptom reminder at 4:00 PM
+// ✅ Daily symptom reminder at 7:00 PM
 exports.dailySymptomReminder = onSchedule({
-  schedule: "0 16 * * *",
+  schedule: "0 19 * * *", // 7:00 PM
   timeZone: "Asia/Amman",
 }, async () => {
   logger.info("⏰ Running daily symptom reminder");
@@ -241,5 +225,39 @@ exports.deleteStalePendingAppointments = onSchedule({
     logger.info(`✅ Deleted ${snapshot.size} stale pending appointments.`);
   } catch (error) {
     logger.error("❌ Error deleting stale pending appointments:", error);
+  }
+});
+
+// ✅ Automatically mark past confirmed appointments as completed
+exports.markPastAppointmentsAsCompleted = onSchedule({
+  schedule: "every 30 minutes",
+  timeZone: "Asia/Amman",
+}, async () => {
+  logger.info("🔁 Running appointment completion check...");
+
+  const now = Timestamp.now();
+
+  try {
+    const snapshot = await db
+      .collectionGroup("appointments")
+      .where("status", "==", "confirmed")
+      .where("dateTime", "<", now)
+      .get();
+
+    if (snapshot.empty) {
+      logger.info("ℹ️ No appointments to mark as completed.");
+      return;
+    }
+
+    const batch = db.batch();
+    snapshot.forEach((doc) => {
+      batch.update(doc.ref, { status: "completed" });
+      logger.info(`✅ Marked appointment as completed: ${doc.id}`);
+    });
+
+    await batch.commit();
+    logger.info(`✅ Completed ${snapshot.size} appointments.`);
+  } catch (error) {
+    logger.error("❌ Error marking appointments as completed:", error);
   }
 });
