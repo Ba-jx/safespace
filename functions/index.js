@@ -12,12 +12,6 @@ initializeApp();
 const db = getFirestore();
 const messaging = getMessaging();
 
-// ✅ HTTP Test
-exports.helloWorld = onRequest((req, res) => {
-  logger.info("Hello logs!", { structuredData: true });
-  res.send("Hello from Firebase!");
-});
-
 // ✅ Notify on appointment update or cancel
 exports.notifyAppointmentChanged = onDocumentUpdated({
   document: "users/{userId}/appointments/{appointmentId}",
@@ -109,57 +103,6 @@ Safe Space Team
   }
 });
 
-// ✅ Send confirmation email on appointment creation
-exports.sendAppointmentConfirmationEmail = onDocumentCreated({
-  document: "users/{userId}/appointments/{appointmentId}",
-  region: "us-central1",
-  secrets: ["SENDGRID_API_KEY"],
-}, async (event) => {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-  const { userId } = event.params;
-  const appointment = event.data.data();
-
-  const userDoc = await db.collection("users").doc(userId).get();
-  const email = userDoc.exists ? userDoc.data().email : null;
-  const name = userDoc.exists ? userDoc.data().name || "Patient" : "Patient";
-
-  if (!email) {
-    logger.warn(`⚠️ No email for ${userId}, skipping.`);
-    return;
-  }
-
-  const dateTime = appointment.dateTime.toDate().toLocaleString("en-US", {
-    timeZone: "Asia/Amman",
-    weekday: "long", year: "numeric", month: "long", day: "numeric",
-    hour: "2-digit", minute: "2-digit"
-  });
-
-  const note = appointment.note || "No notes";
-
-  const msg = {
-    to: email,
-    from: "bayanismail302@gmail.com",
-    subject: "Your Appointment is Confirmed",
-    text: `
-Dear ${name},
-
-Your appointment has been successfully booked.
-
-📅 ${dateTime}  
-📝 ${note}
-
-Thank you,  
-Safe Space Team
-    `.trim(),
-  };
-
-  try {
-    await sgMail.send(msg);
-    logger.info(`📧 Confirmation sent to ${email}`);
-  } catch (error) {
-    logger.error("❌ Email error", error);
-  }
-});
 
 // ✅ Daily symptom reminder at 4:00 PM
 exports.dailySymptomReminder = onSchedule({
