@@ -25,7 +25,7 @@
   "functions": {
     "source": "functions",
     "runtime": "nodejs20",
-    "platform": "gcfv2",  // ✅ Gen 2
+    "platform": "gcfv2",
     "ignore": [
       "node_modules",
       ".git",
