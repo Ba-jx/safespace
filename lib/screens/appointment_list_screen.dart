@@ -277,9 +277,9 @@ class _PatientAppointmentCalendarState extends State<PatientAppointmentCalendar>
                         ),
                         subtitle: Text('Status: $status'),
                         leading: const Icon(Icons.calendar_today),
-                        trailing: (status == 'confirmed' || status == 'cancelled')
+                        trailing: (status == 'confirmed' || status == 'cancelled' || status == 'completed')
                             ? const Tooltip(
-                                message: 'Cannot edit confirmed or cancelled appointments',
+                                message: 'Cannot edit confirmed, cancelled, or completed appointments',
                                 child: Icon(Icons.lock, color: Colors.grey),
                               )
                             : PopupMenuButton<String>(
