@@ -31,10 +31,10 @@ class _ManageAppointmentsScreenState extends State<ManageAppointmentsScreen> {
         color = Colors.red;
         break;
       case 'rescheduled':
-        color = Colors.orange;
+        color = Colors.blue;
         break;
       default:
-        color = Colors.grey;
+        color = Colors.orange;
     }
 
     return Chip(
