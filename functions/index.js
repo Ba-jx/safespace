@@ -269,3 +269,53 @@ exports.notifyDoctorOfDrasticRecording = onDocumentCreated({
   await createNotification(patient.doctorId, title, body);
   logger.info(`🚨 Drastic change notification sent to doctor ${patient.doctorId}`);
 });
+
+// ✅ Notify doctor when a patient requests rescheduling
+exports.notifyDoctorOnRescheduleRequest = onDocumentUpdated({
+  document: "users/{patientId}/appointments/{appointmentId}",
+  region: "us-central1",
+}, async (event) => {
+  const before = event.data.before.data();
+  const after = event.data.after.data();
+
+  if (before.status === after.status || after.status !== "reschedule_requested") return;
+
+  const patientId = event.params.patientId;
+
+  const patientDoc = await db.collection("users").doc(patientId).get();
+  const patientData = patientDoc.data();
+
+  if (!patientData || !patientData.doctorId) return;
+
+  const doctorDoc = await db.collection("users").doc(patientData.doctorId).get();
+  const doctorData = doctorDoc.data();
+
+  if (!doctorData || !doctorData.fcmToken) return;
+
+  const appointmentTime = after.dateTime.toDate?.() || new Date(after.dateTime);
+  const formattedTime = appointmentTime.toLocaleString("en-US", {
+    timeZone: "Asia/Amman",
+    weekday: "short",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  const title = "Patient Requested Reschedule";
+  const body = `${patientData.name || "A patient"} requested to reschedule their appointment on ${formattedTime}.`;
+
+  try {
+    await messaging.send({
+      token: doctorData.fcmToken,
+      notification: { title, body },
+    });
+
+    await createNotification(patientData.doctorId, title, body);
+
+    logger.info(`📅 Reschedule request notification sent to doctor ${patientData.doctorId}`);
+  } catch (error) {
+    logger.error("❌ Error sending reschedule notification:", error);
+  }
+});
