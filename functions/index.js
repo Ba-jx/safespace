@@ -6,10 +6,12 @@ const { getMessaging } = require("firebase-admin/messaging");
 const logger = require("firebase-functions/logger");
 const sgMail = require("@sendgrid/mail");
 
+// Initialize Firebase Admin
 initializeApp();
 const db = getFirestore();
 const messaging = getMessaging();
 
+// 🔔 Create Firestore Notification
 async function createNotification(userId, title, body) {
   const notifRef = db.collection("users").doc(userId).collection("notifications").doc();
   await notifRef.set({
@@ -22,6 +24,7 @@ async function createNotification(userId, title, body) {
   logger.info(`🔔 Notification created for user: ${userId}`);
 }
 
+// ✅ Notify on New Message (with deduplication)
 exports.notifyNewMessage = onDocumentCreated({
   document: "messages/{chatId}/chats/{messageId}",
   region: "us-central1"
@@ -37,6 +40,7 @@ exports.notifyNewMessage = onDocumentCreated({
   const sender = senderDoc.data();
   const recipient = recipientDoc.data();
 
+  // ✅ Doctor → Patient
   if (
     recipient.role === "patient" &&
     recipient.doctorId === message.senderId &&
@@ -44,14 +48,51 @@ exports.notifyNewMessage = onDocumentCreated({
   ) {
     const title = "New Message from Your Doctor";
     const body = `${sender.name || "Doctor"}: ${message.text || "Sent a message"}`;
+
     await messaging.send({
       token: recipient.fcmToken,
       notification: { title, body },
     });
+
+    await createNotification(recipientId, title, body);
     logger.info(`📨 Message notification sent to patient ${recipientId}`);
+    return;
+  }
+
+  // ✅ Patient → Doctor with deduplication
+  if (
+    sender.role === "patient" &&
+    sender.doctorId === recipientId &&
+    recipient.fcmToken
+  ) {
+    const lastNotifRef = db.collection("users").doc(recipientId)
+      .collection("notifications")
+      .where("title", "==", "New Message from Your Patient")
+      .where("read", "==", false)
+      .orderBy("timestamp", "desc")
+      .limit(1);
+
+    const existingNotif = await lastNotifRef.get();
+    const recentAlreadyExists = !existingNotif.empty;
+
+    if (!recentAlreadyExists) {
+      const title = "New Message from Your Patient";
+      const body = `${sender.name || "Patient"}: ${message.text || "Sent a message"}`;
+
+      await messaging.send({
+        token: recipient.fcmToken,
+        notification: { title, body },
+      });
+
+      await createNotification(recipientId, title, body);
+      logger.info(`📨 Message notification sent to doctor ${recipientId}`);
+    } else {
+      logger.info(`🔁 Skipped duplicate message notification to doctor ${recipientId}`);
+    }
   }
 });
 
+// ✅ Daily Digest for Unread Messages
 exports.sendUnreadMessageDigest = onSchedule({
   schedule: "0 17 * * *",
   timeZone: "Asia/Amman",
@@ -92,6 +133,7 @@ exports.sendUnreadMessageDigest = onSchedule({
   }
 });
 
+// ✅ Notify on Appointment Changes
 exports.notifyAppointmentChanged = onDocumentUpdated({
   document: "users/{userId}/appointments/{appointmentId}",
   region: "us-central1"
