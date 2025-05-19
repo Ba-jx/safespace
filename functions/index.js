@@ -11,12 +11,12 @@ initializeApp();
 const db = getFirestore();
 const messaging = getMessaging();
 
-// ✅ HTTP Test Function
+// ✅ Test Function
 exports.helloWorld = onRequest({ region: "us-central1" }, (req, res) => {
   res.send("✅ Hello from Safe Space (Gen 2)");
 });
 
-// 🔔 Helper: Create Firestore Notification
+// 🔔 Helper
 async function createNotification(userId, title, body) {
   const notifRef = db.collection("users").doc(userId).collection("notifications").doc();
   await notifRef.set({
@@ -29,7 +29,7 @@ async function createNotification(userId, title, body) {
   logger.info(`🔔 Notification created for user: ${userId}`);
 }
 
-// ✅ New Message Notification
+// ✅ Chat Message Notification (no deduplication)
 exports.notifyNewMessage = onDocumentCreated({
   document: "messages/{chatId}/chats/{messageId}",
   region: "us-central1",
@@ -69,7 +69,7 @@ exports.notifyNewMessage = onDocumentCreated({
   }
 });
 
-// ✅ Appointment Change Notification
+// ✅ Appointment Update Notification
 exports.notifyAppointmentChanged = onDocumentUpdated({
   document: "users/{userId}/appointments/{appointmentId}",
   region: "us-central1",
@@ -166,8 +166,8 @@ exports.send24HourAppointmentReminder = onSchedule({
 }, async () => {
   const now = Timestamp.now();
   const millisNow = now.toMillis();
-  const startWindow = Timestamp.fromMillis(millisNow + 24 * 60 * 60 * 1000 - 5 * 60 * 1000); // 24h - 5m
-  const endWindow = Timestamp.fromMillis(millisNow + 24 * 60 * 60 * 1000 + 5 * 60 * 1000);   // 24h + 5m
+  const startWindow = Timestamp.fromMillis(millisNow + 24 * 60 * 60 * 1000 - 5 * 60 * 1000);
+  const endWindow = Timestamp.fromMillis(millisNow + 24 * 60 * 60 * 1000 + 5 * 60 * 1000);
 
   const usersSnapshot = await db.collection("users").where("role", "==", "patient").get();
 
@@ -206,4 +206,66 @@ exports.send24HourAppointmentReminder = onSchedule({
       logger.info(`⏰ 24-hour reminder sent to ${patientId} for appointment at ${apptTime}`);
     }
   }
+});
+
+// ✅ NEW: Drastic Recording Change Alert to Doctor
+exports.notifyDoctorOfDrasticRecording = onDocumentCreated({
+  document: "users/{patientId}/recordings/{recordingId}",
+  region: "us-central1",
+}, async (event) => {
+  const data = event.data.data();
+  const patientId = event.params.patientId;
+
+  const { heartRate, temperature, spo2, timestamp } = data;
+
+  const isHeartRateDrastic = heartRate < 50 || heartRate > 120;
+  const isTempDrastic = temperature < 27 || temperature > 37.5;
+  const isSpo2Drastic = spo2 < 90;
+
+  if (!(isHeartRateDrastic || isTempDrastic || isSpo2Drastic)) {
+    logger.info(`📉 No drastic change for patient ${patientId}`);
+    return;
+  }
+
+  const patientDoc = await db.collection("users").doc(patientId).get();
+  const patient = patientDoc.data();
+  if (!patient || !patient.doctorId) return;
+
+  const doctorDoc = await db.collection("users").doc(patient.doctorId).get();
+  const doctor = doctorDoc.data();
+  if (!doctor || !doctor.fcmToken) return;
+
+  const recordedTime = (timestamp?.toDate?.() || new Date()).toLocaleString("en-US", {
+    timeZone: "Asia/Amman",
+    weekday: "short", year: "numeric", month: "short", day: "numeric",
+    hour: "2-digit", minute: "2-digit"
+  });
+
+  const title = "⚠️ Drastic Change in Patient's Vital Signs";
+  let body = `${patient.name || "A patient"} has abnormal readings at ${recordedTime}: `;
+  if (isHeartRateDrastic) body += `Heart Rate: ${heartRate} bpm. `;
+  if (isTempDrastic) body += `Temperature: ${temperature}°C. `;
+  if (isSpo2Drastic) body += `SpO₂: ${spo2}%.`;
+
+  const oneHourAgo = Timestamp.fromMillis(Date.now() - 60 * 60 * 1000);
+  const recentNotif = await db.collection("users")
+    .doc(patient.doctorId)
+    .collection("notifications")
+    .where("title", "==", title)
+    .where("timestamp", ">=", oneHourAgo)
+    .limit(1)
+    .get();
+
+  if (!recentNotif.empty) {
+    logger.info(`⏱ Skipped duplicate alert to doctor ${patient.doctorId}`);
+    return;
+  }
+
+  await messaging.send({
+    token: doctor.fcmToken,
+    notification: { title, body },
+  });
+
+  await createNotification(patient.doctorId, title, body);
+  logger.info(`🚨 Drastic change notification sent to doctor ${patient.doctorId}`);
 });
