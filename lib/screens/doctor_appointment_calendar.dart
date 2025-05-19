@@ -1,3 +1,4 @@
+// [No changes to your import section]
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -399,7 +400,26 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                             IconButton(
                               icon: const Icon(Icons.delete, color: Colors.red),
                               onPressed: () async {
-                                if (ref != null) {
+                                final confirm = await showDialog<bool>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('Confirm Deletion'),
+                                    content: const Text('Are you sure you want to delete this appointment?'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.of(context).pop(false),
+                                        child: const Text('Cancel'),
+                                      ),
+                                      ElevatedButton(
+                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                                        onPressed: () => Navigator.of(context).pop(true),
+                                        child: const Text('Delete'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+
+                                if (confirm == true && ref != null) {
                                   await ref.delete();
                                   await _fetchAppointments();
                                 }
