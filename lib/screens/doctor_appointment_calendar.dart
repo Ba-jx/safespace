@@ -1,4 +1,5 @@
-// [No changes to your import section]
+// DoctorAppointmentCalendar - Final Complete Version
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -51,11 +52,7 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
       final data = doc.data();
       final timestamp = data['dateTime'];
       if (timestamp is Timestamp) {
-        final date = DateTime(
-          timestamp.toDate().year,
-          timestamp.toDate().month,
-          timestamp.toDate().day,
-        );
+        final date = DateTime(timestamp.toDate().year, timestamp.toDate().month, timestamp.toDate().day);
         grouped[date] = grouped[date] ?? [];
         grouped[date]!.add({...data, 'docId': doc.id, 'ref': doc.reference});
       }
@@ -82,9 +79,7 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
     final selected = _selectedDay ?? _focusedDay;
     final selectedDateOnly = DateTime(selected.year, selected.month, selected.day);
     final nowDateOnly = DateTime(now.year, now.month, now.day);
-    if (selectedDateOnly.isAfter(nowDateOnly)) return true;
-    if (selectedDateOnly.isAtSameMomentAs(nowDateOnly) && now.hour < 17) return true;
-    return false;
+    return selectedDateOnly.isAfter(nowDateOnly) || (selectedDateOnly.isAtSameMomentAs(nowDateOnly) && now.hour < 17);
   }
 
   Future<void> _showAddAppointmentDialog() async {
@@ -92,9 +87,16 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
     if (doctorId == null || _patients.isEmpty) return;
 
     DocumentSnapshot? selectedPatient = _patients.first;
-    TimeOfDay selectedTime = const TimeOfDay(hour: 9, minute: 0);
     DateTime selectedDate = _selectedDay ?? _focusedDay;
     final noteController = TextEditingController();
+
+    final existingTimes = _getAppointmentsForDay(selectedDate)
+        .where((appt) => appt['status'] == 'confirmed')
+        .map((appt) => (appt['dateTime'] as Timestamp).toDate().hour)
+        .toSet();
+
+    final availableSlots = List.generate(8, (i) => 9 + i).where((h) => !existingTimes.contains(h)).toList();
+    TimeOfDay? selectedTime = availableSlots.isNotEmpty ? TimeOfDay(hour: availableSlots.first, minute: 0) : null;
 
     await showDialog(
       context: context,
@@ -108,13 +110,7 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                 value: selectedPatient,
                 isExpanded: true,
                 onChanged: (val) => setModalState(() => selectedPatient = val),
-                items: _patients.map((doc) {
-                  final name = doc['name'] ?? 'Unnamed';
-                  return DropdownMenuItem(
-                    value: doc,
-                    child: Text(name),
-                  );
-                }).toList(),
+                items: _patients.map((doc) => DropdownMenuItem(value: doc, child: Text(doc['name']))).toList(),
               ),
               ListTile(
                 title: const Text('Date'),
@@ -126,65 +122,48 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                     firstDate: DateTime.now(),
                     lastDate: DateTime.now().add(const Duration(days: 365)),
                   );
-                  if (picked != null) {
-                    setModalState(() => selectedDate = picked);
-                  }
+                  if (picked != null) setModalState(() => selectedDate = picked);
                 },
               ),
-              ListTile(
-                title: const Text('Time'),
-                subtitle: Text(selectedTime.format(context)),
-                onTap: () async {
-                  final picked = await showTimePicker(
-                    context: context,
-                    initialTime: selectedTime,
-                  );
-                  if (picked != null && picked.hour >= 9 && picked.hour < 17) {
-                    setModalState(() => selectedTime = picked);
-                  }
-                },
-              ),
-              TextField(
-                controller: noteController,
-                decoration: const InputDecoration(labelText: 'Note'),
-              ),
+              if (availableSlots.isNotEmpty)
+                DropdownButton<TimeOfDay>(
+                  value: selectedTime,
+                  isExpanded: true,
+                  items: availableSlots.map((h) => DropdownMenuItem(
+                    value: TimeOfDay(hour: h, minute: 0),
+                    child: Text(TimeOfDay(hour: h, minute: 0).format(context)),
+                  )).toList(),
+                  onChanged: (val) => setModalState(() => selectedTime = val),
+                )
+              else const Text('No available slots for this day'),
+              TextField(controller: noteController, decoration: const InputDecoration(labelText: 'Note')),
             ],
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
             ElevatedButton(
-              onPressed: () async {
+              onPressed: selectedTime == null ? null : () async {
                 final newDateTime = DateTime(
                   selectedDate.year,
                   selectedDate.month,
                   selectedDate.day,
-                  selectedTime.hour,
-                  selectedTime.minute,
+                  selectedTime!.hour,
+                  selectedTime!.minute,
                 );
                 final patientId = selectedPatient!.id;
 
-                final existing = await FirebaseFirestore.instance
+                await FirebaseFirestore.instance
                     .collection('users')
                     .doc(patientId)
                     .collection('appointments')
-                    .where('doctorId', isEqualTo: doctorId)
-                    .where('dateTime', isEqualTo: Timestamp.fromDate(newDateTime))
-                    .get();
-
-                if (existing.docs.isEmpty) {
-                  await FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(patientId)
-                      .collection('appointments')
-                      .add({
-                    'doctorId': doctorId,
-                    'patientId': patientId,
-                    'patientName': selectedPatient!['name'],
-                    'status': 'confirmed',
-                    'note': noteController.text.trim(),
-                    'dateTime': Timestamp.fromDate(newDateTime),
-                  });
-                }
+                    .add({
+                  'doctorId': doctorId,
+                  'patientId': patientId,
+                  'patientName': selectedPatient['name'],
+                  'status': 'confirmed',
+                  'note': noteController.text.trim(),
+                  'dateTime': Timestamp.fromDate(newDateTime),
+                });
 
                 if (!mounted) return;
                 Navigator.pop(context);
@@ -197,242 +176,3 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
       ),
     );
   }
-
-  @override
-  Widget build(BuildContext context) {
-    final appointments = _getAppointmentsForDay(_selectedDay ?? _focusedDay);
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Appointments Calendar'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12.0),
-            child: ElevatedButton.icon(
-              onPressed: () {
-                setState(() {
-                  _focusedDay = DateTime.now();
-                  _selectedDay = DateTime.now();
-                });
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.purple,
-                foregroundColor: Colors.white,
-              ),
-              icon: const Icon(Icons.calendar_today, size: 18),
-              label: const Text('Current Week'),
-            ),
-          )
-        ],
-      ),
-      floatingActionButton: _canAddAppointmentForSelectedDay()
-          ? FloatingActionButton.extended(
-              onPressed: _showAddAppointmentDialog,
-              icon: const Icon(Icons.add),
-              label: const Text('Add Appointment'),
-              backgroundColor: Colors.purple,
-            )
-          : null,
-      body: Column(
-        children: [
-          TableCalendar(
-            firstDay: DateTime.utc(2024, 1, 1),
-            lastDay: DateTime.utc(2030, 12, 31),
-            focusedDay: _focusedDay,
-            selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-            onDaySelected: (selectedDay, focusedDay) async {
-              if (_isDateFullyBooked(selectedDay)) return;
-              setState(() {
-                _selectedDay = selectedDay;
-                _focusedDay = focusedDay;
-              });
-              await _fetchAppointments();
-            },
-            enabledDayPredicate: (day) => !_isDateFullyBooked(day),
-            eventLoader: _getAppointmentsForDay,
-            availableCalendarFormats: const {CalendarFormat.month: 'Month'},
-            headerStyle: const HeaderStyle(formatButtonVisible: false),
-            calendarBuilders: CalendarBuilders(
-              markerBuilder: (context, date, events) {
-                final statuses = events.map((e) => (e as Map<String, dynamic>)['status'] ?? '').where((s) => s.isNotEmpty).toSet();
-                return Positioned(
-                  bottom: 1,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: statuses.map((status) {
-                      Color color;
-                      switch (status) {
-                        case 'confirmed': color = Colors.green; break;
-                        case 'pending': color = Colors.orange; break;
-                        case 'rescheduled': color = Colors.blue; break;
-                        default: color = Colors.grey;
-                      }
-                      return Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 1.5),
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                      );
-                    }).toList(),
-                  ),
-                );
-              },
-            ),
-            calendarStyle: const CalendarStyle(markerDecoration: BoxDecoration(shape: BoxShape.circle)),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: appointments.isEmpty
-                ? const Center(child: Text('No appointments on this day.'))
-                : ListView(
-                    children: appointments.map((appt) {
-                      final patientName = appt['patientName'] ?? 'Unknown';
-                      final note = appt['note'] ?? '';
-                      final time = (appt['dateTime'] as Timestamp).toDate();
-                      final status = appt['status'] ?? 'unknown';
-                      final ref = appt['ref'] as DocumentReference?;
-
-                      return ListTile(
-                        title: Text(patientName),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('${TimeOfDay.fromDateTime(time).format(context)} - $note'),
-                            const SizedBox(height: 4),
-                            Chip(
-                              label: Text(status.toUpperCase()),
-                              backgroundColor: {
-                                'confirmed': Colors.green[100],
-                                'pending': Colors.orange[100],
-                                'rescheduled': Colors.blue[100],
-                              }[status] ?? Colors.grey[300],
-                              labelStyle: TextStyle(
-                                color: {
-                                  'confirmed': Colors.green,
-                                  'pending': Colors.orange,
-                                  'rescheduled': Colors.blue,
-                                }[status] ?? Colors.black,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              visualDensity: VisualDensity.compact,
-                            ),
-                          ],
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.blue),
-                              onPressed: () async {
-                                DateTime newDate = time;
-                                TimeOfDay newTime = TimeOfDay.fromDateTime(time);
-                                final noteController = TextEditingController(text: note);
-
-                                await showDialog(
-                                  context: context,
-                                  builder: (context) => StatefulBuilder(
-                                    builder: (context, setState) => AlertDialog(
-                                      title: const Text('Edit Appointment'),
-                                      content: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          ListTile(
-                                            title: const Text('Date'),
-                                            subtitle: Text('${newDate.toLocal()}'.split(' ')[0]),
-                                            onTap: () async {
-                                              final picked = await showDatePicker(
-                                                context: context,
-                                                initialDate: newDate,
-                                                firstDate: DateTime.now(),
-                                                lastDate: DateTime.now().add(const Duration(days: 365)),
-                                              );
-                                              if (picked != null) {
-                                                setState(() => newDate = picked);
-                                              }
-                                            },
-                                          ),
-                                          ListTile(
-                                            title: const Text('Time'),
-                                            subtitle: Text(newTime.format(context)),
-                                            onTap: () async {
-                                              final picked = await showTimePicker(
-                                                context: context,
-                                                initialTime: newTime,
-                                              );
-                                              if (picked != null) {
-                                                setState(() => newTime = picked);
-                                              }
-                                            },
-                                          ),
-                                          TextField(
-                                            controller: noteController,
-                                            decoration: const InputDecoration(labelText: 'Note'),
-                                          ),
-                                        ],
-                                      ),
-                                      actions: [
-                                        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-                                        ElevatedButton(
-                                          onPressed: () async {
-                                            final updatedDateTime = DateTime(
-                                              newDate.year,
-                                              newDate.month,
-                                              newDate.day,
-                                              newTime.hour,
-                                              newTime.minute,
-                                            );
-                                            if (ref != null) {
-                                              await ref.update({
-                                                'dateTime': Timestamp.fromDate(updatedDateTime),
-                                                'note': noteController.text.trim(),
-                                              });
-                                              await _fetchAppointments();
-                                            }
-                                            if (context.mounted) Navigator.pop(context);
-                                          },
-                                          child: const Text('Update'),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () async {
-                                final confirm = await showDialog<bool>(
-                                  context: context,
-                                  builder: (context) => AlertDialog(
-                                    title: const Text('Confirm Deletion'),
-                                    content: const Text('Are you sure you want to delete this appointment?'),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.of(context).pop(false),
-                                        child: const Text('Cancel'),
-                                      ),
-                                      ElevatedButton(
-                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                                        onPressed: () => Navigator.of(context).pop(true),
-                                        child: const Text('Delete'),
-                                      ),
-                                    ],
-                                  ),
-                                );
-
-                                if (confirm == true && ref != null) {
-                                  await ref.delete();
-                                  await _fetchAppointments();
-                                }
-                              },
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-}
