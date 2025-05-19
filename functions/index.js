@@ -11,12 +11,12 @@ initializeApp();
 const db = getFirestore();
 const messaging = getMessaging();
 
-// ✅ Test HTTP Function
+// ✅ HTTP Test Function
 exports.helloWorld = onRequest({ region: "us-central1" }, (req, res) => {
   res.send("✅ Hello from Safe Space (Gen 2)");
 });
 
-// 🔔 Create Firestore Notification
+// 🔔 Helper: Create Firestore Notification
 async function createNotification(userId, title, body) {
   const notifRef = db.collection("users").doc(userId).collection("notifications").doc();
   await notifRef.set({
@@ -29,7 +29,7 @@ async function createNotification(userId, title, body) {
   logger.info(`🔔 Notification created for user: ${userId}`);
 }
 
-// ✅ Message Notification Trigger (deduplication disabled)
+// ✅ New Message Notification
 exports.notifyNewMessage = onDocumentCreated({
   document: "messages/{chatId}/chats/{messageId}",
   region: "us-central1",
@@ -45,7 +45,6 @@ exports.notifyNewMessage = onDocumentCreated({
   const sender = senderDoc.data();
   const recipient = recipientDoc.data();
 
-  // ✅ Doctor → Patient
   if (
     recipient.role === "patient" &&
     recipient.doctorId === message.senderId &&
@@ -53,18 +52,11 @@ exports.notifyNewMessage = onDocumentCreated({
   ) {
     const title = "New Message from Your Doctor";
     const body = `${sender.name || "Doctor"}: ${message.text || "Sent a message"}`;
-
-    await messaging.send({
-      token: recipient.fcmToken,
-      notification: { title, body },
-    });
-
+    await messaging.send({ token: recipient.fcmToken, notification: { title, body } });
     await createNotification(recipientId, title, body);
-    logger.info(`📨 Message notification sent to patient ${recipientId}`);
     return;
   }
 
-  // ✅ Patient → Doctor (no deduplication for testing)
   if (
     sender.role === "patient" &&
     sender.doctorId === recipientId &&
@@ -72,18 +64,12 @@ exports.notifyNewMessage = onDocumentCreated({
   ) {
     const title = "New Message from Your Patient";
     const body = `${sender.name || "Patient"}: ${message.text || "Sent a message"}`;
-
-    await messaging.send({
-      token: recipient.fcmToken,
-      notification: { title, body },
-    });
-
+    await messaging.send({ token: recipient.fcmToken, notification: { title, body } });
     await createNotification(recipientId, title, body);
-    logger.info(`📨 Message notification sent to doctor ${recipientId}`);
   }
 });
 
-// ✅ Appointment Update Notification
+// ✅ Appointment Change Notification
 exports.notifyAppointmentChanged = onDocumentUpdated({
   document: "users/{userId}/appointments/{appointmentId}",
   region: "us-central1",
@@ -131,7 +117,7 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
   }
 });
 
-// ✅ Daily Unread Message Digest to Patients
+// ✅ Daily Unread Message Digest
 exports.sendUnreadMessageDigest = onSchedule({
   schedule: "0 17 * * *",
   timeZone: "Asia/Amman",
@@ -168,6 +154,56 @@ exports.sendUnreadMessageDigest = onSchedule({
       });
 
       logger.info(`📬 Unread message digest sent to ${patientId}`);
+    }
+  }
+});
+
+// ✅ 24-Hour Appointment Reminder
+exports.send24HourAppointmentReminder = onSchedule({
+  schedule: "every 60 minutes",
+  timeZone: "Asia/Amman",
+  region: "us-central1"
+}, async () => {
+  const now = Timestamp.now();
+  const millisNow = now.toMillis();
+  const startWindow = Timestamp.fromMillis(millisNow + 24 * 60 * 60 * 1000 - 5 * 60 * 1000); // 24h - 5m
+  const endWindow = Timestamp.fromMillis(millisNow + 24 * 60 * 60 * 1000 + 5 * 60 * 1000);   // 24h + 5m
+
+  const usersSnapshot = await db.collection("users").where("role", "==", "patient").get();
+
+  for (const userDoc of usersSnapshot.docs) {
+    const patientId = userDoc.id;
+    const patientData = userDoc.data();
+    if (!patientData.fcmToken) continue;
+
+    const apptSnapshot = await db
+      .collection("users")
+      .doc(patientId)
+      .collection("appointments")
+      .where("status", "==", "confirmed")
+      .where("dateTime", ">=", startWindow)
+      .where("dateTime", "<=", endWindow)
+      .get();
+
+    for (const appt of apptSnapshot.docs) {
+      const apptData = appt.data();
+
+      const apptTime = apptData.dateTime.toDate().toLocaleString("en-US", {
+        timeZone: "Asia/Amman",
+        weekday: "long", year: "numeric", month: "long", day: "numeric",
+        hour: "2-digit", minute: "2-digit"
+      });
+
+      const title = "Appointment Reminder";
+      const body = `You have an appointment scheduled for ${apptTime}.`;
+
+      await messaging.send({
+        token: patientData.fcmToken,
+        notification: { title, body }
+      });
+
+      await createNotification(patientId, title, body);
+      logger.info(`⏰ 24-hour reminder sent to ${patientId} for appointment at ${apptTime}`);
     }
   }
 });
