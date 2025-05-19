@@ -284,7 +284,7 @@ class _DoctorAppointmentCalendarState
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Doctor Appointment Calendar'),
+        title: const Text('Appointment Calendar'),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
