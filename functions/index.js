@@ -1,14 +1,20 @@
-const functions = require("firebase-functions"); // ✅ Correct Gen 1 import
+const functions = require("firebase-functions"); // ✅ Gen 1 compatible
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, Timestamp } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
 const logger = require("firebase-functions/logger");
-const sgMail = require("@sendgrid/mail");
 
-// Initialize Firebase Admin
 initializeApp();
 const db = getFirestore();
 const messaging = getMessaging();
+
+// ✅ Test Function
+exports.helloWorld = functions
+  .region("us-central1")
+  .https
+  .onRequest((req, res) => {
+    res.send("✅ Hello from Safe Space!");
+  });
 
 // 🔔 Create Firestore Notification
 async function createNotification(userId, title, body) {
@@ -23,7 +29,7 @@ async function createNotification(userId, title, body) {
   logger.info(`🔔 Notification created for user: ${userId}`);
 }
 
-// ✅ Notify on New Message (with deduplication)
+// ✅ Notify on New Message (deduplicated)
 exports.notifyNewMessage = functions
   .region("us-central1")
   .firestore
@@ -59,7 +65,7 @@ exports.notifyNewMessage = functions
       return;
     }
 
-    // ✅ Patient → Doctor (with deduplication)
+    // ✅ Patient → Doctor with deduplication
     if (
       sender.role === "patient" &&
       sender.doctorId === recipientId &&
