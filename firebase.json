@@ -24,8 +24,7 @@
   },
   "functions": {
     "source": "functions",
-    "runtime": "nodejs16",               // ✅ Node.js 16 is the latest supported by GCFv1
-    "platform": "gcfv1",                // ✅ GCFv1 selected
+    "runtime": "nodejs16",           // ✅ Latest supported for Gen 1
     "ignore": [
       "node_modules",
       ".git",
