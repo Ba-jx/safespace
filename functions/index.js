@@ -6,7 +6,6 @@ const { getMessaging } = require("firebase-admin/messaging");
 const logger = require("firebase-functions/logger");
 const sgMail = require("@sendgrid/mail");
 
-// Initialize Firebase Admin
 initializeApp();
 const db = getFirestore();
 const messaging = getMessaging();
@@ -24,10 +23,11 @@ async function createNotification(userId, title, body) {
   logger.info(`🔔 Notification created for user: ${userId}`);
 }
 
-// ✅ Notify on New Message (with deduplication)
+// ✅ Notify on New Message (deduplicated)
 exports.notifyNewMessage = onDocumentCreated({
   document: "messages/{chatId}/chats/{messageId}",
-  region: "us-central1"
+  region: "us-central1",
+  platform: "gcfv2",
 }, async (event) => {
   const message = event.data.data();
   const chatId = event.params.chatId;
@@ -92,11 +92,12 @@ exports.notifyNewMessage = onDocumentCreated({
   }
 });
 
-// ✅ Daily Digest for Unread Messages
+// ✅ Unread Message Digest (Daily at 5 PM)
 exports.sendUnreadMessageDigest = onSchedule({
   schedule: "0 17 * * *",
   timeZone: "Asia/Amman",
-  region: "us-central1"
+  region: "us-central1",
+  platform: "gcfv2",
 }, async () => {
   const patients = await db.collection("users").where("role", "==", "patient").get();
 
@@ -133,10 +134,11 @@ exports.sendUnreadMessageDigest = onSchedule({
   }
 });
 
-// ✅ Notify on Appointment Changes
+// ✅ Notify on Appointment Change
 exports.notifyAppointmentChanged = onDocumentUpdated({
   document: "users/{userId}/appointments/{appointmentId}",
-  region: "us-central1"
+  region: "us-central1",
+  platform: "gcfv2",
 }, async (event) => {
   logger.info("✅ notifyAppointmentChanged triggered");
 
