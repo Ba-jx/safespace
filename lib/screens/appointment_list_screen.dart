@@ -56,10 +56,40 @@ class _PatientAppointmentCalendarState extends State<PatientAppointmentCalendar>
     return _appointmentsByDate[date] ?? [];
   }
 
+  Future<List<TimeOfDay>> _getAvailableTimeSlots(DateTime date, String patientId) async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(patientId)
+        .collection('appointments')
+        .where('dateTime',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(
+                DateTime(date.year, date.month, date.day, 0, 0)))
+        .where('dateTime',
+            isLessThan: Timestamp.fromDate(
+                DateTime(date.year, date.month, date.day + 1, 0, 0)))
+        .get();
+
+    final bookedHours = snapshot.docs.map((doc) {
+      final dt = (doc['dateTime'] as Timestamp).toDate();
+      return TimeOfDay(hour: dt.hour, minute: dt.minute);
+    }).toSet();
+
+    final slots = <TimeOfDay>[];
+    for (int hour = 9; hour < 17; hour++) {
+      final slot = TimeOfDay(hour: hour, minute: 0);
+      if (!bookedHours.contains(slot)) {
+        slots.add(slot);
+      }
+    }
+    return slots;
+  }
+
   void _showEditDialog(Map<String, dynamic> appt) async {
+    final patientId = FirebaseAuth.instance.currentUser!.uid;
     DateTime initialDate = (appt['dateTime'] as Timestamp).toDate();
     DateTime selectedDate = initialDate;
     TimeOfDay selectedTime = TimeOfDay.fromDateTime(initialDate);
+    List<TimeOfDay> availableSlots = await _getAvailableTimeSlots(selectedDate, patientId);
 
     await showDialog(
       context: context,
@@ -71,10 +101,7 @@ class _PatientAppointmentCalendarState extends State<PatientAppointmentCalendar>
             children: [
               ListTile(
                 title: const Text('Date'),
-                subtitle: Text(
-                  '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}',
-                ),
-                trailing: const Icon(Icons.calendar_today),
+                subtitle: Text('${selectedDate.toLocal()}'.split(' ')[0]),
                 onTap: () async {
                   final picked = await showDatePicker(
                     context: context,
@@ -83,31 +110,28 @@ class _PatientAppointmentCalendarState extends State<PatientAppointmentCalendar>
                     lastDate: DateTime.now().add(const Duration(days: 60)),
                   );
                   if (picked != null) {
-                    setModalState(() => selectedDate = picked);
+                    selectedDate = picked;
+                    availableSlots = await _getAvailableTimeSlots(selectedDate, patientId);
+                    setModalState(() {});
                   }
                 },
               ),
-              ListTile(
-                title: const Text('Time'),
-                subtitle: Text(selectedTime.format(context)),
-                trailing: const Icon(Icons.access_time),
-                onTap: () async {
-                  final picked = await showTimePicker(
-                    context: context,
-                    initialTime: selectedTime,
+              DropdownButton<TimeOfDay>(
+                value: availableSlots.contains(selectedTime) ? selectedTime : null,
+                hint: const Text('Select Time Slot'),
+                isExpanded: true,
+                items: availableSlots.map((slot) {
+                  return DropdownMenuItem(
+                    value: slot,
+                    child: Text(slot.format(context)),
                   );
-                  if (picked != null) {
-                    setModalState(() => selectedTime = picked);
-                  }
-                },
+                }).toList(),
+                onChanged: (val) => setModalState(() => selectedTime = val!),
               ),
             ],
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
             ElevatedButton(
               onPressed: () async {
                 final newDateTime = DateTime(
@@ -117,28 +141,19 @@ class _PatientAppointmentCalendarState extends State<PatientAppointmentCalendar>
                   selectedTime.hour,
                   selectedTime.minute,
                 );
-
-                final now = DateTime.now();
-                final hoursDiff = newDateTime.difference(now).inHours;
-
+                final hoursDiff = newDateTime.difference(DateTime.now()).inHours;
                 if (hoursDiff < 12) {
                   showDialog(
                     context: context,
                     builder: (context) => AlertDialog(
-                      title: const Text('Cannot Reschedule'),
+                      title: const Text('Too Late'),
                       content: const Text('Appointments must be rescheduled at least 12 hours in advance.'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('OK'),
-                        ),
-                      ],
+                      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
                     ),
                   );
                   return;
                 }
 
-                final patientId = FirebaseAuth.instance.currentUser!.uid;
                 final docId = appt['docId'];
                 await FirebaseFirestore.instance
                     .collection('users')
@@ -146,9 +161,9 @@ class _PatientAppointmentCalendarState extends State<PatientAppointmentCalendar>
                     .collection('appointments')
                     .doc(docId)
                     .update({
-                      'dateTime': Timestamp.fromDate(newDateTime),
-                      'status': 'rescheduled',
-                    });
+                  'dateTime': Timestamp.fromDate(newDateTime),
+                  'status': 'rescheduled',
+                });
 
                 if (!mounted) return;
                 Navigator.pop(context);
@@ -232,30 +247,6 @@ class _PatientAppointmentCalendarState extends State<PatientAppointmentCalendar>
             eventLoader: _getAppointmentsForDay,
             availableCalendarFormats: const {CalendarFormat.month: 'Month'},
             headerStyle: const HeaderStyle(formatButtonVisible: false),
-            calendarBuilders: CalendarBuilders(
-              markerBuilder: (context, date, events) {
-                if (events.isNotEmpty) {
-                  return Positioned(
-                    bottom: 1,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: events.map((event) {
-                        return Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 1.5),
-                          width: 6,
-                          height: 6,
-                          decoration: const BoxDecoration(
-                            color: Colors.purple,
-                            shape: BoxShape.circle,
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  );
-                }
-                return null;
-              },
-            ),
             calendarStyle: const CalendarStyle(
               markerDecoration: BoxDecoration(color: Colors.purple, shape: BoxShape.circle),
             ),
