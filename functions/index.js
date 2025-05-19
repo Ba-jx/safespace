@@ -285,17 +285,24 @@ exports.notifyDoctorOnRescheduleRequest = onDocumentUpdated({
   const patientDoc = await db.collection("users").doc(patientId).get();
   const patientData = patientDoc.data();
 
-  if (!patientData || !patientData.doctorId) return;
+  if (!patientData || !patientData.doctorId) {
+    logger.warn(`❌ Patient ${patientId} has no assigned doctor`);
+    return;
+  }
 
-  const doctorDoc = await db.collection("users").doc(patientData.doctorId).get();
+  const doctorId = patientData.doctorId;
+  const doctorDoc = await db.collection("users").doc(doctorId).get();
   const doctorData = doctorDoc.data();
 
-  if (!doctorData || !doctorData.fcmToken) return;
+  if (!doctorData || !doctorData.fcmToken) {
+    logger.warn(`❌ Doctor ${doctorId} has no FCM token`);
+    return;
+  }
 
   const appointmentTime = after.dateTime.toDate?.() || new Date(after.dateTime);
   const formattedTime = appointmentTime.toLocaleString("en-US", {
     timeZone: "Asia/Amman",
-    weekday: "short",
+    weekday: "long",
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -303,7 +310,7 @@ exports.notifyDoctorOnRescheduleRequest = onDocumentUpdated({
     minute: "2-digit",
   });
 
-  const title = "Patient Requested Reschedule";
+  const title = "Reschedule Request";
   const body = `${patientData.name || "A patient"} requested to reschedule their appointment on ${formattedTime}.`;
 
   try {
@@ -312,10 +319,10 @@ exports.notifyDoctorOnRescheduleRequest = onDocumentUpdated({
       notification: { title, body },
     });
 
-    await createNotification(patientData.doctorId, title, body);
+    await createNotification(doctorId, title, body);
 
-    logger.info(`📅 Reschedule request notification sent to doctor ${patientData.doctorId}`);
+    logger.info(`📬 Reschedule request sent to doctor ${doctorId}`);
   } catch (error) {
-    logger.error("❌ Error sending reschedule notification:", error);
+    logger.error("❌ Error sending doctor reschedule notification:", error);
   }
 });
