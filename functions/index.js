@@ -29,7 +29,7 @@ async function createNotification(userId, title, body) {
   logger.info(`🔔 Notification created for user: ${userId}`);
 }
 
-// ✅ Chat Message Notification (no deduplication)
+// ✅ Chat Message Notification
 exports.notifyNewMessage = onDocumentCreated({
   document: "messages/{chatId}/chats/{messageId}",
   region: "us-central1",
@@ -208,7 +208,7 @@ exports.send24HourAppointmentReminder = onSchedule({
   }
 });
 
-// ✅ NEW: Drastic Recording Change Alert to Doctor
+// ✅ Drastic Recording Change Alert
 exports.notifyDoctorOfDrasticRecording = onDocumentCreated({
   document: "users/{patientId}/recordings/{recordingId}",
   region: "us-central1",
@@ -270,7 +270,7 @@ exports.notifyDoctorOfDrasticRecording = onDocumentCreated({
   logger.info(`🚨 Drastic change notification sent to doctor ${patient.doctorId}`);
 });
 
-// ✅ Notify doctor when a patient requests rescheduling
+// ✅ Notify doctor when patient requests reschedule
 exports.notifyDoctorOnRescheduleRequest = onDocumentUpdated({
   document: "users/{patientId}/appointments/{appointmentId}",
   region: "us-central1",
@@ -281,12 +281,11 @@ exports.notifyDoctorOnRescheduleRequest = onDocumentUpdated({
   if (before.status === after.status || after.status !== "reschedule_requested") return;
 
   const patientId = event.params.patientId;
-
   const patientDoc = await db.collection("users").doc(patientId).get();
   const patientData = patientDoc.data();
 
   if (!patientData || !patientData.doctorId) {
-    logger.warn(`❌ Patient ${patientId} has no assigned doctor`);
+    logger.warn(`❌ Patient ${patientId} has no doctorId`);
     return;
   }
 
@@ -294,20 +293,19 @@ exports.notifyDoctorOnRescheduleRequest = onDocumentUpdated({
   const doctorDoc = await db.collection("users").doc(doctorId).get();
   const doctorData = doctorDoc.data();
 
+  console.log("🔍 doctorId:", doctorId);
+  console.log("🔍 doctor fcmToken:", doctorData?.fcmToken);
+
   if (!doctorData || !doctorData.fcmToken) {
-    logger.warn(`❌ Doctor ${doctorId} has no FCM token`);
+    logger.warn(`❌ Doctor ${doctorId} not found or missing fcmToken`);
     return;
   }
 
   const appointmentTime = after.dateTime.toDate?.() || new Date(after.dateTime);
   const formattedTime = appointmentTime.toLocaleString("en-US", {
     timeZone: "Asia/Amman",
-    weekday: "long",
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+    weekday: "long", year: "numeric", month: "short", day: "numeric",
+    hour: "2-digit", minute: "2-digit",
   });
 
   const title = "Reschedule Request";
@@ -320,9 +318,8 @@ exports.notifyDoctorOnRescheduleRequest = onDocumentUpdated({
     });
 
     await createNotification(doctorId, title, body);
-
     logger.info(`📬 Reschedule request sent to doctor ${doctorId}`);
   } catch (error) {
-    logger.error("❌ Error sending doctor reschedule notification:", error);
+    logger.error("❌ Error sending reschedule notification to doctor", error);
   }
 });
