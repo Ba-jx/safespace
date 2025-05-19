@@ -125,4 +125,63 @@ exports.notifyDoctorOnRescheduleRequest = onDocumentUpdated({
   } catch (error) {
     logger.error("❌ Error sending reschedule notification to doctor", error);
   }
+  // ✅ Notify doctor when patient requests reschedule
+exports.notifyDoctorOnRescheduleRequest = onDocumentUpdated({
+  document: "users/{patientId}/appointments/{appointmentId}",
+  region: "us-central1",
+}, async (event) => {
+  const before = event.data.before.data();
+  const after = event.data.after.data();
+
+  // Only proceed if status changed to "reschedule_requested"
+  if (before.status === after.status || after.status !== "reschedule_requested") return;
+
+  const patientId = event.params.patientId;
+
+  // Fetch patient data
+  const patientDoc = await db.collection("users").doc(patientId).get();
+  const patientData = patientDoc.data();
+
+  if (!patientData || !patientData.doctorId) {
+    logger.warn(`❌ Patient ${patientId} has no assigned doctor`);
+    return;
+  }
+
+  const doctorId = patientData.doctorId;
+
+  // Fetch doctor data
+  const doctorDoc = await db.collection("users").doc(doctorId).get();
+  const doctorData = doctorDoc.data();
+
+  if (!doctorData || !doctorData.fcmToken) {
+    logger.warn(`❌ Doctor ${doctorId} not found or missing fcmToken`);
+    return;
+  }
+
+  // Format appointment time
+  const appointmentTime = after.dateTime.toDate?.() || new Date(after.dateTime);
+  const formattedTime = appointmentTime.toLocaleString("en-US", {
+    timeZone: "Asia/Amman",
+    weekday: "long", year: "numeric", month: "short", day: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  });
+
+  // Compose notification
+  const title = "Reschedule Request";
+  const body = `${patientData.name || "A patient"} requested to reschedule their appointment on ${formattedTime}.`;
+
+  // Send FCM to doctor only
+  try {
+    await messaging.send({
+      token: doctorData.fcmToken,
+      notification: { title, body },
+    });
+
+    await createNotification(doctorId, title, body);
+    logger.info(`📬 Reschedule request notification sent to doctor ${doctorId}`);
+  } catch (error) {
+    logger.error("❌ Error sending reschedule notification to doctor", error);
+  }
+});
+
 });
