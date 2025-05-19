@@ -168,7 +168,7 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                           .add({
                         'doctorId': doctorId,
                         'patientId': patientId,
-                        'patientName': selectedPatient['name'],
+                        'patientName': selectedPatient?['name'],
                         'status': 'confirmed',
                         'note': noteController.text.trim(),
                         'dateTime': Timestamp.fromDate(newDateTime),
