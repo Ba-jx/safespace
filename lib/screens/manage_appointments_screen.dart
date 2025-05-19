@@ -34,7 +34,7 @@ class _ManageAppointmentsScreenState extends State<ManageAppointmentsScreen> {
         color = Colors.blue;
         break;
       default:
-        color = Colors.orange;
+        color = Colors.grey;
     }
 
     return Chip(
