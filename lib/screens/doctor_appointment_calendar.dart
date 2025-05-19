@@ -14,11 +14,14 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   Map<DateTime, List<Map<String, dynamic>>> _appointmentsByDate = {};
+  List<DocumentSnapshot> _patients = [];
+  DocumentSnapshot? _selectedPatient;
 
   @override
   void initState() {
     super.initState();
     _fetchAppointments();
+    _fetchPatients();
   }
 
   Future<void> _fetchAppointments() async {
@@ -53,6 +56,21 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
     });
   }
 
+  Future<void> _fetchPatients() async {
+    final doctorId = FirebaseAuth.instance.currentUser?.uid;
+    if (doctorId == null) return;
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .where('role', isEqualTo: 'patient')
+        .where('doctorId', isEqualTo: doctorId)
+        .get();
+
+    setState(() {
+      _patients = snapshot.docs;
+    });
+  }
+
   List<Map<String, dynamic>> _getAppointmentsForDay(DateTime day) {
     final date = DateTime(day.year, day.month, day.day);
     return _appointmentsByDate[date] ?? [];
@@ -63,25 +81,36 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
     return (_appointmentsByDate[day]?.length ?? 0) >= 8;
   }
 
-  void _showEditDialog(Map<String, dynamic> appt) async {
-    final noteController = TextEditingController(text: appt['note'] ?? '');
-    final dateTime = (appt['dateTime'] as Timestamp).toDate();
-    TimeOfDay selectedTime = TimeOfDay.fromDateTime(dateTime);
-    DateTime selectedDate = dateTime;
+  Future<void> _showAddDialog() async {
+    DateTime selectedDate = _focusedDay;
+    TimeOfDay selectedTime = TimeOfDay.now();
+    DocumentSnapshot? patient = _selectedPatient;
+    final noteController = TextEditingController();
 
     await showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => AlertDialog(
-          title: const Text('Edit Appointment'),
+          title: const Text('Add Appointment'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              DropdownButton<DocumentSnapshot>(
+                hint: const Text("Select Patient"),
+                value: patient,
+                isExpanded: true,
+                items: _patients.map((doc) {
+                  return DropdownMenuItem(
+                    value: doc,
+                    child: Text(doc['name'] ?? 'Unnamed'),
+                  );
+                }).toList(),
+                onChanged: (val) => setModalState(() => patient = val),
+              ),
               TextField(
                 controller: noteController,
                 decoration: const InputDecoration(labelText: 'Note'),
               ),
-              const SizedBox(height: 12),
               ListTile(
                 title: const Text('Date'),
                 subtitle: Text('${selectedDate.toLocal()}'.split(' ')[0]),
@@ -92,9 +121,7 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                     firstDate: DateTime.now(),
                     lastDate: DateTime.now().add(const Duration(days: 365)),
                   );
-                  if (picked != null) {
-                    setModalState(() => selectedDate = picked);
-                  }
+                  if (picked != null) setModalState(() => selectedDate = picked);
                 },
               ),
               ListTile(
@@ -105,9 +132,7 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                     context: context,
                     initialTime: selectedTime,
                   );
-                  if (picked != null) {
-                    setModalState(() => selectedTime = picked);
-                  }
+                  if (picked != null) setModalState(() => selectedTime = picked);
                 },
               ),
             ],
@@ -119,7 +144,8 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
             ),
             ElevatedButton(
               onPressed: () async {
-                final updatedDateTime = DateTime(
+                if (patient == null) return;
+                final appointmentDateTime = DateTime(
                   selectedDate.year,
                   selectedDate.month,
                   selectedDate.day,
@@ -127,18 +153,39 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                   selectedTime.minute,
                 );
 
-                await (appt['ref'] as DocumentReference).update({
+                final existing = _getAppointmentsForDay(selectedDate).where((a) {
+                  final aTime = (a['dateTime'] as Timestamp).toDate();
+                  return (aTime.difference(appointmentDateTime).inMinutes).abs() < 60;
+                });
+
+                if (existing.isNotEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Time slot already booked.')),
+                  );
+                  return;
+                }
+
+                final doctorId = FirebaseAuth.instance.currentUser!.uid;
+
+                await FirebaseFirestore.instance
+                    .collection("users")
+                    .doc(patient.id)
+                    .collection("appointments")
+                    .add({
+                  'doctorId': doctorId,
+                  'patientId': patient.id,
+                  'patientName': patient['name'],
                   'note': noteController.text.trim(),
-                  'dateTime': Timestamp.fromDate(updatedDateTime),
-                  'status': 'rescheduled',
+                  'status': 'pending',
+                  'dateTime': Timestamp.fromDate(appointmentDateTime),
                 });
 
                 if (!mounted) return;
                 Navigator.pop(context);
                 await _fetchAppointments();
               },
-              child: const Text('Save'),
-            ),
+              child: const Text('Add'),
+            )
           ],
         ),
       ),
@@ -150,7 +197,15 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
     final appointments = _getAppointmentsForDay(_selectedDay ?? _focusedDay);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Doctor Appointment Calendar')),
+      appBar: AppBar(
+        title: const Text('Doctor Appointment Calendar'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: _showAddDialog,
+          )
+        ],
+      ),
       body: Column(
         children: [
           TableCalendar(
@@ -170,35 +225,7 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
             eventLoader: _getAppointmentsForDay,
             availableCalendarFormats: const {CalendarFormat.month: 'Month'},
             headerStyle: const HeaderStyle(formatButtonVisible: false),
-            calendarBuilders: CalendarBuilders(
-              markerBuilder: (context, date, events) {
-                final statuses = events.map((e) => (e as Map<String, dynamic>)['status'] ?? '').where((s) => s.isNotEmpty).toSet();
-                return Positioned(
-                  bottom: 1,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: statuses.map((status) {
-                      Color color;
-                      switch (status) {
-                        case 'confirmed': color = Colors.green; break;
-                        case 'pending': color = Colors.orange; break;
-                        case 'rescheduled': color = Colors.blue; break;
-                        default: color = Colors.grey;
-                      }
-                      return Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 1.5),
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                      );
-                    }).toList(),
-                  ),
-                );
-              },
-            ),
-            calendarStyle: const CalendarStyle(
-              markerDecoration: BoxDecoration(shape: BoxShape.circle),
-            ),
+            calendarStyle: const CalendarStyle(markerDecoration: BoxDecoration(shape: BoxShape.circle)),
           ),
           const SizedBox(height: 16),
           Expanded(
