@@ -138,8 +138,7 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                     context: context,
                     initialTime: selectedTime,
                   );
-                  if (picked != null &&
-                      picked.hour >= 9 && picked.hour < 17) {
+                  if (picked != null && picked.hour >= 9 && picked.hour < 17) {
                     setModalState(() => selectedTime = picked);
                   }
                 },
@@ -289,6 +288,7 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                       final note = appt['note'] ?? '';
                       final time = (appt['dateTime'] as Timestamp).toDate();
                       final status = appt['status'] ?? 'unknown';
+                      final ref = appt['ref'] as DocumentReference?;
 
                       return ListTile(
                         title: Text(patientName),
@@ -316,15 +316,96 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                             ),
                           ],
                         ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete),
-                          onPressed: () async {
-                            final ref = appt['ref'] as DocumentReference?;
-                            if (ref != null) {
-                              await ref.delete();
-                              await _fetchAppointments();
-                            }
-                          },
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit, color: Colors.blue),
+                              onPressed: () async {
+                                DateTime newDate = time;
+                                TimeOfDay newTime = TimeOfDay.fromDateTime(time);
+                                final noteController = TextEditingController(text: note);
+
+                                await showDialog(
+                                  context: context,
+                                  builder: (context) => StatefulBuilder(
+                                    builder: (context, setState) => AlertDialog(
+                                      title: const Text('Edit Appointment'),
+                                      content: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          ListTile(
+                                            title: const Text('Date'),
+                                            subtitle: Text('${newDate.toLocal()}'.split(' ')[0]),
+                                            onTap: () async {
+                                              final picked = await showDatePicker(
+                                                context: context,
+                                                initialDate: newDate,
+                                                firstDate: DateTime.now(),
+                                                lastDate: DateTime.now().add(const Duration(days: 365)),
+                                              );
+                                              if (picked != null) {
+                                                setState(() => newDate = picked);
+                                              }
+                                            },
+                                          ),
+                                          ListTile(
+                                            title: const Text('Time'),
+                                            subtitle: Text(newTime.format(context)),
+                                            onTap: () async {
+                                              final picked = await showTimePicker(
+                                                context: context,
+                                                initialTime: newTime,
+                                              );
+                                              if (picked != null) {
+                                                setState(() => newTime = picked);
+                                              }
+                                            },
+                                          ),
+                                          TextField(
+                                            controller: noteController,
+                                            decoration: const InputDecoration(labelText: 'Note'),
+                                          ),
+                                        ],
+                                      ),
+                                      actions: [
+                                        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                                        ElevatedButton(
+                                          onPressed: () async {
+                                            final updatedDateTime = DateTime(
+                                              newDate.year,
+                                              newDate.month,
+                                              newDate.day,
+                                              newTime.hour,
+                                              newTime.minute,
+                                            );
+                                            if (ref != null) {
+                                              await ref.update({
+                                                'dateTime': Timestamp.fromDate(updatedDateTime),
+                                                'note': noteController.text.trim(),
+                                              });
+                                              await _fetchAppointments();
+                                            }
+                                            if (context.mounted) Navigator.pop(context);
+                                          },
+                                          child: const Text('Update'),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () async {
+                                if (ref != null) {
+                                  await ref.delete();
+                                  await _fetchAppointments();
+                                }
+                              },
+                            ),
+                          ],
                         ),
                       );
                     }).toList(),
