@@ -71,11 +71,6 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
     return _appointmentsByDate[date] ?? [];
   }
 
-  bool _isDateFullyBooked(DateTime date) {
-    final day = DateTime(date.year, date.month, date.day);
-    return (_appointmentsByDate[day]?.length ?? 0) >= 8;
-  }
-
   bool _canAddAppointmentForSelectedDay() {
     final now = DateTime.now();
     final selected = _selectedDay ?? _focusedDay;
@@ -208,7 +203,7 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                       .add({
                     'doctorId': doctorId,
                     'patientId': patientId,
-                    'patientName': selectedPatient['name'],
+                    'patientName': selectedPatient?['name'] ?? 'Unknown',
                     'status': 'confirmed',
                     'note': noteController.text.trim(),
                     'dateTime': Timestamp.fromDate(newDateTime),
