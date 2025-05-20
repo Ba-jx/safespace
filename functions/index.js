@@ -24,12 +24,11 @@ async function createNotification(userId, title, body) {
     read: false,
     digestSent: false,
   });
-  logger.info(`🔔 Notification created for user: ${userId}`);
+  logger.info(🔔 Notification created for user: ${userId});
 }
 
-// ✅ Unread Notification Digest (6:00 PM)
 exports.sendUnreadNotificationDigest = onSchedule({
-  schedule: "0 18 * * *", // 6:00 PM
+  schedule: "0 18 * * *",
   timeZone: "Asia/Amman",
   region: "us-central1"
 }, async () => {
@@ -57,10 +56,9 @@ exports.sendUnreadNotificationDigest = onSchedule({
       if (!doctor?.email) continue;
 
       const title = "You Have Unread Notifications";
-      const body = `You have ${unreadCount} unread notification(s) from Safe Space.`;
+      const body = You have ${unreadCount} unread notification(s) from Safe Space.;
 
-      await messaging.send({
-        token: patient.fcmToken,
+      await messaging.sendToDevice(patient.fcmToken, {
         notification: { title, body },
       });
 
@@ -68,19 +66,19 @@ exports.sendUnreadNotificationDigest = onSchedule({
         to: patient.email,
         from: {
           email: "safe3space@gmail.com",
-          name: `Safe Space - Dr. ${doctor.name || "Your Doctor"}`
+          name: Safe Space - Dr. ${doctor.name || "Your Doctor"}
         },
         replyTo: doctor.email,
         subject: "You Have Unread Notifications from Safe Space",
-        text: `Hello ${patient.name || "there"},\n\nYou have ${unreadCount} unread notification(s). Please open the Safe Space app to review them.`,
-        html: `<p>Hello ${patient.name || "there"},</p><p>You have <strong>${unreadCount}</strong> unread notification(s).</p><p><a href="https://yourapp.com">Open Safe Space</a> to review them.</p>`
+        text: Hello ${patient.name || "there"},\n\nYou have ${unreadCount} unread notification(s). Please open the Safe Space app to review them.,
+        html: <p>Hello ${patient.name || "there"},</p><p>You have <strong>${unreadCount}</strong> unread notification(s).</p><p><a href="https://yourapp.com">Open Safe Space</a> to review them.</p>
       };
 
       try {
         await sgMail.send(emailMsg);
-        logger.info(`📧 Email digest sent to ${patient.email}`);
+        logger.info(📧 Email digest sent to ${patient.email});
       } catch (e) {
-        logger.error(`❌ Failed to send email to ${patient.email}`, e);
+        logger.error(❌ Failed to send email to ${patient.email}, e);
       }
 
       const batch = db.batch();
@@ -88,12 +86,11 @@ exports.sendUnreadNotificationDigest = onSchedule({
         batch.update(doc.ref, { digestSent: true });
       });
       await batch.commit();
-      logger.info(`📬 Unread notification digest sent to ${patientId}`);
+      logger.info(📬 Unread notification digest sent to ${patientId});
     }
   }
 });
 
-// ✅ Appointment Confirmation Email
 exports.sendAppointmentConfirmationEmail = onDocumentCreated({
   document: "users/{userId}/appointments/{appointmentId}",
   region: "us-central1"
@@ -118,7 +115,7 @@ exports.sendAppointmentConfirmationEmail = onDocumentCreated({
   });
 
   const title = "Appointment Confirmed";
-  const body = `Your appointment is confirmed for ${apptTime}.`;
+  const body = Your appointment is confirmed for ${apptTime}.;
 
   await createNotification(userId, title, body);
 
@@ -126,23 +123,22 @@ exports.sendAppointmentConfirmationEmail = onDocumentCreated({
     to: user.email,
     from: {
       email: "safe3space@gmail.com",
-      name: `Safe Space - Dr. ${doctor.name || "Your Doctor"}`
+      name: Safe Space - Dr. ${doctor.name || "Your Doctor"}
     },
     replyTo: doctor.email,
     subject: "Your Appointment is Confirmed",
-    text: `Hello ${user.name || "there"},\n\nYour appointment is confirmed for ${apptTime}.`,
-    html: `<p>Hello ${user.name || "there"},</p><p>Your appointment is confirmed for <strong>${apptTime}</strong>.</p>`
+    text: Hello ${user.name || "there"},\n\nYour appointment is confirmed for ${apptTime}.,
+    html: <p>Hello ${user.name || "there"},</p><p>Your appointment is confirmed for <strong>${apptTime}</strong>.</p>
   };
 
   try {
     await sgMail.send(emailMsg);
-    logger.info(`📧 Appointment confirmation email sent to ${user.email}`);
+    logger.info(📧 Appointment confirmation email sent to ${user.email});
   } catch (e) {
-    logger.error(`❌ Failed to send confirmation email to ${user.email}`, e);
+    logger.error(❌ Failed to send confirmation email to ${user.email}, e);
   }
 });
 
-// ✅ Appointment Update Notification
 exports.notifyAppointmentChanged = onDocumentUpdated({
   document: "users/{userId}/appointments/{appointmentId}",
   region: "us-central1",
@@ -170,21 +166,23 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
       body = "Your appointment has been cancelled.";
     } else {
       title = "Appointment Status Updated";
-      body = `Your appointment status changed to "${after.status}".`;
+      body = Your appointment status changed to \"${after.status}\".;
     }
   } else if (
     before.note !== after.note ||
     before.dateTime.toMillis() !== after.dateTime.toMillis()
   ) {
     title = "Appointment Updated";
-    body = `Your appointment has been updated to ${formattedDate}.`;
+    body = Your appointment has been updated to ${formattedDate}.;
   }
 
   if (title && body) {
     await createNotification(userId, title, body);
     if (fcmToken) {
       try {
-        await messaging.send({ token: fcmToken, notification: { title, body } });
+        await messaging.sendToDevice(fcmToken, {
+          notification: { title, body },
+        });
       } catch (error) {
         logger.error("❌ FCM send error", error);
       }
@@ -192,7 +190,6 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
   }
 });
 
-// ✅ Notify Doctor When Patient Requests Rescheduling
 exports.notifyDoctorOnRescheduleRequest = onDocumentUpdated({
   document: "users/{patientId}/appointments/{appointmentId}",
   region: "us-central1",
@@ -222,23 +219,24 @@ exports.notifyDoctorOnRescheduleRequest = onDocumentUpdated({
   });
 
   const title = "Reschedule Request";
-  const body = `${patientData.name || "A patient"} requested to reschedule their appointment on ${formattedTime}.`;
+  const body = ${patientData.name || "A patient"} requested to reschedule their appointment on ${formattedTime}.;
 
   try {
-    await messaging.send({ token: doctorData.fcmToken, notification: { title, body } });
+    await messaging.sendToDevice(doctorData.fcmToken, {
+      notification: { title, body },
+    });
     await createNotification(doctorId, title, body);
-    logger.info(`📬 Reschedule request sent to doctor ${doctorId}`);
+    logger.info(📬 Reschedule request sent to doctor ${doctorId});
   } catch (error) {
     logger.error("❌ Error sending reschedule notification to doctor", error);
   }
 });
 
-// ✅ Notify Doctor of Drastic Readings
 exports.notifyDoctorOfDrasticRecording = onDocumentCreated({
   document: "users/{patientId}/readings/{readingId}",
   region: "us-central1",
 }, async (event) => {
-  logger.info(`📅 New reading created for patient ${event.params.patientId}`);
+  logger.info(📅 New reading created for patient ${event.params.patientId});
 
   const data = event.data.data();
   const patientId = event.params.patientId;
@@ -250,7 +248,7 @@ exports.notifyDoctorOfDrasticRecording = onDocumentCreated({
   const isSpo2Drastic = spo2 < 90;
 
   if (!(isHeartRateDrastic || isTempDrastic || isSpo2Drastic)) {
-    logger.info(`🔽 No drastic change for patient ${patientId}`);
+    logger.info(🔽 No drastic change for patient ${patientId});
     return;
   }
 
@@ -272,7 +270,7 @@ exports.notifyDoctorOfDrasticRecording = onDocumentCreated({
   let body = `${patient.name || "A patient"} has abnormal readings at ${recordedTime}: `;
   if (isHeartRateDrastic) body += `Heart Rate: ${heartRate} bpm. `;
   if (isTempDrastic) body += `Temperature: ${temperature}°C. `;
-  if (isSpo2Drastic) body += `SpO₂: ${spo2}%.`;
+  if (isSpo2Drastic) body += SpO₂: ${spo2}%.;
 
   const tenSecondsAgo = Timestamp.fromMillis(Date.now() - 10 * 1000);
   const recentNotif = await db.collection("users")
@@ -284,15 +282,14 @@ exports.notifyDoctorOfDrasticRecording = onDocumentCreated({
     .get();
 
   if (!recentNotif.empty) {
-    logger.info(`⏱ Skipped duplicate alert to doctor ${patient.doctorId}`);
+    logger.info(⏱ Skipped duplicate alert to doctor ${patient.doctorId});
     return;
   }
 
-  await messaging.send({
-    token: doctor.fcmToken,
+  await messaging.sendToDevice(doctor.fcmToken, {
     notification: { title, body },
   });
 
   await createNotification(patient.doctorId, title, body);
-  logger.info(`🚨 Drastic change notification sent to doctor ${patient.doctorId}`);
+  logger.info(🚨 Drastic change notification sent to doctor ${patient.doctorId});
 });
