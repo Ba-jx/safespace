@@ -1,6 +1,3 @@
-// ✅ All functions in this file already ensure notifications are only sent to
-// the *specific* patient or doctor involved in the event.
-// Updated to use sendToDevice for clarity and accuracy.
 
 const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
@@ -65,6 +62,7 @@ exports.sendUnreadNotificationDigest = onSchedule({
 
       await messaging.sendToDevice(patient.fcmToken, {
         notification: { title, body },
+        data: { type: "appointment_patient" }
       });
 
       const emailMsg = {
@@ -172,7 +170,7 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
       body = "Your appointment has been cancelled.";
     } else {
       title = "Appointment Status Updated";
-      body = `Your appointment status changed to \"${after.status}\".`;
+      body = `Your appointment status changed to "${after.status}".`;
     }
   } else if (
     before.note !== after.note ||
@@ -188,6 +186,7 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
       try {
         await messaging.sendToDevice(fcmToken, {
           notification: { title, body },
+          data: { type: "appointment_patient" }
         });
       } catch (error) {
         logger.error("❌ FCM send error", error);
@@ -230,6 +229,7 @@ exports.notifyDoctorOnRescheduleRequest = onDocumentUpdated({
   try {
     await messaging.sendToDevice(doctorData.fcmToken, {
       notification: { title, body },
+      data: { type: "appointment_doctor" }
     });
     await createNotification(doctorId, title, body);
     logger.info(`📬 Reschedule request sent to doctor ${doctorId}`);
@@ -294,6 +294,7 @@ exports.notifyDoctorOfDrasticRecording = onDocumentCreated({
 
   await messaging.sendToDevice(doctor.fcmToken, {
     notification: { title, body },
+    data: { type: "monitor" }
   });
 
   await createNotification(patient.doctorId, title, body);
