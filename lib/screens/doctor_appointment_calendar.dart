@@ -368,31 +368,16 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
 
                       return ListTile(
                         title: Text(name),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('${TimeOfDay.fromDateTime(time).format(context)} - $note'),
-                            const SizedBox(height: 4),
-                            Chip(
-                              label: Text(status.toUpperCase()),
-                              backgroundColor: {
-                                'confirmed': Colors.green[100],
-                                'rescheduled': Colors.blue[100],
-                              }[status] ?? Colors.grey[300],
-                              labelStyle: TextStyle(
-                                color: {
-                                  'confirmed': Colors.green,
-                                  'rescheduled': Colors.blue,
-                                }[status] ?? Colors.black,
-                                fontWeight: FontWeight.bold,
-                              ),
+                        subtitle: Text(
+  '\${TimeOfDay.fromDateTime(time).format(context)} - \$note  •  \${status.toUpperCase()}',
+  style: const TextStyle(fontWeight: FontWeight.w500),
+),
                               visualDensity: VisualDensity.compact,
                             ),
                           ],
                         ),
                         onTap: () => _showAppointmentDialog(existing: appt),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
+                        
                           onPressed: () async {
                             final confirm = await showDialog<bool>(
                               context: context,
