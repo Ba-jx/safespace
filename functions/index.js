@@ -33,7 +33,7 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
   const after = event.data.after.data();
   const userId = event.params.userId;
 
-  if (after.status === "reschedule_requested") return;
+  if (after.status === "rescheduled") return;
 
   const userDoc = await db.collection("users").doc(userId).get();
   const fcmToken = userDoc.exists && userDoc.data().fcmToken;
@@ -82,7 +82,7 @@ exports.notifyDoctorOnRescheduleRequest = onDocumentUpdated({
   const before = event.data.before.data();
   const after = event.data.after.data();
 
-  if (before.status === after.status || after.status !== "reschedule_requested") return;
+  if (before.status === after.status || after.status !== "rescheduled") return;
 
   const patientId = event.params.patientId;
   const patientDoc = await db.collection("users").doc(patientId).get();
@@ -169,12 +169,12 @@ exports.notifyDoctorOfDrasticRecording = onDocumentCreated({
   if (isTempDrastic) body += `Temperature: ${temperature}°C. `;
   if (isSpo2Drastic) body += `SpO₂: ${spo2}%.`;
 
-  const oneHourAgo = Timestamp.fromMillis(Date.now() - 60 * 60 * 1000);
+  const tenSecondsAgo = Timestamp.fromMillis(Date.now() - 10 * 1000);
   const recentNotif = await db.collection("users")
     .doc(patient.doctorId)
     .collection("notifications")
     .where("title", "==", title)
-    .where("timestamp", ">=", oneHourAgo)
+    .where("timestamp", ">=", tenSecondsAgo)
     .limit(1)
     .get();
 
