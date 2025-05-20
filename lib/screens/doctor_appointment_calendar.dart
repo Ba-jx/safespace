@@ -286,7 +286,7 @@ Future<void> _showEditAppointmentDialog(Map<String, dynamic> apptData) async {
                     await ref.update({
                       'doctorId': doctorId,
                       'patientId': patientId,
-                      'patientName': selectedPatient['name'],
+                      'patientName': selectedPatient?['name'],
                       'note': noteController.text.trim(),
                       'dateTime': Timestamp.fromDate(newDateTime),
                       'status': 'rescheduled',
