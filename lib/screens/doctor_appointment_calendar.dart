@@ -300,7 +300,7 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
     final appointments = _getAppointmentsForDay(_selectedDay ?? _focusedDay);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Doctor Appointment Calendar'),
+        title: const Text('Appointments Calendar'),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12.0),
