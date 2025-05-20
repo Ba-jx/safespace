@@ -185,43 +185,36 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
       ),
     );
   }
-Future<void> _showEditAppointmentDialog(Map<String, dynamic> apptData) async {
-  final doctorId = FirebaseAuth.instance.currentUser?.uid;
-  if (doctorId == null || _patients.isEmpty) return;
 
-  DocumentSnapshot? selectedPatient = _patients.firstWhere(
-    (doc) => doc.id == apptData['patientId'],
-    orElse: () => _patients.first,
-  );
-  DateTime selectedDate = (apptData['dateTime'] as Timestamp).toDate();
-  final noteController = TextEditingController(text: apptData['note'] ?? '');
-  final DocumentReference ref = apptData['ref'];
+  Future<void> _showEditAppointmentDialog(Map<String, dynamic> apptData) async {
+    final doctorId = FirebaseAuth.instance.currentUser?.uid;
+    if (doctorId == null || _patients.isEmpty) return;
 
-  final existingTimes = _getAppointmentsForDay(selectedDate)
-      .where((appt) => appt['status'] == 'confirmed' && appt['ref'] != ref)
-      .map((appt) => (appt['dateTime'] as Timestamp).toDate().hour)
-      .toSet();
-
-  final availableSlots = List.generate(8, (i) => 9 + i)
-      .where((h) => !existingTimes.contains(h))
-      .toList();
-
-  if (availableSlots.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('No available time slots to reschedule.')),
+    DocumentSnapshot? selectedPatient = _patients.firstWhere(
+      (doc) => doc.id == apptData['patientId'],
+      orElse: () => _patients.first,
     );
-    return;
-  }
+    DateTime selectedDate = (apptData['dateTime'] as Timestamp).toDate();
+    final noteController = TextEditingController(text: apptData['note'] ?? '');
+    final DocumentReference ref = apptData['ref'];
 
-  TimeOfDay? selectedTime = TimeOfDay.fromDateTime(selectedDate);
+    final existingTimes = _getAppointmentsForDay(selectedDate)
+        .where((appt) => appt['status'] == 'confirmed' && appt['ref'] != ref)
+        .map((appt) => (appt['dateTime'] as Timestamp).toDate().hour)
+        .toSet();
 
-  await showDialog(
-    context: context,
-    builder: (context) => StatefulBuilder(
-      builder: (context, setModalState) => AlertDialog(
-        title: const Text('Edit Appointment'),
-        content: SingleChildScrollView(
-          child: Column(
+    final availableSlots = List.generate(8, (i) => 9 + i)
+        .where((h) => !existingTimes.contains(h))
+        .toList();
+
+    TimeOfDay? selectedTime = TimeOfDay.fromDateTime(selectedDate);
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => AlertDialog(
+          title: const Text('Edit Appointment'),
+          content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButton<DocumentSnapshot>(
@@ -244,66 +237,65 @@ Future<void> _showEditAppointmentDialog(Map<String, dynamic> apptData) async {
                     lastDate: DateTime.now().add(const Duration(days: 365)),
                   );
                   if (picked != null) {
-                    setModalState(() {
-                      selectedDate = picked;
-                    });
+                    setModalState(() => selectedDate = picked);
                   }
                 },
               ),
-              DropdownButton<TimeOfDay>(
-                value: availableSlots.contains(selectedTime!.hour)
-                    ? selectedTime
-                    : TimeOfDay(hour: availableSlots.first, minute: 0),
-                isExpanded: true,
-                onChanged: (val) => setModalState(() => selectedTime = val),
-                items: availableSlots.map((hour) {
-                  final time = TimeOfDay(hour: hour, minute: 0);
-                  return DropdownMenuItem(value: time, child: Text(time.format(context)));
-                }).toList(),
-              ),
+              if (availableSlots.isNotEmpty)
+                DropdownButton<TimeOfDay>(
+                  value: availableSlots.contains(selectedTime!.hour)
+                      ? selectedTime
+                      : TimeOfDay(hour: availableSlots.first, minute: 0),
+                  isExpanded: true,
+                  onChanged: (val) => setModalState(() => selectedTime = val),
+                  items: availableSlots.map((hour) {
+                    final time = TimeOfDay(hour: hour, minute: 0);
+                    return DropdownMenuItem(value: time, child: Text(time.format(context)));
+                  }).toList(),
+                )
+              else
+                const Text('No available slots'),
               TextField(
                 controller: noteController,
                 decoration: const InputDecoration(labelText: 'Note'),
               ),
             ],
           ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: selectedTime == null
+                  ? null
+                  : () async {
+                      final newDateTime = DateTime(
+                        selectedDate.year,
+                        selectedDate.month,
+                        selectedDate.day,
+                        selectedTime!.hour,
+                        selectedTime!.minute,
+                      );
+                      final patientId = selectedPatient!.id;
+
+                      await ref.update({
+                        'doctorId': doctorId,
+                        'patientId': patientId,
+                        'patientName': selectedPatient?['name'],
+                        'note': noteController.text.trim(),
+                        'dateTime': Timestamp.fromDate(newDateTime),
+                        'status': 'rescheduled',
+                      });
+
+                      if (!mounted) return;
+                      Navigator.pop(context);
+                      await _fetchAppointments();
+                    },
+              child: const Text('Update'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: selectedTime == null
-                ? null
-                : () async {
-                    final newDateTime = DateTime(
-                      selectedDate.year,
-                      selectedDate.month,
-                      selectedDate.day,
-                      selectedTime!.hour,
-                      selectedTime!.minute,
-                    );
-                    final patientId = selectedPatient!.id;
-
-                    await ref.update({
-                      'doctorId': doctorId,
-                      'patientId': patientId,
-                      'patientName': selectedPatient?['name'],
-                      'note': noteController.text.trim(),
-                      'dateTime': Timestamp.fromDate(newDateTime),
-                      'status': 'rescheduled',
-                    });
-
-                    if (!mounted) return;
-                    Navigator.pop(context);
-                    await _fetchAppointments();
-                  },
-            child: const Text('Update'),
-          ),
-        ],
       ),
-    ),
-  );
-}
-
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -422,30 +414,30 @@ Future<void> _showEditAppointmentDialog(Map<String, dynamic> apptData) async {
                           ],
                         ),
                         trailing: Row(
-  mainAxisSize: MainAxisSize.min,
-  children: [
-    IconButton(
-      icon: const Icon(Icons.edit, color: Colors.blue),
-      onPressed: () => _showEditAppointmentDialog(appt),
-    ), IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () async {
-                            final confirm = await showDialog<bool>(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Text('Confirm Deletion'),
-                                content: const Text('Are you sure you want to cancel this appointment?'),
-                                actions: [
-                                  TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('No')),
-                                  ElevatedButton(
-                                    onPressed: () => Navigator.pop(context, true),
-                                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                                    child: const Text('Yes'),
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit, color: Colors.blue),
+                              onPressed: () => _showEditAppointmentDialog(appt),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () async {
+                                final confirm = await showDialog<bool>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('Confirm Deletion'),
+                                    content: const Text('Are you sure you want to cancel this appointment?'),
+                                    actions: [
+                                      TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('No')),
+                                      ElevatedButton(
+                                        onPressed: () => Navigator.pop(context, true),
+                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                                        child: const Text('Yes'),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                            );
-
+                                );
                             if (confirm == true && ref != null) {
                               await ref.update({'status': 'cancelled'});
                               await _fetchAppointments();
