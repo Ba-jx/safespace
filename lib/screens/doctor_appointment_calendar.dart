@@ -446,7 +446,7 @@ Future<void> _showEditAppointmentDialog(Map<String, dynamic> apptData) async {
                             }
                           },
                         ),
-                      );
+                    ])  );
                     }).toList(),
                   ),
           ),
