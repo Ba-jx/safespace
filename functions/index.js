@@ -27,8 +27,9 @@ async function createNotification(userId, title, body) {
   logger.info(🔔 Notification created for user: ${userId});
 }
 
+// ✅ Unread Notification Digest (6:00 PM)
 exports.sendUnreadNotificationDigest = onSchedule({
-  schedule: "0 18 * * *",
+  schedule: "0 18 * * *", // 6:00 PM
   timeZone: "Asia/Amman",
   region: "us-central1"
 }, async () => {
@@ -58,7 +59,8 @@ exports.sendUnreadNotificationDigest = onSchedule({
       const title = "You Have Unread Notifications";
       const body = You have ${unreadCount} unread notification(s) from Safe Space.;
 
-      await messaging.sendToDevice(patient.fcmToken, {
+      await messaging.send({
+        token: patient.fcmToken,
         notification: { title, body },
       });
 
@@ -91,6 +93,7 @@ exports.sendUnreadNotificationDigest = onSchedule({
   }
 });
 
+// ✅ Appointment Confirmation Email
 exports.sendAppointmentConfirmationEmail = onDocumentCreated({
   document: "users/{userId}/appointments/{appointmentId}",
   region: "us-central1"
@@ -139,6 +142,7 @@ exports.sendAppointmentConfirmationEmail = onDocumentCreated({
   }
 });
 
+// ✅ Appointment Update Notification
 exports.notifyAppointmentChanged = onDocumentUpdated({
   document: "users/{userId}/appointments/{appointmentId}",
   region: "us-central1",
@@ -166,7 +170,7 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
       body = "Your appointment has been cancelled.";
     } else {
       title = "Appointment Status Updated";
-      body = Your appointment status changed to \"${after.status}\".;
+      body = Your appointment status changed to "${after.status}".;
     }
   } else if (
     before.note !== after.note ||
@@ -180,9 +184,7 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
     await createNotification(userId, title, body);
     if (fcmToken) {
       try {
-        await messaging.sendToDevice(fcmToken, {
-          notification: { title, body },
-        });
+        await messaging.send({ token: fcmToken, notification: { title, body } });
       } catch (error) {
         logger.error("❌ FCM send error", error);
       }
@@ -190,6 +192,7 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
   }
 });
 
+// ✅ Notify Doctor When Patient Requests Rescheduling
 exports.notifyDoctorOnRescheduleRequest = onDocumentUpdated({
   document: "users/{patientId}/appointments/{appointmentId}",
   region: "us-central1",
@@ -222,9 +225,7 @@ exports.notifyDoctorOnRescheduleRequest = onDocumentUpdated({
   const body = ${patientData.name || "A patient"} requested to reschedule their appointment on ${formattedTime}.;
 
   try {
-    await messaging.sendToDevice(doctorData.fcmToken, {
-      notification: { title, body },
-    });
+    await messaging.send({ token: doctorData.fcmToken, notification: { title, body } });
     await createNotification(doctorId, title, body);
     logger.info(📬 Reschedule request sent to doctor ${doctorId});
   } catch (error) {
@@ -232,6 +233,7 @@ exports.notifyDoctorOnRescheduleRequest = onDocumentUpdated({
   }
 });
 
+// ✅ Notify Doctor of Drastic Readings
 exports.notifyDoctorOfDrasticRecording = onDocumentCreated({
   document: "users/{patientId}/readings/{readingId}",
   region: "us-central1",
@@ -286,7 +288,8 @@ exports.notifyDoctorOfDrasticRecording = onDocumentCreated({
     return;
   }
 
-  await messaging.sendToDevice(doctor.fcmToken, {
+  await messaging.send({
+    token: doctor.fcmToken,
     notification: { title, body },
   });
 
