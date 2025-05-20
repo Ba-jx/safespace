@@ -147,7 +147,7 @@ class _MaterialAppWithFCMState extends State<MaterialAppWithFCM> {
         navigatorKey.currentState?.pushNamed('/doctor/calendar');
         break;
       case 'monitor':
-        navigatorKey.currentState?.pushNamed('/real-time-monitor');
+        navigatorKey.currentState?.pushNamed('/doctor/patients');
         break;
       default:
         navigatorKey.currentState?.pushNamed('/home');
