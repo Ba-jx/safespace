@@ -209,7 +209,7 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                   Navigator.pop(context);
                   await _fetchConfirmedAppointments();
                 },
-                child: const Text('Cancel Appointment', style: TextStyle(color: Colors.red)),
+                child: const Text('Delete', style: TextStyle(color: Colors.red)),
               ),
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
             ElevatedButton(
