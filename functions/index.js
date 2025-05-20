@@ -26,7 +26,7 @@ async function createNotification(userId, title, body) {
 
 // ✅ Unread Notification Digest
 exports.sendUnreadNotificationDigest = onSchedule({
-  schedule: "30 18 * * *",
+  schedule: "0 18 * * *",
   timeZone: "Asia/Amman",
   region: "us-central1"
 }, async () => {
