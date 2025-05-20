@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -175,12 +176,12 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                           firstDate: DateTime.now(),
                           lastDate: DateTime.now().add(const Duration(days: 365)),
                           selectableDayPredicate: (date) {
-  final today = DateTime.now();
-  final dateOnly = DateTime(date.year, date.month, date.day);
-  final todayOnly = DateTime(today.year, today.month, today.day);
-  return dateOnly.isAtSameMomentAs(todayOnly) || dateOnly.isAfter(todayOnly) && !_isDateFullyBooked(date);
-},
-
+                          final now = DateTime.now();
+                          final isPast = date.year < now.year ||
+                              (date.year == now.year && date.month < now.month) ||
+                              (date.year == now.year && date.month == now.month && date.day < now.day);
+                          return !isPast && !_isDateFullyBooked(date);
+                        },
                         );
                         if (picked != null) {
                           setModalState(() async {
@@ -317,7 +318,9 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: (_selectedDay ?? _focusedDay).isBefore(DateTime.now())
+          ? null
+          : FloatingActionButton(
         onPressed: _showAppointmentDialog,
         backgroundColor: Colors.purple,
         child: const Icon(Icons.add),
