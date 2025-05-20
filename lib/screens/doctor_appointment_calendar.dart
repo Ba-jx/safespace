@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -243,13 +242,19 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                   selectedTime!.minute,
                 );
 
-                if (dateTime.difference(DateTime.now()).inMinutes < 60) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text('Appointments must be scheduled at least 1 hour in advance.')),
-  );
-  return;
-}
+                if (dateTime.isBefore(DateTime.now())) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Cannot book appointments in the past.')),
+                  );
+                  return;
+                }
 
+                if (dateTime.difference(DateTime.now()).inMinutes < 60) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Appointments must be scheduled at least 1 hour in advance.')),
+                  );
+                  return;
+                }
 
                 final data = {
                   'patientId': selectedPatientId,
