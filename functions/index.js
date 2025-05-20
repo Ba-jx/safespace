@@ -191,3 +191,61 @@ exports.notifyDoctorOfDrasticRecording = onDocumentCreated({
   await createNotification(patient.doctorId, title, body);
   logger.info(`🚨 Drastic change notification sent to doctor ${patient.doctorId}`);
 });
+
+// ✅ Daily Appointment Reminder (for next-day appointments)
+exports.sendTomorrowAppointmentReminder = onSchedule({
+  schedule: "0 16 * * *", // every day at 4:00 PM Jordan time
+  timeZone: "Asia/Amman",
+  region: "us-central1",
+}, async () => {
+  const now = new Date();
+  const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+
+  const start = Timestamp.fromDate(tomorrow);
+  const end = Timestamp.fromDate(new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate() + 1));
+
+  const patients = await db.collection("users").where("role", "==", "patient").get();
+
+  for (const patientDoc of patients.docs) {
+    const patient = patientDoc.data();
+    const patientId = patientDoc.id;
+    if (!patient.fcmToken) continue;
+
+    const appointments = await db
+      .collection("users")
+      .doc(patientId)
+      .collection("appointments")
+      .where("status", "==", "confirmed")
+      .where("dateTime", ">=", start)
+      .where("dateTime", "<", end)
+      .get();
+
+    for (const appt of appointments.docs) {
+      const apptData = appt.data();
+
+      const apptTime = apptData.dateTime.toDate().toLocaleString("en-US", {
+        timeZone: "Asia/Amman",
+        weekday: "long", year: "numeric", month: "long", day: "numeric",
+        hour: "2-digit", minute: "2-digit"
+      });
+
+      const title = "Reminder: Appointment Tomorrow";
+      const body = `You have an appointment tomorrow at ${apptTime}.`;
+
+      await messaging.send({
+        token: patient.fcmToken,
+        notification: { title, body },
+      });
+
+      await db.collection("users").doc(patientId).collection("notifications").add({
+        title,
+        body,
+        timestamp: Timestamp.now(),
+        read: false,
+        digestSent: false
+      });
+
+      console.log(`📅 Reminder sent to ${patientId} for ${apptTime}`);
+    }
+  }
+});
