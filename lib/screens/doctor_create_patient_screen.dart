@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 
 class DoctorCreatesPatientScreen extends StatefulWidget {
   const DoctorCreatesPatientScreen({super.key});
@@ -30,11 +32,19 @@ class _DoctorCreatesPatientScreenState extends State<DoctorCreatesPatientScreen>
         password: _passwordController.text.trim(),
       );
 
-      await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
+      final hashedPassword = sha256
+          .convert(utf8.encode(_passwordController.text.trim()))
+          .toString();
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .set({
         'name': _nameController.text.trim(),
         'email': _emailController.text.trim(),
         'role': 'patient',
         'doctorId': doctorId,
+        'hashedPassword': hashedPassword,
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -57,7 +67,6 @@ class _DoctorCreatesPatientScreenState extends State<DoctorCreatesPatientScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Drawer removed to avoid Provider error
       appBar: AppBar(title: const Text('Create Patient Account')),
       body: Padding(
         padding: const EdgeInsets.all(24),
@@ -72,22 +81,30 @@ class _DoctorCreatesPatientScreenState extends State<DoctorCreatesPatientScreen>
               const SizedBox(height: 24),
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Patient Name', border: OutlineInputBorder()),
-                validator: (value) => value == null || value.isEmpty ? 'Enter a name' : null,
+                decoration: const InputDecoration(
+                    labelText: 'Patient Name', border: OutlineInputBorder()),
+                validator: (value) =>
+                    value == null || value.isEmpty ? 'Enter a name' : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                    labelText: 'Email', border: OutlineInputBorder()),
                 keyboardType: TextInputType.emailAddress,
-                validator: (value) => value == null || !value.contains('@') ? 'Enter valid email' : null,
+                validator: (value) => value == null || !value.contains('@')
+                    ? 'Enter valid email'
+                    : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _passwordController,
-                decoration: const InputDecoration(labelText: 'Password', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                    labelText: 'Password', border: OutlineInputBorder()),
                 obscureText: true,
-                validator: (value) => value == null || value.length < 6 ? 'Password too short' : null,
+                validator: (value) => value == null || value.length < 6
+                    ? 'Password too short'
+                    : null,
               ),
               const SizedBox(height: 24),
               ElevatedButton(
