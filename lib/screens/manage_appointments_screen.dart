@@ -84,11 +84,15 @@ class _ManageAppointmentsScreenState extends State<ManageAppointmentsScreen> {
                   return const Center(child: Text('No appointments found.'));
                 }
 
-                final appointments = snapshot.data!.docs.where((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  final patientName = (data['patientName'] ?? 'Unknown').toLowerCase();
-                  return patientName.contains(_searchQuery);
-                }).toList();
+               final appointments = snapshot.data!.docs.where((doc) {
+  final data = doc.data() as Map<String, dynamic>;
+  final status = data['status'] ?? '';
+  if (status == 'completed') return false;
+
+  final patientName = (data['patientName'] ?? 'Unknown').toLowerCase();
+  return patientName.contains(_searchQuery);
+}).toList();
+
 
                 if (appointments.isEmpty) {
                   return const Center(child: Text('No matching results.'));
