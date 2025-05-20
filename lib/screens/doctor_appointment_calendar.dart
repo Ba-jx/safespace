@@ -1,4 +1,5 @@
 
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -299,40 +300,34 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
   Widget build(BuildContext context) {
     final appointments = _getAppointmentsForDay(_selectedDay ?? _focusedDay);
     return Scaffold(
-      appBar: AppBar(title: const Text('Appointments Calendar')),
-      floatingActionButton: isPastDay
-          ? null
-          : FloatingActionButton(
-              onPressed: _showAppointmentDialog,
-              backgroundColor: Colors.purple,
-              child: const Icon(Icons.add),
-            ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      appBar: AppBar(
+        title: const Text('Appointments Calendar'),
+        actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 16.0, top: 12, left: 16.0, bottom: 6),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _focusedDay = DateTime.now();
-                    _selectedDay = DateTime.now();
-                  });
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.purple,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
-                  elevation: 4,
-                ),
-                icon: const Icon(Icons.calendar_today, size: 18),
-                label: const Text('Current Week', style: TextStyle(fontWeight: FontWeight.w500)),
-              ),
+            padding: const EdgeInsets.only(right: 12.0),
+            child: ElevatedButton.icon(
+              onPressed: () {
+                setState(() {
+                  _focusedDay = DateTime.now();
+                  _selectedDay = DateTime.now();
+                });
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.purple, foregroundColor: Colors.white),
+              icon: const Icon(Icons.calendar_today, size: 18),
+              label: const Text('Current Week'),
             ),
           ),
+        ],
+      ),
+      floatingActionButton: (_selectedDay ?? _focusedDay).isBefore(DateTime.now())
+          ? null
+          : FloatingActionButton(
+        onPressed: _showAppointmentDialog,
+        backgroundColor: Colors.purple,
+        child: const Icon(Icons.add),
+      ),
+      body: Column(
+        children: [
           TableCalendar(
             firstDay: DateTime.utc(2024, 1, 1),
             lastDay: DateTime.utc(2030, 12, 31),
@@ -360,14 +355,9 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                     children: statuses.map((status) {
                       Color color;
                       switch (status) {
-                        case 'confirmed':
-                          color = Colors.green;
-                          break;
-                        case 'rescheduled':
-                          color = Colors.blue;
-                          break;
-                        default:
-                          color = Colors.grey;
+                        case 'confirmed': color = Colors.green; break;
+                        case 'rescheduled': color = Colors.blue; break;
+                        default: color = Colors.grey;
                       }
                       return Container(
                         margin: const EdgeInsets.symmetric(horizontal: 1.5),
