@@ -35,15 +35,18 @@ class _PatientAppointmentCalendarState extends State<PatientAppointmentCalendar>
 
     final Map<DateTime, List<Map<String, dynamic>>> grouped = {};
 
-    for (var doc in snapshot.docs) {
-      final data = doc.data();
-      final timestamp = data['dateTime'];
-      if (timestamp is Timestamp) {
-        final date = DateTime(timestamp.toDate().year, timestamp.toDate().month, timestamp.toDate().day);
-        grouped[date] = grouped[date] ?? [];
-        grouped[date]!.add({...data, 'docId': doc.id});
-      }
-    }
+   for (var doc in snapshot.docs) {
+  final data = doc.data();
+  if (data['status'] == 'cancelled') continue;
+
+  final timestamp = data['dateTime'];
+  if (timestamp is Timestamp) {
+    final date = DateTime(timestamp.toDate().year, timestamp.toDate().month, timestamp.toDate().day);
+    grouped[date] = grouped[date] ?? [];
+    grouped[date]!.add({...data, 'docId': doc.id});
+  }
+}
+
 
     if (!mounted) return;
     setState(() {
