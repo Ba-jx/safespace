@@ -296,7 +296,7 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                     await ref.update({
                       'doctorId': doctorId,
                       'patientId': patientId,
-                      'patientName': selectedPatient['name'],
+                      'patientName': selectedPatient?['name'],
                       'note': noteController.text.trim(),
                       'dateTime': Timestamp.fromDate(newDateTime),
                       'status': 'rescheduled',
