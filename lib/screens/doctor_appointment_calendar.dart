@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -364,42 +365,14 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                       final note = appt['note'] ?? '';
                       final time = (appt['dateTime'] as Timestamp).toDate();
                       final status = appt['status'] ?? 'unknown';
-                      final ref = appt['ref'] as DocumentReference?;
 
                       return ListTile(
                         title: Text(name),
                         subtitle: Text(
-  '\${TimeOfDay.fromDateTime(time).format(context)} - \$note  •  \${status.toUpperCase()}',
-  style: const TextStyle(fontWeight: FontWeight.w500),
-),
-                              visualDensity: VisualDensity.compact,
-                            ),
-                          ],
+                          '${TimeOfDay.fromDateTime(time).format(context)} - $note  •  ${status.toUpperCase()}',
+                          style: const TextStyle(fontWeight: FontWeight.w500),
                         ),
                         onTap: () => _showAppointmentDialog(existing: appt),
-                        
-                          onPressed: () async {
-                            final confirm = await showDialog<bool>(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Text('Confirm Deletion'),
-                                content: const Text('Are you sure you want to cancel this appointment?'),
-                                actions: [
-                                  TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('No')),
-                                  ElevatedButton(
-                                    onPressed: () => Navigator.pop(context, true),
-                                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                                    child: const Text('Yes'),
-                                  ),
-                                ],
-                              ),
-                            );
-                            if (confirm == true && ref != null) {
-                              await ref.update({'status': 'cancelled'});
-                              await _fetchAppointments();
-                            }
-                          },
-                        ),
                       );
                     }).toList(),
                   ),
