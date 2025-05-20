@@ -297,3 +297,52 @@ exports.notifyDoctorOfDrasticRecording = onDocumentCreated({
   await createNotification(patient.doctorId, title, body);
   logger.info(`🚨 Drastic change notification sent to doctor ${patient.doctorId}`);
 });
+
+// ✅ Appointment Updated
+exports.notifyAppointmentChanged = onDocumentUpdated({
+  document: "users/{userId}/appointments/{appointmentId}",
+  region: "us-central1",
+}, async (event) => {
+  const before = event.data.before.data();
+  const after = event.data.after.data();
+  const userId = event.params.userId;
+
+  if (after.status === "rescheduled") return;
+
+  const userDoc = await db.collection("users").doc(userId).get();
+  const fcmToken = userDoc.exists && userDoc.data().fcmToken;
+
+  const formattedDate = after.dateTime.toDate().toLocaleString("en-US", {
+    timeZone: "Asia/Amman",
+    weekday: "long", year: "numeric", month: "long", day: "numeric",
+    hour: "2-digit", minute: "2-digit"
+  });
+
+  let title = "", body = "";
+
+  if (before.status !== after.status) {
+    if (after.status.toLowerCase() === "cancelled") {
+      title = "Appointment Canceled";
+      body = "Your appointment has been cancelled.";
+    } else {
+      title = "Appointment Status Updated";
+      body = `Your appointment status changed to "${after.status}".`;
+    }
+  } else if (
+    before.note !== after.note ||
+    before.dateTime.toMillis() !== after.dateTime.toMillis()
+  ) {
+    title = "Appointment Updated";
+    body = `Your appointment has been updated to ${formattedDate}.`;
+  }
+
+  if (title && body) {
+    await createNotification(userId, title, body);
+    if (fcmToken) {
+      await messaging.sendToDevice(fcmToken, {
+        data: { title, body, type: "appointment_patient" }
+      });
+    }
+  }
+});
+
