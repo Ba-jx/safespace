@@ -185,7 +185,6 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
       ),
     );
   }
-// Add this function below _showAddAppointmentDialog()
 Future<void> _showEditAppointmentDialog(Map<String, dynamic> apptData) async {
   final doctorId = FirebaseAuth.instance.currentUser?.uid;
   if (doctorId == null || _patients.isEmpty) return;
@@ -207,6 +206,13 @@ Future<void> _showEditAppointmentDialog(Map<String, dynamic> apptData) async {
       .where((h) => !existingTimes.contains(h))
       .toList();
 
+  if (availableSlots.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('No available time slots to reschedule.')),
+    );
+    return;
+  }
+
   TimeOfDay? selectedTime = TimeOfDay.fromDateTime(selectedDate);
 
   await showDialog(
@@ -214,36 +220,36 @@ Future<void> _showEditAppointmentDialog(Map<String, dynamic> apptData) async {
     builder: (context) => StatefulBuilder(
       builder: (context, setModalState) => AlertDialog(
         title: const Text('Edit Appointment'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            DropdownButton<DocumentSnapshot>(
-              value: selectedPatient,
-              isExpanded: true,
-              onChanged: (val) => setModalState(() => selectedPatient = val),
-              items: _patients.map((doc) {
-                final name = doc['name'] ?? 'Unnamed';
-                return DropdownMenuItem(value: doc, child: Text(name));
-              }).toList(),
-            ),
-            ListTile(
-              title: const Text('Date'),
-              subtitle: Text('${selectedDate.toLocal()}'.split(' ')[0]),
-              onTap: () async {
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: selectedDate,
-                  firstDate: DateTime.now(),
-                  lastDate: DateTime.now().add(const Duration(days: 365)),
-                );
-                if (picked != null) {
-                  setModalState(() {
-                    selectedDate = picked;
-                  });
-                }
-              },
-            ),
-            if (availableSlots.isNotEmpty)
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButton<DocumentSnapshot>(
+                value: selectedPatient,
+                isExpanded: true,
+                onChanged: (val) => setModalState(() => selectedPatient = val),
+                items: _patients.map((doc) {
+                  final name = doc['name'] ?? 'Unnamed';
+                  return DropdownMenuItem(value: doc, child: Text(name));
+                }).toList(),
+              ),
+              ListTile(
+                title: const Text('Date'),
+                subtitle: Text('${selectedDate.toLocal()}'.split(' ')[0]),
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: selectedDate,
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                  );
+                  if (picked != null) {
+                    setModalState(() {
+                      selectedDate = picked;
+                    });
+                  }
+                },
+              ),
               DropdownButton<TimeOfDay>(
                 value: availableSlots.contains(selectedTime!.hour)
                     ? selectedTime
@@ -254,14 +260,13 @@ Future<void> _showEditAppointmentDialog(Map<String, dynamic> apptData) async {
                   final time = TimeOfDay(hour: hour, minute: 0);
                   return DropdownMenuItem(value: time, child: Text(time.format(context)));
                 }).toList(),
-              )
-            else
-              const Text('No available slots'),
-            TextField(
-              controller: noteController,
-              decoration: const InputDecoration(labelText: 'Note'),
-            ),
-          ],
+              ),
+              TextField(
+                controller: noteController,
+                decoration: const InputDecoration(labelText: 'Note'),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
@@ -281,7 +286,7 @@ Future<void> _showEditAppointmentDialog(Map<String, dynamic> apptData) async {
                     await ref.update({
                       'doctorId': doctorId,
                       'patientId': patientId,
-                      'patientName': selectedPatient?['name'],
+                      'patientName': selectedPatient['name'],
                       'note': noteController.text.trim(),
                       'dateTime': Timestamp.fromDate(newDateTime),
                       'status': 'rescheduled',
@@ -298,6 +303,7 @@ Future<void> _showEditAppointmentDialog(Map<String, dynamic> apptData) async {
     ),
   );
 }
+
 
   @override
   Widget build(BuildContext context) {
