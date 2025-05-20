@@ -43,7 +43,7 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
           timestamp.toDate().day,
         );
         grouped[date] = grouped[date] ?? [];
-        if (grouped[date]!.length < 8) { // Limit to 8 appointments per day
+        if (grouped[date]!.length < 8) {
           grouped[date]!.add({...data, 'docId': doc.id, 'ref': doc.reference});
         }
       }
@@ -204,12 +204,12 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
             if (existing != null)
               TextButton(
                 onPressed: () async {
-                  await (existing['ref'] as DocumentReference).delete();
+                  await (existing['ref'] as DocumentReference).update({'status': 'cancelled'});
                   if (!mounted) return;
                   Navigator.pop(context);
                   await _fetchConfirmedAppointments();
                 },
-                child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                child: const Text('Cancel Appointment', style: TextStyle(color: Colors.red)),
               ),
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
             ElevatedButton(
