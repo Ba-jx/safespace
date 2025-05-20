@@ -243,12 +243,13 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                   selectedTime!.minute,
                 );
 
-                if (dateTime.difference(DateTime.now()).inHours < 12) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Appointments must be scheduled at least 12 hours in advance.')),
-                  );
-                  return;
-                }
+                if (dateTime.difference(DateTime.now()).inMinutes < 60) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text('Appointments must be scheduled at least 1 hour in advance.')),
+  );
+  return;
+}
+
 
                 final data = {
                   'patientId': selectedPatientId,
