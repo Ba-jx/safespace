@@ -174,7 +174,13 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                           initialDate: selectedDate,
                           firstDate: DateTime.now(),
                           lastDate: DateTime.now().add(const Duration(days: 365)),
-                          selectableDayPredicate: (date) => !_isDateFullyBooked(date),
+                          selectableDayPredicate: (date) {
+                          final now = DateTime.now();
+                          final isPast = date.year < now.year ||
+                              (date.year == now.year && date.month < now.month) ||
+                              (date.year == now.year && date.month == now.month && date.day < now.day);
+                          return !isPast && !_isDateFullyBooked(date);
+                        },
                         );
                         if (picked != null) {
                           setModalState(() async {
@@ -242,7 +248,8 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                   selectedTime!.minute,
                 );
 
-                if (dateTime.isBefore(DateTime.now())) {
+                final now = DateTime.now();
+                if (dateTime.isBefore(now)) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Cannot book appointments in the past.')),
                   );
