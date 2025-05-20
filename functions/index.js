@@ -21,7 +21,7 @@ async function createNotification(userId, title, body) {
     read: false,
     digestSent: false,
   });
-  logger.info(🔔 Notification created for user: ${userId});
+  logger.info('🔔 Notification created for user: ${userId}');
 }
 
 // ✅ Unread Message Digest
