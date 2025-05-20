@@ -76,7 +76,7 @@ exports.sendUnreadNotificationDigest = onSchedule({
       replyTo: doctor.email,
       subject: "You Have Unread Notifications from Safe Space",
       text: `Hello ${patient.name || "there"},\n\nYou have ${unreadCount} unread notification(s). Please open the Safe Space app to review them.`,
-      html: `<p>Hello ${patient.name || "there"},</p><p>You have <strong>${unreadCount}</strong> unread notification(s).</p><p><a href="https://yourapp.com">Open Safe Space</a> to review them.</p>`
+      html: `<p>Hello ${patient.name || "there"},</p><p>You have <strong>${unreadCount}</strong> unread notification(s).</p><p>Open Safe Space to review them.</p>`
     };
 
     try {
