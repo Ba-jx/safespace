@@ -147,7 +147,7 @@ class _DoctorLoginScreenState extends State<DoctorLoginScreen> {
                           ),
                         ),
                         const SizedBox(height: 24),
-                        Image.asset('assets/images/doctor_login_illustration.png', height: 180),
+                        Image.asset('assets/images/doctor_login_illustration.jpg', height: 180),
                         const SizedBox(height: 32),
                         TextFormField(
                           controller: _emailController,
