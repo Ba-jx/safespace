@@ -28,27 +28,15 @@ class RoleSelectionScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo with soft shadow
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
-                          blurRadius: 12,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: Image.asset(
-                      'assets/images/safe_space_logo1.png',
-                      height: 100,
-                      fit: BoxFit.contain,
-                    ),
+                  // Enlarged logo without shadow
+                  Image.asset(
+                    'assets/images/safe_space_logo1.png',
+                    height: 160, // increased from 100
+                    fit: BoxFit.contain,
                   ),
                   const SizedBox(height: 36),
 
-                  // Welcome text with darker shade for readability
+                  // Welcome text
                   Text(
                     'Welcome to Safe Space',
                     style: theme.textTheme.titleLarge?.copyWith(
