@@ -17,7 +17,10 @@ class RoleSelectionScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset('assets/images/safe_space_logo.jpg', height: 120),
+                Image.asset(
+                  'assets/images/safe_space_logo1.png', // Make sure the file is placed correctly
+                  height: 140,
+                ),
                 const SizedBox(height: 32),
                 Text(
                   'Welcome to Safe Space',
@@ -27,17 +30,11 @@ class RoleSelectionScreen extends StatelessWidget {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  'A mental wellness app connecting PTSD patients with their care providers using real-time biometric tracking.',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: isDark ? Colors.white70 : Colors.black87,
-                  ),
-                ),
                 const SizedBox(height: 40),
-                ElevatedButton(
+                ElevatedButton.icon(
                   onPressed: () => Navigator.pushNamed(context, '/login'),
+                  icon: const Icon(Icons.person),
+                  label: const Text('Patient Login'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.purple[200],
                     foregroundColor: Colors.black,
@@ -46,11 +43,12 @@ class RoleSelectionScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text('Patient Login'),
                 ),
                 const SizedBox(height: 20),
-                ElevatedButton(
+                ElevatedButton.icon(
                   onPressed: () => Navigator.pushNamed(context, '/doctor/login'),
+                  icon: const Icon(Icons.medical_services),
+                  label: const Text('Doctor Login'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.purple[400],
                     foregroundColor: Colors.white,
@@ -59,7 +57,6 @@ class RoleSelectionScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text('Doctor Login'),
                 ),
               ],
             ),
