@@ -12,6 +12,7 @@ import 'providers/device_provider.dart';
 import 'providers/theme_provider.dart';
 
 // Screens
+import 'screens/splash_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/symptom_tracking_screen.dart';
 import 'screens/real_time_monitor_screen.dart';
@@ -184,7 +185,8 @@ class _MaterialAppWithFCMState extends State<MaterialAppWithFCM> {
       themeMode: ThemeMode.system,
       initialRoute: '/',
       routes: {
-        '/': (_) => const RoleSelectionScreen(),
+        '/': (_) => const SplashScreen(),
+        '/role-selection': (_) => const RoleSelectionScreen(),
         '/login': (_) => const PatientLoginScreen(),
         '/doctor/login': (_) => const DoctorLoginScreen(),
         '/home': (_) => const HomeScreen(),
