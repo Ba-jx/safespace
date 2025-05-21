@@ -10,9 +10,8 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
   late AnimationController _fadeController;
-  late Animation<double> _fadeAnimation;
-
   late AnimationController _scaleController;
+  late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
 
   @override
@@ -21,19 +20,17 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
     _fadeController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 2),
+      duration: const Duration(milliseconds: 1500),
     );
     _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(_fadeController);
 
-  _scaleController = AnimationController(
-  vsync: this,
-  duration: const Duration(milliseconds: 1200),
-);
-
-_scaleAnimation = Tween<double>(begin: 0.6, end: 1).animate(
-  CurvedAnimation(parent: _scaleController, curve: Curves.easeOutBack),
-);
-
+    _scaleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    _scaleAnimation = Tween<double>(begin: 0.6, end: 1).animate(
+      CurvedAnimation(parent: _scaleController, curve: Curves.easeOutBack),
+    );
 
     _fadeController.forward();
     _scaleController.forward();
@@ -52,34 +49,20 @@ _scaleAnimation = Tween<double>(begin: 0.6, end: 1).animate(
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
-      backgroundColor: isDark ? Colors.black : const Color(0xFFF9F7FC),
+      backgroundColor: const Color(0xFFF5F5FF),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ScaleTransition(
-              scale: _scaleAnimation,
-              child: Image.asset(
-                'assets/images/safe_space_logo1.png',
-                height: 120,
-              ),
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: ScaleTransition(
+            scale: _scaleAnimation,
+            child: Image.asset(
+              'assets/images/safe_space_logo1.png',
+              height: 180, // Increased size
+              width: 180,
+              fit: BoxFit.contain,
             ),
-            const SizedBox(height: 24),
-            FadeTransition(
-              opacity: _fadeAnimation,
-              child: Text(
-                'Safe Space',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.purple[200] : Colors.purple[700],
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
