@@ -28,7 +28,7 @@ class RoleSelectionScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Even bigger logo with larger constraints
+                  // Enlarged logo with constraints
                   ConstrainedBox(
                     constraints: const BoxConstraints(
                       maxWidth: 360,
@@ -40,7 +40,7 @@ class RoleSelectionScreen extends StatelessWidget {
                       fit: BoxFit.contain,
                     ),
                   ),
-                  const SizedBox(height: 36),
+                  const SizedBox(height: 16), // reduced spacing
 
                   // Welcome text
                   Text(
