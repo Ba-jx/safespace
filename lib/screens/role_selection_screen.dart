@@ -21,14 +21,19 @@ class RoleSelectionScreen extends StatelessWidget {
                 const SizedBox(height: 32),
                 Text(
                   'Welcome to Safe Space',
-                  style: theme.textTheme.headline6?.copyWith(
+                  style: theme.textTheme.titleLarge?.copyWith(
                     color: isDark ? Colors.purple[200] : Colors.purple,
                     fontWeight: FontWeight.bold,
                   ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
-               
+                Text(
+                  'A mental wellness app connecting PTSD patients with their care providers using real-time biometric tracking.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: isDark ? Colors.white70 : Colors.black87,
+                  ),
                 ),
                 const SizedBox(height: 40),
                 ElevatedButton(
