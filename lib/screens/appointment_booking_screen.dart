@@ -127,7 +127,6 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
       final patientName = userDoc.data()?['name'];
 
 await docRef.collection('appointments').add({
-  'patientId': user.uid, // ✅ Required for Firestore rules
   'dateTime': Timestamp.fromDate(dateTime),
   'note': _noteController.text.trim(),
   'createdAt': Timestamp.now(),
