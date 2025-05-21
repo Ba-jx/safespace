@@ -11,6 +11,7 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
+  late Animation<Color?> _colorAnimation;
 
   @override
   void initState() {
@@ -22,6 +23,12 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     );
 
     _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(_controller);
+
+    _colorAnimation = ColorTween(
+      begin: const Color(0xFFB9A6E8), // lighter purple
+      end: const Color(0xFF7A6EDB), // slightly deeper purple
+    ).animate(_controller);
+
     _controller.forward();
 
     Timer(const Duration(seconds: 4), () {
@@ -42,13 +49,16 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       body: Center(
         child: FadeTransition(
           opacity: _fadeAnimation,
-          child: Text(
-            'Safe Space',
-            style: const TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF7A6EDB), // lighter purple
-              letterSpacing: 1.5,
+          child: AnimatedBuilder(
+            animation: _colorAnimation,
+            builder: (context, child) => Text(
+              'Safe Space',
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                color: _colorAnimation.value,
+                letterSpacing: 1.5,
+              ),
             ),
           ),
         ),
