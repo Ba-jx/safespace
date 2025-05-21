@@ -259,21 +259,42 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                   ),
                   actions: [
                     if (existing != null)
-                      TextButton(
-                        onPressed: () async {
-                          await (existing['ref'] as DocumentReference).update({
-                            'status': 'cancelled',
-                          });
-                          if (!mounted) return;
-                          Navigator.pop(context);
-                          await _fetchAppointments();
-                        },
-                        child: const Text(
-                          'Delete',
-                          style: TextStyle(color: Colors.red),
-                        ),
-                      ),
-                    TextButton(
+  TextButton(
+    onPressed: () async {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Confirm Deletion'),
+          content: const Text('Are you sure you want to cancel this appointment?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('No'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Yes'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirm == true) {
+        await (existing['ref'] as DocumentReference).update({
+          'status': 'cancelled',
+        });
+        if (!mounted) return;
+        Navigator.pop(context);
+        await _fetchAppointments();
+      }
+    },
+    child: const Text(
+      'Delete',
+      style: TextStyle(color: Colors.red),
+    ),
+  ),
+
+                 TextButton(
                       onPressed: () => Navigator.pop(context),
                       child: const Text('Cancel'),
                     ),
