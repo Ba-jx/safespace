@@ -14,40 +14,37 @@ class HomeScreen extends StatelessWidget {
       ),
       body: Padding(
         padding: const EdgeInsets.all(20),
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              _DashboardTile(
-                icon: Icons.monitor_heart,
-                label: 'Real-Time Monitor',
-                onTap: () => Navigator.pushNamed(context, '/real-time-monitor'),
-              ),
-              const SizedBox(height: 16),
-              _DashboardTile(
-                icon: Icons.mood,
-                label: 'Track Symptoms',
-                onTap: () => Navigator.pushNamed(context, '/symptom-tracking'),
-              ),
-              const SizedBox(height: 16),
-              _DashboardTile(
-                icon: Icons.chat,
-                label: 'Communicate',
-                onTap: () => Navigator.pushNamed(context, '/patient/communication'),
-              ),
-              const SizedBox(height: 16),
-              _DashboardTile(
-                icon: Icons.schedule,
-                label: 'Booking Appointments',
-                onTap: () => Navigator.pushNamed(context, '/appointments/book'),
-              ),
-              const SizedBox(height: 16),
-              _DashboardTile(
-                icon: Icons.calendar_today,
-                label: 'My Appointments',
-                onTap: () => Navigator.pushNamed(context, '/appointments/list'),
-              ),
-            ],
-          ),
+        child: GridView.count(
+          crossAxisCount: 2,
+          crossAxisSpacing: 20,
+          mainAxisSpacing: 20,
+          children: [
+            _DashboardTile(
+              icon: Icons.monitor_heart,
+              label: 'Real-Time Monitor',
+              onTap: () => Navigator.pushNamed(context, '/real-time-monitor'),
+            ),
+            _DashboardTile(
+              icon: Icons.mood,
+              label: 'Track Symptoms',
+              onTap: () => Navigator.pushNamed(context, '/symptom-tracking'),
+            ),
+            _DashboardTile(
+              icon: Icons.chat,
+              label: 'Communicate',
+              onTap: () => Navigator.pushNamed(context, '/patient/communication'),
+            ),
+            _DashboardTile(
+              icon: Icons.schedule,
+              label: 'Booking Appointments',
+              onTap: () => Navigator.pushNamed(context, '/appointments/book'),
+            ),
+            _DashboardTile(
+              icon: Icons.calendar_today,
+              label: 'My Appointments',
+              onTap: () => Navigator.pushNamed(context, '/appointments/list'),
+            ),
+          ],
         ),
       ),
     );
@@ -73,7 +70,6 @@ class _DashboardTile extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: double.infinity, // Full width
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF2A2640) : Colors.white,
           borderRadius: BorderRadius.circular(16),
