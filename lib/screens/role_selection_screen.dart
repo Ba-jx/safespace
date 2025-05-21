@@ -5,36 +5,42 @@ class RoleSelectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F7FC),
+      backgroundColor: isDark ? Colors.black : const Color(0xFFF9F7FC),
       body: SafeArea(
         child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 36.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Image.asset('assets/images/safe_space_logo.jpg', height: 120),
-                const SizedBox(height: 24),
-                const Text(
+                const SizedBox(height: 32),
+                Text(
                   'Welcome to Safe Space',
-                  style: TextStyle(
-                    fontSize: 22,
+                  style: theme.textTheme.headline6?.copyWith(
+                    color: isDark ? Colors.purple[200] : Colors.purple,
                     fontWeight: FontWeight.bold,
-                    color: Colors.purple,
                   ),
+                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   'A mental wellness app connecting PTSD patients with their care providers using real-time biometric tracking.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Colors.black87),
+                  style: theme.textTheme.bodyText2?.copyWith(
+                    color: isDark ? Colors.white70 : Colors.black87,
+                  ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 40),
                 ElevatedButton(
                   onPressed: () => Navigator.pushNamed(context, '/login'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.purple[200],
+                    foregroundColor: Colors.black,
                     minimumSize: const Size.fromHeight(48),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -42,11 +48,12 @@ class RoleSelectionScreen extends StatelessWidget {
                   ),
                   child: const Text('Patient Login'),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: () => Navigator.pushNamed(context, '/doctor/login'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.purple[400],
+                    foregroundColor: Colors.white,
                     minimumSize: const Size.fromHeight(48),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
