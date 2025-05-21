@@ -157,7 +157,7 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
                           borderRadius: BorderRadius.circular(8),
                           child: Image.asset(
                             'assets/images/patient_login_illustration.png',
-                            height: 200,
+                            height: 260,
                             fit: BoxFit.contain,
                           ),
                         ),
