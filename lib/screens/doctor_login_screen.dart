@@ -150,7 +150,7 @@ class _DoctorLoginScreenState extends State<DoctorLoginScreen> {
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: Image.asset(
-                            'assets/images/doctor_login_illustration.jpg',
+                            'assets/images/doctor_login_illustration.png',
                             height: 200,
                             fit: BoxFit.contain,
                           ),
