@@ -1,4 +1,4 @@
-const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
+const { onDocumentCreated, onDocumentUpdated, onDocumentDeleted } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const logger = require("firebase-functions/logger");
 
@@ -177,7 +177,7 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
       body = "Your appointment has been cancelled.";
     } else {
       title = "Appointment Status Updated";
-      body = `Your appointment status changed to "${after.status}".`;
+      body = `Your appointment status changed to \"${after.status}\".`;
     }
   } else if (
     before.note !== after.note ||
@@ -197,6 +197,26 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
   }
 });
 
+// ✅ Appointment Deleted
+exports.notifyAppointmentDeleted = onDocumentDeleted({
+  document: "users/{userId}/appointments/{appointmentId}",
+  region: "us-central1",
+}, async (event) => {
+  const userId = event.params.userId;
+
+  const userDoc = await db.collection("users").doc(userId).get();
+  const user = userDoc.data();
+  if (!user?.fcmToken) return;
+
+  const title = "Appointment Deleted";
+  const body = "Your appointment has been removed from the system.";
+
+  await createNotification(userId, title, body);
+  await messaging.sendToDevice(user.fcmToken, {
+    data: { title, body, type: "appointment_patient" }
+  });
+});
+
 // ✅ Reschedule Request to Doctor
 exports.notifyDoctorOnRescheduleRequest = onDocumentUpdated({
   document: "users/{patientId}/appointments/{appointmentId}",
@@ -205,7 +225,10 @@ exports.notifyDoctorOnRescheduleRequest = onDocumentUpdated({
   const before = event.data.before.data();
   const after = event.data.after.data();
 
-  if (before.status === after.status || after.status !== "rescheduled") return;
+  const isRescheduled = after.status === "rescheduled";
+  const isChanged = before.dateTime.toMillis() !== after.dateTime.toMillis() || before.note !== after.note;
+
+  if (!isRescheduled || !isChanged) return;
 
   const patientId = event.params.patientId;
   const patientDoc = await db.collection("users").doc(patientId).get();
@@ -227,122 +250,10 @@ exports.notifyDoctorOnRescheduleRequest = onDocumentUpdated({
   });
 
   const title = "Reschedule Request";
-  const body = `${patientData.name || "A patient"} requested to reschedule their appointment on ${formattedTime}.`;
+  const body = `${patientData.name || "A patient"} requested to reschedule their appointment to ${formattedTime}.`;
 
   await messaging.sendToDevice(doctorData.fcmToken, {
     data: { title, body, type: "appointment_doctor" }
   });
   await createNotification(doctorId, title, body);
 });
-
-// ✅ Drastic Recording Alert
-exports.notifyDoctorOfDrasticRecording = onDocumentCreated({
-  document: "users/{patientId}/readings/{readingId}",
-  region: "us-central1",
-}, async (event) => {
-  logger.info(`📅 New reading created for patient ${event.params.patientId}`);
-
-  const data = event.data.data();
-  const patientId = event.params.patientId;
-
-  const { heartRate, temperature, spo2, timestamp } = data;
-
-  const isHeartRateDrastic = heartRate < 50 || heartRate > 120;
-  const isTempDrastic = temperature < 27 || temperature > 37.5;
-  const isSpo2Drastic = spo2 < 90;
-
-  if (!(isHeartRateDrastic || isTempDrastic || isSpo2Drastic)) {
-    logger.info(`🔽 No drastic change for patient ${patientId}`);
-    return;
-  }
-
-  const patientDoc = await db.collection("users").doc(patientId).get();
-  const patient = patientDoc.data();
-  if (!patient || !patient.doctorId) return;
-
-  const doctorDoc = await db.collection("users").doc(patient.doctorId).get();
-  const doctor = doctorDoc.data();
-  if (!doctor || !doctor.fcmToken) return;
-
-  const recordedTime = (timestamp?.toDate?.() || new Date()).toLocaleString("en-US", {
-    timeZone: "Asia/Amman",
-    weekday: "short", year: "numeric", month: "short", day: "numeric",
-    hour: "2-digit", minute: "2-digit"
-  });
-
-  const title = "⚠ Drastic Change in Patient's Vital Signs";
-  let body = `${patient.name || "A patient"} has abnormal readings at ${recordedTime}: `;
-  if (isHeartRateDrastic) body += `Heart Rate: ${heartRate} bpm. `;
-  if (isTempDrastic) body += `Temperature: ${temperature}°C. `;
-  if (isSpo2Drastic) body += `SpO₂: ${spo2}%.`;
-
-  const tenSecondsAgo = Timestamp.fromMillis(Date.now() - 10 * 1000);
-  const recentNotif = await db.collection("users")
-    .doc(patient.doctorId)
-    .collection("notifications")
-    .where("title", "==", title)
-    .where("timestamp", ">=", tenSecondsAgo)
-    .limit(1)
-    .get();
-
-  if (!recentNotif.empty) {
-    logger.info(`⏱ Skipped duplicate alert to doctor ${patient.doctorId}`);
-    return;
-  }
-
-  await messaging.sendToDevice(doctor.fcmToken, {
-    data: { title, body, type: "monitor" }
-  });
-
-  await createNotification(patient.doctorId, title, body);
-  logger.info(`🚨 Drastic change notification sent to doctor ${patient.doctorId}`);
-});
-
-// ✅ Appointment Updated
-exports.notifyAppointmentChanged = onDocumentUpdated({
-  document: "users/{userId}/appointments/{appointmentId}",
-  region: "us-central1",
-}, async (event) => {
-  const before = event.data.before.data();
-  const after = event.data.after.data();
-  const userId = event.params.userId;
-
-  if (after.status === "rescheduled") return;
-
-  const userDoc = await db.collection("users").doc(userId).get();
-  const fcmToken = userDoc.exists && userDoc.data().fcmToken;
-
-  const formattedDate = after.dateTime.toDate().toLocaleString("en-US", {
-    timeZone: "Asia/Amman",
-    weekday: "long", year: "numeric", month: "long", day: "numeric",
-    hour: "2-digit", minute: "2-digit"
-  });
-
-  let title = "", body = "";
-
-  if (before.status !== after.status) {
-    if (after.status.toLowerCase() === "cancelled") {
-      title = "Appointment Canceled";
-      body = "Your appointment has been cancelled.";
-    } else {
-      title = "Appointment Status Updated";
-      body = `Your appointment status changed to "${after.status}".`;
-    }
-  } else if (
-    before.note !== after.note ||
-    before.dateTime.toMillis() !== after.dateTime.toMillis()
-  ) {
-    title = "Appointment Updated";
-    body = `Your appointment has been updated to ${formattedDate}.`;
-  }
-
-  if (title && body) {
-    await createNotification(userId, title, body);
-    if (fcmToken) {
-      await messaging.sendToDevice(fcmToken, {
-        data: { title, body, type: "appointment_patient" }
-      });
-    }
-  }
-});
-
