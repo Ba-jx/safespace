@@ -132,7 +132,7 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
                     children: [
                       Text(
                         'Email Verification Required',
-                        style: TextStyle(fontSize: 18, color: isDark ? Colors.white : Colors.black87),
+                        style: TextStyle(fontSize: 18, color: isDark ? Colors.white : const Color(0xFF5A4E8C)),
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton(
@@ -154,7 +154,7 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
                             style: TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.bold,
-                              color: isDark ? Colors.white : Colors.black87,
+                              color: isDark ? Colors.white : const Color(0xFF5A4E8C),
                             ),
                           ),
                         ),
@@ -173,7 +173,7 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
                           keyboardType: TextInputType.emailAddress,
                           style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                           decoration: InputDecoration(
-                            prefixIcon: Icon(Icons.email_outlined, color: Colors.purple),
+                            prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF7A6EDB)),
                             hintText: 'Email',
                             hintStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.black54),
                             border: const OutlineInputBorder(),
@@ -187,7 +187,7 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
                           obscureText: true,
                           style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                           decoration: InputDecoration(
-                            prefixIcon: Icon(Icons.lock_outline, color: Colors.purple),
+                            prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF7A6EDB)),
                             hintText: 'Password',
                             hintStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.black54),
                             border: const OutlineInputBorder(),
@@ -200,9 +200,9 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
                           alignment: Alignment.centerRight,
                           child: TextButton(
                             onPressed: _resetPassword,
-                            child: Text(
+                            child: const Text(
                               'Forgot Password?',
-                              style: TextStyle(color: isDark ? Colors.purple[200] : Colors.purple),
+                              style: TextStyle(color: Color(0xFF7A6EDB)),
                             ),
                           ),
                         ),
@@ -210,7 +210,7 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
                         ElevatedButton(
                           onPressed: _login,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFD8BFD8),
+                            backgroundColor: const Color(0xFFB9A6E8), // updated to match RoleSelection
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(30),
