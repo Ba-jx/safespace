@@ -126,14 +126,16 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
       final userDoc = await docRef.get();
       final patientName = userDoc.data()?['name'];
 
-      await docRef.collection('appointments').add({
-        'dateTime': Timestamp.fromDate(dateTime),
-        'note': _noteController.text.trim(),
-        'createdAt': Timestamp.now(),
-        'doctorId': doctorId,
-        'patientName': patientName,
-        'status': 'pending',
-      });
+await docRef.collection('appointments').add({
+  'patientId': user.uid, // ✅ Required for Firestore rules
+  'dateTime': Timestamp.fromDate(dateTime),
+  'note': _noteController.text.trim(),
+  'createdAt': Timestamp.now(),
+  'doctorId': doctorId,
+  'patientName': patientName,
+  'status': 'pending',
+});
+
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Appointment booked successfully')),
