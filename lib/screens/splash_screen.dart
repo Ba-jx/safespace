@@ -25,14 +25,15 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     );
     _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(_fadeController);
 
-    _scaleController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-      curve: Curves.easeOutBack,
-    );
-    _scaleAnimation = Tween<double>(begin: 0.6, end: 1).animate(
-      CurvedAnimation(parent: _scaleController, curve: Curves.easeOutBack),
-    );
+  _scaleController = AnimationController(
+  vsync: this,
+  duration: const Duration(milliseconds: 1200),
+);
+
+_scaleAnimation = Tween<double>(begin: 0.6, end: 1).animate(
+  CurvedAnimation(parent: _scaleController, curve: Curves.easeOutBack),
+);
+
 
     _fadeController.forward();
     _scaleController.forward();
