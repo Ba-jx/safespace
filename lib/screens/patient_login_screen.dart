@@ -118,53 +118,99 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Patient Login')),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: _mfaStep
-            ? Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('Email Verification Required', style: TextStyle(fontSize: 18)),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _checkVerificationAndContinue,
-                    child: const Text('Continue'),
-                  ),
-                ],
-              )
-            : Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text('Safe Space Patient Portal',
-                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 32),
-                    TextFormField(
-                      controller: _emailController,
-                      decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder()),
-                      validator: (value) => value != null && value.contains('@') ? null : 'Invalid email',
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: true,
-                      decoration: const InputDecoration(labelText: 'Password', border: OutlineInputBorder()),
-                      validator: (value) => value != null && value.length >= 6 ? null : 'Password too short',
-                    ),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: _resetPassword,
-                        child: const Text('Forgot Password?'),
+      backgroundColor: const Color(0xFFF5F5FF),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: _mfaStep
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('Email Verification Required', style: TextStyle(fontSize: 18)),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _checkVerificationAndContinue,
+                        child: const Text('Continue'),
                       ),
+                    ],
+                  )
+                : Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 8),
+                        const Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Login',
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.asset(
+                            'assets/images/patient_login_illustration.png',
+                            height: 200,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        TextFormField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: const InputDecoration(
+                            prefixIcon: Icon(Icons.email_outlined),
+                            hintText: 'Email',
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (value) =>
+                              value != null && value.contains('@') ? null : 'Invalid email',
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _passwordController,
+                          obscureText: true,
+                          decoration: const InputDecoration(
+                            prefixIcon: Icon(Icons.lock_outline),
+                            hintText: 'Password',
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (value) =>
+                              value != null && value.length >= 6 ? null : 'Password too short',
+                        ),
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: _resetPassword,
+                            child: const Text('Forgot Password?'),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        ElevatedButton(
+                          onPressed: _login,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFD8BFD8),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                          child: const Icon(Icons.arrow_forward),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(onPressed: _login, child: const Text('Login')),
-                  ],
-                ),
-              ),
+                  ),
+          ),
+        ),
       ),
     );
   }
