@@ -28,11 +28,16 @@ class RoleSelectionScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Enlarged logo without shadow
-                  Image.asset(
-                    'assets/images/safe_space_logo1.png',
-                    height: 160, // increased from 100
-                    fit: BoxFit.contain,
+                  // Logo with max width constraint and larger size
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: 240, // limits the width on large screens
+                    ),
+                    child: Image.asset(
+                      'assets/images/safe_space_logo1.png',
+                      height: 160,
+                      fit: BoxFit.contain,
+                    ),
                   ),
                   const SizedBox(height: 36),
 
