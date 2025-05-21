@@ -5,16 +5,17 @@ class RoleSelectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFFEEDCFF), Color(0xFFD8BFD8)],
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFF3E8FF),
+              Color(0xFFE2C7F6),
+              Color(0xFFD5B4F2),
+            ],
           ),
         ),
         child: SafeArea(
@@ -24,23 +25,27 @@ class RoleSelectionScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // 🧠 App Logo
+                  // 🌟 LOGO
                   Image.asset(
                     'assets/images/safe_space_logo1.png',
-                    height: 140,
+                    height: 160,
                     fit: BoxFit.contain,
                   ),
                   const SizedBox(height: 32),
-                  // 📣 Welcome Title
-                  Text(
+
+                  // ✨ Welcome Text
+                  const Text(
                     'Welcome to Safe Space',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      color: isDark ? Colors.purple[200] : Colors.purple[800],
+                    style: TextStyle(
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
+                      color: Colors.deepPurple,
                     ),
                     textAlign: TextAlign.center,
                   ),
+
                   const SizedBox(height: 40),
+
                   // 👤 Patient Login
                   ElevatedButton.icon(
                     onPressed: () => Navigator.pushNamed(context, '/login'),
@@ -56,6 +61,7 @@ class RoleSelectionScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 20),
+
                   // 🩺 Doctor Login
                   ElevatedButton.icon(
                     onPressed: () => Navigator.pushNamed(context, '/doctor/login'),
