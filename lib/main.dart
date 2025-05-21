@@ -80,54 +80,57 @@ class _MaterialAppWithFCMState extends State<MaterialAppWithFCM> {
   }
 
   Future<void> _initializeFCM() async {
-    final fcm = FirebaseMessaging.instance;
-    await fcm.requestPermission(alert: true, badge: true, sound: true);
+  final fcm = FirebaseMessaging.instance;
+  await fcm.requestPermission(alert: true, badge: true, sound: true);
 
-    // Foreground handler
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      RemoteNotification? notification = message.notification;
-      AndroidNotification? android = message.notification?.android;
+  // Foreground handler with fallback
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    final notification = message.notification;
+    final data = message.data;
 
-      if (notification != null && android != null) {
-        flutterLocalNotificationsPlugin.show(
-          notification.hashCode,
-          notification.title,
-          notification.body,
-          const NotificationDetails(
-            android: AndroidNotificationDetails(
-              'default_channel',
-              'Notifications',
-              channelDescription: 'General app notifications',
-              importance: Importance.max,
-              priority: Priority.high,
-            ),
+    final title = notification?.title ?? data['title'];
+    final body = notification?.body ?? data['body'];
+
+    if (title != null && body != null) {
+      flutterLocalNotificationsPlugin.show(
+        notification.hashCode,
+        title,
+        body,
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'default_channel',
+            'Notifications',
+            channelDescription: 'General app notifications',
+            importance: Importance.max,
+            priority: Priority.high,
           ),
-        );
-      }
-
-      print('🔔 Foreground Notification: ${notification?.title} - ${notification?.body}');
-    });
-
-    // Tapped from background
-    FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageNavigation);
-
-    // Tapped from terminated
-    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
-    if (initialMessage != null) {
-      _handleMessageNavigation(initialMessage);
+        ),
+      );
     }
 
-    final token = await fcm.getToken();
-    final user = FirebaseAuth.instance.currentUser;
-    print("📱 FCM Token: $token");
+    print('🔔 Foreground Notification: $title - $body');
+  });
 
-    if (user != null && token != null) {
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-        'fcmToken': token,
-      });
-    }
+  // Tapped from background
+  FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageNavigation);
+
+  // Tapped from terminated
+  final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+  if (initialMessage != null) {
+    _handleMessageNavigation(initialMessage);
   }
 
+  final token = await fcm.getToken();
+  final user = FirebaseAuth.instance.currentUser;
+  print("📱 FCM Token: $token");
+
+  if (user != null && token != null) {
+    await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+      'fcmToken': token,
+    });
+  }
+}
+  
   void _handleMessageNavigation(RemoteMessage message) {
     final data = message.data;
     final type = data['type'];
