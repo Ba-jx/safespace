@@ -54,3 +54,53 @@ class HomeScreen extends StatelessWidget {
     );
   }
 }
+
+class _DashboardTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _DashboardTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 140, // optional: fixed width for consistency
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF2A2640) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            if (!isDark)
+              BoxShadow(
+                color: Colors.grey.shade300,
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+          ],
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 40, color: theme.colorScheme.primary),
+            const SizedBox(height: 12),
+            Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
