@@ -17,7 +17,7 @@ class RoleSelectionScreen extends StatelessWidget {
             colors: [
               Color(0xFFEADCF8),
               Color(0xFFD8BFD8),
-              Color(0xFFBAA1DD),
+              Color(0xFFCFB4E5),
             ],
           ),
         ),
@@ -28,15 +28,15 @@ class RoleSelectionScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo with soft drop shadow
+                  // Logo with soft shadow
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 12,
+                          offset: const Offset(0, 6),
                         ),
                       ],
                     ),
@@ -48,45 +48,47 @@ class RoleSelectionScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 36),
 
-                  // Welcome Text
+                  // Welcome text with darker shade for readability
                   Text(
                     'Welcome to Safe Space',
                     style: theme.textTheme.titleLarge?.copyWith(
-                      color: Colors.deepPurple[700],
-                      fontWeight: FontWeight.bold,
+                      color: Colors.deepPurple.shade700,
+                      fontWeight: FontWeight.w600,
                     ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 36),
 
-                  // Patient Login Button
+                  // Patient login button
                   ElevatedButton.icon(
                     onPressed: () => Navigator.pushNamed(context, '/login'),
                     icon: const Icon(Icons.person),
                     label: const Text('Patient Login'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.purple[200],
-                      foregroundColor: Colors.black,
+                      backgroundColor: const Color(0xFFE2D4F5),
+                      foregroundColor: Colors.black87,
                       minimumSize: const Size.fromHeight(48),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
+                      elevation: 1,
                     ),
                   ),
                   const SizedBox(height: 20),
 
-                  // Doctor Login Button
+                  // Doctor login button
                   ElevatedButton.icon(
                     onPressed: () => Navigator.pushNamed(context, '/doctor/login'),
                     icon: const Icon(Icons.medical_services),
                     label: const Text('Doctor Login'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.purple[600],
+                      backgroundColor: const Color(0xFF9C6ADE),
                       foregroundColor: Colors.white,
                       minimumSize: const Size.fromHeight(48),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
+                      elevation: 2,
                     ),
                   ),
                 ],
