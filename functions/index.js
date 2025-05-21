@@ -4,13 +4,14 @@ const logger = require("firebase-functions/logger");
 
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, Timestamp } = require("firebase-admin/firestore");
-const { getMessaging, sendToDevice } = require("firebase-admin/messaging");
+const { getMessaging } = require("firebase-admin/messaging");
 
 const sgMail = require("@sendgrid/mail");
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 initializeApp();
 const db = getFirestore();
+const messaging = getMessaging();
 
 // 🔔 Helper
 async function createNotification(userId, title, body) {
@@ -58,7 +59,8 @@ exports.sendUnreadNotificationDigest = onSchedule({
     const title = "You Have Unread Notifications";
     const body = `You have ${unreadCount} unread notification(s) from Safe Space.`;
 
-    await sendToDevice(patient.fcmToken, {
+    await messaging.send({
+      token: patient.fcmToken,
       data: {
         title,
         body,
@@ -94,6 +96,35 @@ exports.sendUnreadNotificationDigest = onSchedule({
   }
 });
 
+// ✅ Daily Symptom Reminder
+exports.sendDailySymptomReminder = onSchedule({
+  schedule: "0 16 * * *", // 4:00 PM Asia/Amman
+  timeZone: "Asia/Amman",
+  region: "us-central1"
+}, async () => {
+  const snapshot = await db.collection("users").where("role", "==", "patient").get();
+
+  for (const doc of snapshot.docs) {
+    const patient = doc.data();
+    const fcmToken = patient.fcmToken;
+    const userId = doc.id;
+
+    if (!fcmToken) continue;
+
+    const title = "Daily Symptom Check";
+    const body = "Don't forget to check in and log your symptoms in Safe Space today.";
+
+    await messaging.send({
+      token: fcmToken,
+      data: { title, body, type: "daily_reminder" }
+    });
+
+    await createNotification(userId, title, body);
+  }
+
+  logger.info("✅ Daily symptom reminders sent to all patients.");
+});
+
 // ✅ Appointment Confirmed
 exports.sendAppointmentConfirmationEmail = onDocumentCreated({
   secrets: ["SENDGRID_API_KEY"],
@@ -124,9 +155,12 @@ exports.sendAppointmentConfirmationEmail = onDocumentCreated({
 
   await createNotification(userId, title, body);
 
-  await sendToDevice(user.fcmToken, {
-    data: { title, body, type: "appointment_patient" }
-  });
+  if (user.fcmToken) {
+    await messaging.send({
+      token: user.fcmToken,
+      data: { title, body, type: "appointment_patient" }
+    });
+  }
 
   const emailMsg = {
     to: user.email,
@@ -176,7 +210,7 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
       body = "Your appointment has been cancelled.";
     } else {
       title = "Appointment Status Updated";
-      body = `Your appointment status changed to \"${after.status}\".`;
+      body = `Your appointment status changed to "${after.status}".`;
     }
   } else if (
     before.note !== after.note ||
@@ -189,7 +223,8 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
   if (title && body) {
     await createNotification(userId, title, body);
     if (fcmToken) {
-      await sendToDevice(fcmToken, {
+      await messaging.send({
+        token: fcmToken,
         data: { title, body, type: "appointment_patient" }
       });
     }
@@ -211,7 +246,8 @@ exports.notifyAppointmentDeleted = onDocumentDeleted({
   const body = "Your appointment has been removed from the system.";
 
   await createNotification(userId, title, body);
-  await sendToDevice(user.fcmToken, {
+  await messaging.send({
+    token: user.fcmToken,
     data: { title, body, type: "appointment_patient" }
   });
 });
@@ -251,8 +287,10 @@ exports.notifyDoctorOnRescheduleRequest = onDocumentUpdated({
   const title = "Reschedule Request";
   const body = `${patientData.name || "A patient"} requested to reschedule their appointment to ${formattedTime}.`;
 
-  await sendToDevice(doctorData.fcmToken, {
+  await messaging.send({
+    token: doctorData.fcmToken,
     data: { title, body, type: "appointment_doctor" }
   });
+
   await createNotification(doctorId, title, body);
 });
