@@ -37,8 +37,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     _colorAnimation = ColorTween(
-      begin: isDark ? Colors.grey[400] : const Color(0xFFB9A6E8),
-      end: isDark ? Colors.white : const Color(0xFF7A6EDB),
+      begin: isDark ? const Color(0xFF9E8CD8) : const Color(0xFFB9A6E8),
+      end: isDark ? const Color(0xFFB9A6E8) : const Color(0xFF7A6EDB),
     ).animate(_controller);
   }
 
