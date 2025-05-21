@@ -23,17 +23,23 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     );
 
     _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(_controller);
-
-    _colorAnimation = ColorTween(
-      begin: const Color(0xFFB9A6E8), // lighter purple
-      end: const Color(0xFF7A6EDB), // slightly deeper purple
-    ).animate(_controller);
-
     _controller.forward();
 
     Timer(const Duration(seconds: 4), () {
       Navigator.pushReplacementNamed(context, '/role-selection');
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    _colorAnimation = ColorTween(
+      begin: isDark ? Colors.grey[400] : const Color(0xFFB9A6E8),
+      end: isDark ? Colors.white : const Color(0xFF7A6EDB),
+    ).animate(_controller);
   }
 
   @override
@@ -44,8 +50,10 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5FF),
+      backgroundColor: isDark ? Colors.black : const Color(0xFFF5F5FF),
       body: Center(
         child: FadeTransition(
           opacity: _fadeAnimation,
