@@ -111,8 +111,11 @@ class _DoctorLoginScreenState extends State<DoctorLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5FF),
+      backgroundColor: isDark ? Colors.black : const Color(0xFFF5F5FF),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -121,7 +124,10 @@ class _DoctorLoginScreenState extends State<DoctorLoginScreen> {
                 ? Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text('Email Verification Required', style: TextStyle(fontSize: 18)),
+                      Text(
+                        'Email Verification Required',
+                        style: TextStyle(fontSize: 18, color: isDark ? Colors.white : Colors.black87),
+                      ),
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _checkVerificationAndContinue,
@@ -135,14 +141,14 @@ class _DoctorLoginScreenState extends State<DoctorLoginScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         const SizedBox(height: 8),
-                        const Align(
+                        Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
                             'Login',
                             style: TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black87,
+                              color: isDark ? Colors.white : Colors.black87,
                             ),
                           ),
                         ),
@@ -159,10 +165,12 @@ class _DoctorLoginScreenState extends State<DoctorLoginScreen> {
                         TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
-                          decoration: const InputDecoration(
-                            prefixIcon: Icon(Icons.email_outlined),
+                          style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                          decoration: InputDecoration(
+                            prefixIcon: Icon(Icons.email_outlined, color: Colors.purple),
                             hintText: 'Email',
-                            border: OutlineInputBorder(),
+                            hintStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.black54),
+                            border: const OutlineInputBorder(),
                           ),
                           validator: (value) =>
                               value != null && value.contains('@') ? null : 'Enter a valid email',
@@ -171,10 +179,12 @@ class _DoctorLoginScreenState extends State<DoctorLoginScreen> {
                         TextFormField(
                           controller: _passwordController,
                           obscureText: true,
-                          decoration: const InputDecoration(
-                            prefixIcon: Icon(Icons.lock_outline),
+                          style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                          decoration: InputDecoration(
+                            prefixIcon: Icon(Icons.lock_outline, color: Colors.purple),
                             hintText: 'Password',
-                            border: OutlineInputBorder(),
+                            hintStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.black54),
+                            border: const OutlineInputBorder(),
                           ),
                           validator: (value) =>
                               value != null && value.length >= 6 ? null : 'Password too short',
@@ -184,7 +194,10 @@ class _DoctorLoginScreenState extends State<DoctorLoginScreen> {
                           alignment: Alignment.centerRight,
                           child: TextButton(
                             onPressed: _resetPassword,
-                            child: const Text('Forgot Password?'),
+                            child: Text(
+                              'Forgot Password?',
+                              style: TextStyle(color: isDark ? Colors.purple[200] : Colors.purple),
+                            ),
                           ),
                         ),
                         const SizedBox(height: 12),
