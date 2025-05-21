@@ -4,14 +4,13 @@ const logger = require("firebase-functions/logger");
 
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, Timestamp } = require("firebase-admin/firestore");
-const { getMessaging } = require("firebase-admin/messaging");
+const { getMessaging, sendToDevice } = require("firebase-admin/messaging");
 
 const sgMail = require("@sendgrid/mail");
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 initializeApp();
 const db = getFirestore();
-const messaging = getMessaging();
 
 // 🔔 Helper
 async function createNotification(userId, title, body) {
@@ -59,7 +58,7 @@ exports.sendUnreadNotificationDigest = onSchedule({
     const title = "You Have Unread Notifications";
     const body = `You have ${unreadCount} unread notification(s) from Safe Space.`;
 
-    await messaging.sendToDevice(patient.fcmToken, {
+    await sendToDevice(patient.fcmToken, {
       data: {
         title,
         body,
@@ -125,7 +124,7 @@ exports.sendAppointmentConfirmationEmail = onDocumentCreated({
 
   await createNotification(userId, title, body);
 
-  await messaging.sendToDevice(user.fcmToken, {
+  await sendToDevice(user.fcmToken, {
     data: { title, body, type: "appointment_patient" }
   });
 
@@ -190,7 +189,7 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
   if (title && body) {
     await createNotification(userId, title, body);
     if (fcmToken) {
-      await messaging.sendToDevice(fcmToken, {
+      await sendToDevice(fcmToken, {
         data: { title, body, type: "appointment_patient" }
       });
     }
@@ -212,7 +211,7 @@ exports.notifyAppointmentDeleted = onDocumentDeleted({
   const body = "Your appointment has been removed from the system.";
 
   await createNotification(userId, title, body);
-  await messaging.sendToDevice(user.fcmToken, {
+  await sendToDevice(user.fcmToken, {
     data: { title, body, type: "appointment_patient" }
   });
 });
@@ -252,7 +251,7 @@ exports.notifyDoctorOnRescheduleRequest = onDocumentUpdated({
   const title = "Reschedule Request";
   const body = `${patientData.name || "A patient"} requested to reschedule their appointment to ${formattedTime}.`;
 
-  await messaging.sendToDevice(doctorData.fcmToken, {
+  await sendToDevice(doctorData.fcmToken, {
     data: { title, body, type: "appointment_doctor" }
   });
   await createNotification(doctorId, title, body);
