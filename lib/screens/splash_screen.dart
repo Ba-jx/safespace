@@ -38,7 +38,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5FF), // Matched background
+      backgroundColor: const Color(0xFFF5F5FF),
       body: Center(
         child: FadeTransition(
           opacity: _fadeAnimation,
@@ -47,7 +47,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             style: const TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF5A4E8C), // Matching role selection text
+              color: Color(0xFF7A6EDB), // lighter purple
               letterSpacing: 1.5,
             ),
           ),
