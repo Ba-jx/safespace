@@ -83,6 +83,7 @@ flutter:
   - assets/images/safe_space_logo.jpg
   - assets/images/safe_space_logo1.png
   - assets/images/doctor_login_illustration.png
+  - assets/images/patient_login_illustration.png
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
