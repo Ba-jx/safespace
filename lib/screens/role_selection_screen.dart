@@ -28,12 +28,7 @@ class RoleSelectionScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
-                Text(
-                  'A mental wellness app connecting PTSD patients with their care providers using real-time biometric tracking.',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyText2?.copyWith(
-                    color: isDark ? Colors.white70 : Colors.black87,
-                  ),
+               
                 ),
                 const SizedBox(height: 40),
                 ElevatedButton(
