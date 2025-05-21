@@ -134,7 +134,7 @@ class _DoctorLoginScreenState extends State<DoctorLoginScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 8),
                         const Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
@@ -146,9 +146,16 @@ class _DoctorLoginScreenState extends State<DoctorLoginScreen> {
                             ),
                           ),
                         ),
+                        const SizedBox(height: 12),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.asset(
+                            'assets/images/doctor_login_illustration.png',
+                            height: 200,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
                         const SizedBox(height: 24),
-                        Image.asset('assets/images/doctor_login_illustration.jpg', height: 180),
-                        const SizedBox(height: 32),
                         TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
@@ -180,12 +187,15 @@ class _DoctorLoginScreenState extends State<DoctorLoginScreen> {
                             child: const Text('Forgot Password?'),
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
                         ElevatedButton(
                           onPressed: _login,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFD8BFD8),
                             foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
                             padding: const EdgeInsets.symmetric(vertical: 16),
                           ),
                           child: const Icon(Icons.arrow_forward),
