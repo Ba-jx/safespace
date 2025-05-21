@@ -112,65 +112,89 @@ class _DoctorLoginScreenState extends State<DoctorLoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Doctor Login')),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: _mfaStep
-            ? Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('Email Verification Required', style: TextStyle(fontSize: 18)),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _checkVerificationAndContinue,
-                    child: const Text('Continue'),
+      backgroundColor: const Color(0xFFF5F5FF),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: _mfaStep
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('Email Verification Required', style: TextStyle(fontSize: 18)),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _checkVerificationAndContinue,
+                        child: const Text('Continue'),
+                      ),
+                    ],
+                  )
+                : Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 16),
+                        const Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Login',
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Image.asset('assets/images/doctor_login_illustration.png', height: 180),
+                        const SizedBox(height: 32),
+                        TextFormField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: const InputDecoration(
+                            prefixIcon: Icon(Icons.email_outlined),
+                            hintText: 'Email',
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (value) =>
+                              value != null && value.contains('@') ? null : 'Enter a valid email',
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _passwordController,
+                          obscureText: true,
+                          decoration: const InputDecoration(
+                            prefixIcon: Icon(Icons.lock_outline),
+                            hintText: 'Password',
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (value) =>
+                              value != null && value.length >= 6 ? null : 'Password too short',
+                        ),
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: _resetPassword,
+                            child: const Text('Forgot Password?'),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: _login,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFD8BFD8),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                          child: const Icon(Icons.arrow_forward),
+                        ),
+                      ],
+                    ),
                   ),
-                ],
-              )
-            : Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text('Safe Space Doctor Portal',
-                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 32),
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) =>
-                          value != null && value.contains('@') ? null : 'Enter a valid email',
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Password',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) =>
-                          value != null && value.length >= 6 ? null : 'Password too short',
-                    ),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: _resetPassword,
-                        child: const Text('Forgot Password?'),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: _login,
-                      child: const Text('Login'),
-                    ),
-                  ],
-                ),
-              ),
+          ),
+        ),
       ),
     );
   }
