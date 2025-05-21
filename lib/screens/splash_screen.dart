@@ -63,7 +63,7 @@ _scaleAnimation = Tween<double>(begin: 0.6, end: 1).animate(
             ScaleTransition(
               scale: _scaleAnimation,
               child: Image.asset(
-                'assets/images/safe_space_logo.jpg',
+                'assets/images/safe_space_logo1.jpg',
                 height: 120,
               ),
             ),
