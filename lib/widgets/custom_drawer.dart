@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 import '../providers/user_provider.dart';
 
 class CustomDrawer extends StatelessWidget {
@@ -44,6 +43,7 @@ class CustomDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Drawer(
+      backgroundColor: const Color(0xFFF5F5FF), // Light background
       child: FutureBuilder<Map<String, dynamic>?>(
         future: _getUserData(),
         builder: (context, snapshot) {
@@ -60,79 +60,33 @@ class CustomDrawer extends StatelessWidget {
             padding: EdgeInsets.zero,
             children: [
               DrawerHeader(
-                decoration: const BoxDecoration(color: Colors.purple),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFFB9A6E8), Color(0xFF7A6EDB)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Safe Space', style: TextStyle(color: Colors.white, fontSize: 20)),
+                    const Text(
+                      'Safe Space',
+                      style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                    ),
                     const SizedBox(height: 8),
-                    Text('Welcome, $name',
-                        style: const TextStyle(color: Colors.white, fontSize: 16)),
+                    Text(
+                      'Welcome, $name',
+                      style: const TextStyle(color: Colors.white70, fontSize: 16),
+                    ),
                   ],
                 ),
               ),
-              if (isDoctor) ...[
-                ListTile(
-                  leading: const Icon(Icons.dashboard),
-                  title: const Text('Dashboard'),
-                  onTap: () => Navigator.pushNamed(context, '/doctor/dashboard'),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.people),
-                  title: const Text('View Patients'),
-                  onTap: () => Navigator.pushNamed(context, '/doctor/patients'),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.calendar_today),
-                  title: const Text('Appointments'),
-                  onTap: () => Navigator.pushNamed(context, '/doctor/appointments'),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.calendar_month),
-                  title: const Text('Calendar'),
-                  onTap: () => Navigator.pushNamed(context, '/doctor/calendar'),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.chat),
-                  title: const Text('Chats'),
-                  onTap: () => Navigator.pushNamed(context, '/doctor/communication'),
-                ),
-              ] else ...[
-                ListTile(
-                  leading: const Icon(Icons.home),
-                  title: const Text('Home'),
-                  onTap: () => Navigator.pushNamed(context, '/home'),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.monitor_heart),
-                  title: const Text('Real Time Monitor'),
-                  onTap: () => Navigator.pushNamed(context, '/real-time-monitor'),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.mood),
-                  title: const Text('Track Symptoms'),
-                  onTap: () => Navigator.pushNamed(context, '/symptom-tracking'),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.chat),
-                  title: const Text('Chats'),
-                  onTap: () => Navigator.pushNamed(context, '/patient/communication'),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.schedule),
-                  title: const Text('Book Appointments'),
-                  onTap: () => Navigator.pushNamed(context, '/appointments/book'),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.calendar_today),
-                  title: const Text('My Appointments'),
-                  onTap: () => Navigator.pushNamed(context, '/appointments/list'),
-                ),
-              ],
-              const Divider(),
+              ..._buildDrawerItems(context, isDoctor),
+              const Divider(color: Color(0xFFCCC2DC)),
               ListTile(
-                leading: const Icon(Icons.logout),
-                title: const Text('Logout'),
+                leading: const Icon(Icons.logout, color: Color(0xFF7A6EDB)),
+                title: const Text('Logout', style: TextStyle(color: Color(0xFF5A4E8C))),
                 onTap: () => _confirmAndLogout(context),
               ),
             ],
@@ -140,5 +94,73 @@ class CustomDrawer extends StatelessWidget {
         },
       ),
     );
+  }
+
+  List<Widget> _buildDrawerItems(BuildContext context, bool isDoctor) {
+    final iconColor = const Color(0xFF7A6EDB);
+    final textStyle = const TextStyle(color: Color(0xFF5A4E8C));
+
+    if (isDoctor) {
+      return [
+        ListTile(
+          leading: Icon(Icons.dashboard, color: iconColor),
+          title: Text('Dashboard', style: textStyle),
+          onTap: () => Navigator.pushNamed(context, '/doctor/dashboard'),
+        ),
+        ListTile(
+          leading: Icon(Icons.people, color: iconColor),
+          title: Text('View Patients', style: textStyle),
+          onTap: () => Navigator.pushNamed(context, '/doctor/patients'),
+        ),
+        ListTile(
+          leading: Icon(Icons.calendar_today, color: iconColor),
+          title: Text('Appointments', style: textStyle),
+          onTap: () => Navigator.pushNamed(context, '/doctor/appointments'),
+        ),
+        ListTile(
+          leading: Icon(Icons.calendar_month, color: iconColor),
+          title: Text('Calendar', style: textStyle),
+          onTap: () => Navigator.pushNamed(context, '/doctor/calendar'),
+        ),
+        ListTile(
+          leading: Icon(Icons.chat, color: iconColor),
+          title: Text('Chats', style: textStyle),
+          onTap: () => Navigator.pushNamed(context, '/doctor/communication'),
+        ),
+      ];
+    } else {
+      return [
+        ListTile(
+          leading: Icon(Icons.home, color: iconColor),
+          title: Text('Home', style: textStyle),
+          onTap: () => Navigator.pushNamed(context, '/home'),
+        ),
+        ListTile(
+          leading: Icon(Icons.monitor_heart, color: iconColor),
+          title: Text('Real Time Monitor', style: textStyle),
+          onTap: () => Navigator.pushNamed(context, '/real-time-monitor'),
+        ),
+        ListTile(
+          leading: Icon(Icons.mood, color: iconColor),
+          title: Text('Track Symptoms', style: textStyle),
+          onTap: () => Navigator.pushNamed(context, '/symptom-tracking'),
+        ),
+        ListTile(
+          leading: Icon(Icons.chat, color: iconColor),
+          title: Text('Chats', style: textStyle),
+          onTap: () => Navigator.pushNamed(context, '/patient/communication'),
+        ),
+        ListTile(
+          leading: Icon(Icons.schedule, color: iconColor),
+          title: Text('Book Appointments', style: textStyle),
+          onTap: () => Navigator.pushNamed(context, '/appointments/book'),
+        ),
+        ListTile(
+          leading: Icon(Icons.calendar_today, color: iconColor),
+          title: Text('My Appointments', style: textStyle),
+          onTap: () => Navigator.pushNamed(context, '/appointments/list'),
+        ),
+      ];
+    }
   }
 }
