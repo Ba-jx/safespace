@@ -8,7 +8,7 @@ class RoleSelectionScreen extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5FF), // Soft pastel background
+      backgroundColor: const Color(0xFFF5F5FF),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -30,11 +30,11 @@ class RoleSelectionScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
 
-                // Welcome text with matching purple
+                // Welcome text
                 Text(
                   'Welcome to Safe Space',
                   style: theme.textTheme.titleLarge?.copyWith(
-                    color: const Color(0xFF5A4E8C), // Harmonized with background
+                    color: const Color(0xFF5A4E8C),
                     fontWeight: FontWeight.w600,
                   ),
                   textAlign: TextAlign.center,
@@ -47,8 +47,8 @@ class RoleSelectionScreen extends StatelessWidget {
                   icon: const Icon(Icons.person),
                   label: const Text('Patient Login'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFDDD6F7), // Light lavender
-                    foregroundColor: const Color(0xFF333366), // Deep soft text
+                    backgroundColor: const Color(0xFFDDD6F7),
+                    foregroundColor: const Color(0xFF333366),
                     minimumSize: const Size.fromHeight(48),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -58,13 +58,13 @@ class RoleSelectionScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
 
-                // Doctor login button
+                // Doctor login button with new color
                 ElevatedButton.icon(
                   onPressed: () => Navigator.pushNamed(context, '/doctor/login'),
                   icon: const Icon(Icons.medical_services),
                   label: const Text('Doctor Login'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF7A6EDB), // Medium purple
+                    backgroundColor: const Color(0xFFB9A6E8), // Updated color
                     foregroundColor: Colors.white,
                     minimumSize: const Size.fromHeight(48),
                     shape: RoundedRectangleBorder(
