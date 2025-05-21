@@ -22,7 +22,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     );
 
     _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(_controller);
-
     _controller.forward();
 
     Timer(const Duration(seconds: 4), () {
@@ -38,18 +37,17 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: isDark ? Colors.black : Colors.white,
+      backgroundColor: const Color(0xFFF5F5FF), // Matched background
       body: Center(
         child: FadeTransition(
           opacity: _fadeAnimation,
           child: Text(
             'Safe Space',
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.bold,
-              color: Colors.purple[400],
+              color: Color(0xFF5A4E8C), // Matching role selection text
               letterSpacing: 1.5,
             ),
           ),
