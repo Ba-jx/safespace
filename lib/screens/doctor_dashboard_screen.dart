@@ -13,7 +13,7 @@ appBar: PreferredSize(
   child: AppBar(
     leading: Builder(
       builder: (context) => IconButton(
-        icon: const Icon(Icons.menu, size:  thirty), // 🔍 Increased size here
+        icon: const Icon(Icons.menu, size:30), // 🔍 Increased size here
         onPressed: () => Scaffold.of(context).openDrawer(),
       ),
     ),
