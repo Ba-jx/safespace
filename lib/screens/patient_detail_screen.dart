@@ -42,7 +42,7 @@ class PatientDetailScreen extends StatelessWidget {
   onPressed: () {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const VitalsChartScreen()),
+      MaterialPageRoute(builder: (_) =>  VitalsChartScreen()),
     );
   },
   icon: const Icon(Icons.show_chart, size: 18),
