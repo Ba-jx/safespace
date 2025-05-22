@@ -45,8 +45,13 @@ class PatientDetailScreen extends StatelessWidget {
               icon: const Icon(Icons.show_chart),
               label: const Text('View Vitals Chart'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.teal,
+                backgroundColor: const Color(0xFF7A6EDB), // updated theme color
                 foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                elevation: 3,
               ),
             ),
             const SizedBox(height: 10),
