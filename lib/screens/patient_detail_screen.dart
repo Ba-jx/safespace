@@ -46,7 +46,7 @@ class PatientDetailScreen extends StatelessWidget {
     );
   },
   icon: const Icon(Icons.show_chart, size: 18),
- label: const Text(
+ label:  Text(
   'View Vitals Chart',
   style: TextStyle(
     fontWeight: FontWeight.bold,
