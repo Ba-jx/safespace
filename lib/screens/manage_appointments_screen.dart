@@ -56,7 +56,7 @@ class _ManageAppointmentsScreenState extends State<ManageAppointmentsScreen> {
             padding: const EdgeInsets.all(12.0),
             child: TextField(
               decoration: InputDecoration(
-                hintText: 'Search by patient name',
+                hintText: 'Search by Patient Name',
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
