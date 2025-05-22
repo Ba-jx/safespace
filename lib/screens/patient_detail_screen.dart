@@ -1,8 +1,7 @@
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import 'vitals_chart_screen.dart'; 
+import 'vitals_chart_screen.dart';
 
 class PatientDetailScreen extends StatelessWidget {
   final String patientId;
@@ -18,7 +17,8 @@ class PatientDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('Loading symptom logs for patientId: $patientId');
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF2F2A43) : Colors.white;
 
     return Scaffold(
       appBar: AppBar(title: Text(name)),
@@ -28,15 +28,12 @@ class PatientDetailScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-  email,
-  style: TextStyle(
-    fontSize: 16,
-    color: Theme.of(context).brightness == Brightness.dark
-        ? Colors.grey[300]
-        : Colors.black54,
-  ),
-),
-
+              email,
+              style: TextStyle(
+                fontSize: 16,
+                color: isDark ? Colors.grey[300] : Colors.black54,
+              ),
+            ),
             const SizedBox(height: 20),
             const Text(
               'Mood & Vitals History',
@@ -55,7 +52,7 @@ class PatientDetailScreen extends StatelessWidget {
               icon: const Icon(Icons.show_chart),
               label: const Text('View Vitals Chart'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6C4DB0), // updated theme color
+                backgroundColor: const Color(0xFF6C4DB0),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 shape: RoundedRectangleBorder(
@@ -93,12 +90,10 @@ class PatientDetailScreen extends StatelessWidget {
                           : 'Unknown date';
 
                       final mood = log['mood'] ?? '❓';
-                      final heartRate = log['heartRate'];
-                      final temperature = log['temperature'];
-                      final oxygenLevel = log['oxygenLevel'];
                       final note = log['note'];
 
                       return Card(
+                        color: cardColor,
                         margin: const EdgeInsets.symmetric(vertical: 8),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -107,19 +102,9 @@ class PatientDetailScreen extends StatelessWidget {
                           contentPadding: const EdgeInsets.all(12),
                           leading: Text(mood, style: const TextStyle(fontSize: 28)),
                           title: Text(formatted),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (heartRate != null)
-                                Text('Heart Rate: $heartRate BPM'),
-                              if (temperature != null)
-                                Text('Temperature: $temperature °C'),
-                              if (oxygenLevel != null)
-                                Text('Oxygen Level: $oxygenLevel%'),
-                              if (note != null && note.toString().trim().isNotEmpty)
-                                Text('Note: $note'),
-                            ],
-                          ),
+                          subtitle: note != null && note.toString().trim().isNotEmpty
+                              ? Text('Note: $note')
+                              : null,
                         ),
                       );
                     },
