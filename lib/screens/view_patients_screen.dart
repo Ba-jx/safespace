@@ -17,6 +17,8 @@ class _ViewPatientsScreenState extends State<ViewPatientsScreen> {
   @override
   Widget build(BuildContext context) {
     final doctorId = FirebaseAuth.instance.currentUser?.uid;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF2F2A43) : Colors.white;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Assigned Patients')),
@@ -67,7 +69,11 @@ class _ViewPatientsScreenState extends State<ViewPatientsScreen> {
                       final email = data['email'] ?? 'No Email';
 
                       return Card(
+                        color: cardColor,
                         margin: const EdgeInsets.symmetric(vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         child: ListTile(
                           leading: const Icon(Icons.person),
                           title: Text(name),
