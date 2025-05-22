@@ -232,7 +232,7 @@ class _PatientAppointmentCalendarState extends State<PatientAppointmentCalendar>
                   elevation: 4,
                 ),
                 icon: const Icon(Icons.calendar_today, size: 18),
-                label: const Text('Current Week', style: TextStyle(fontWeight: FontWeight.w500)),
+                label: const Text('Today', style: TextStyle(fontWeight: FontWeight.w500)),
               ),
             ),
           ),
