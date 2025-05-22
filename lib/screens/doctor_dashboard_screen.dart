@@ -8,9 +8,19 @@ class DoctorDashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: const CustomDrawer(),
-      appBar: AppBar(
-        title: const Text('Doctor Dashboard'),
-        centerTitle: true,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(80), // Taller AppBar
+        child: AppBar(
+          title: const Text(
+            'Doctor Dashboard',
+            style: TextStyle(
+              fontSize: 26,              // Bigger font
+              fontWeight: FontWeight.bold, // Bold text
+              letterSpacing: 1.2,        // Optional spacing
+            ),
+          ),
+          centerTitle: true,
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(20),
@@ -34,7 +44,7 @@ class DoctorDashboardScreen extends StatelessWidget {
               label: 'Manage Appointments',
               onTap: () => Navigator.pushNamed(context, '/doctor/appointments'),
             ),
-             _DashboardTile(
+            _DashboardTile(
               icon: Icons.calendar_month,
               label: 'Calendar',
               onTap: () => Navigator.pushNamed(context, '/doctor/calendar'),
