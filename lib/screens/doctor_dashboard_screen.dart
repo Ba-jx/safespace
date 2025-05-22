@@ -11,6 +11,12 @@ class DoctorDashboardScreen extends StatelessWidget {
 appBar: PreferredSize(
   preferredSize: const Size.fromHeight(80),
   child: AppBar(
+    leading: Builder(
+      builder: (context) => IconButton(
+        icon: const Icon(Icons.menu, size:  thirty), // 🔍 Increased size here
+        onPressed: () => Scaffold.of(context).openDrawer(),
+      ),
+    ),
     title: const Text(
       'Doctor Dashboard',
       style: TextStyle(
@@ -20,20 +26,7 @@ appBar: PreferredSize(
       ),
     ),
     centerTitle: true,
-    actions: [
-      Padding(
-        padding: const EdgeInsets.only(right: 12),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(8), // Rounded corners (optional)
-          child: Image.asset(
-            'assets/images/safe_space_logo1.png', // Updated enhanced logo
-            height: 40,
-            width: 40,
-            fit: BoxFit.contain,
-          ),
-        ),
-      ),
-    ],
+    actions: [], // 🔧 Logo removed
   ),
 ),
 
