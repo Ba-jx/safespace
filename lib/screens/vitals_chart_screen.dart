@@ -56,7 +56,7 @@ class VitalsChartScreen extends StatelessWidget {
               double maxTemp = tempPoints.map((e) => e.y).reduce((a, b) => a > b ? a : b);
               normalizedTemp = tempPoints.map((e) {
                 final normalized = maxTemp - minTemp == 0 ? 50 : 100 * ((e.y - minTemp) / (maxTemp - minTemp));
-                return FlSpot(e.x, normalized);
+                return FlSpot(e.x, normalized.toDouble());
               }).toList();
             }
 
