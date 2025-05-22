@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../providers/user_provider.dart';
 
 class CustomDrawer extends StatelessWidget {
@@ -21,11 +22,18 @@ class CustomDrawer extends StatelessWidget {
         title: const Text('Confirm Logout'),
         content: const Text('Are you sure you want to log out?'),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Logout')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Logout'),
+          ),
         ],
       ),
     );
+
     if (confirm == true) {
       await FirebaseAuth.instance.signOut();
       Provider.of<UserProvider>(context, listen: false).setUserName('');
@@ -36,12 +44,9 @@ class CustomDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF1A1729) : const Color(0xFFF3EFFB);
-    final textColor = isDark ? Colors.white : const Color(0xFF4A3D74);
-    final iconColor = isDark ? Colors.white : const Color(0xFF6C4DB0);
 
     return Drawer(
-      backgroundColor: bgColor,
+      backgroundColor: isDark ? const Color(0xFF1A1729) : const Color(0xFFF9F7FC),
       child: FutureBuilder<Map<String, dynamic>?>(
         future: _getUserData(),
         builder: (context, snapshot) {
@@ -50,33 +55,38 @@ class CustomDrawer extends StatelessWidget {
           }
 
           final userData = snapshot.data!;
-          final name = userData['name'] ?? 'User';
-          final role = userData['role'] ?? '';
+          final String name = userData['name'] ?? 'User';
+          final String role = userData['role'] ?? '';
           final isDoctor = role == 'doctor';
 
           return ListView(
             padding: EdgeInsets.zero,
             children: [
               Container(
-                height: 120,
-                color: const Color(0xFF7A6EDB),
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
-                alignment: Alignment.bottomLeft,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF6C4DB0) : const Color(0xFFD1B3FF),
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(16),
+                    bottomRight: Radius.circular(16),
+                  ),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Safe Space', style: TextStyle(color: Colors.white, fontSize: 20)),
+                    const Text('Safe Space', style: TextStyle(fontSize: 20, color: Colors.white)),
                     const SizedBox(height: 4),
-                    Text('Welcome, $name', style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                    Text('Welcome, $name',
+                        style: const TextStyle(fontSize: 16, color: Colors.white70)),
                   ],
                 ),
               ),
-              const SizedBox(height: 4),
-              ..._buildDrawerItems(context, isDoctor, textColor, iconColor),
+              const SizedBox(height: 12),
+              ..._buildNavigationItems(context, isDoctor),
               const Divider(),
               ListTile(
-                leading: Icon(Icons.logout, color: iconColor),
-                title: Text('Logout', style: TextStyle(color: textColor)),
+                leading: const Icon(Icons.logout),
+                title: const Text('Logout'),
                 onTap: () => _confirmAndLogout(context),
               ),
             ],
@@ -86,31 +96,31 @@ class CustomDrawer extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildDrawerItems(BuildContext context, bool isDoctor, Color textColor, Color iconColor) {
+  List<Widget> _buildNavigationItems(BuildContext context, bool isDoctor) {
     if (isDoctor) {
       return [
-        _drawerItem(Icons.dashboard, 'Dashboard', '/doctor/dashboard', textColor, iconColor, context),
-        _drawerItem(Icons.people, 'View Patients', '/doctor/patients', textColor, iconColor, context),
-        _drawerItem(Icons.calendar_today, 'Appointments', '/doctor/appointments', textColor, iconColor, context),
-        _drawerItem(Icons.calendar_month, 'Calendar', '/doctor/calendar', textColor, iconColor, context),
-        _drawerItem(Icons.chat, 'Chats', '/doctor/communication', textColor, iconColor, context),
+        _drawerTile(context, Icons.dashboard, 'Dashboard', '/doctor/dashboard'),
+        _drawerTile(context, Icons.people, 'View Patients', '/doctor/patients'),
+        _drawerTile(context, Icons.calendar_today, 'Appointments', '/doctor/appointments'),
+        _drawerTile(context, Icons.calendar_month, 'Calendar', '/doctor/calendar'),
+        _drawerTile(context, Icons.chat, 'Chats', '/doctor/communication'),
       ];
     } else {
       return [
-        _drawerItem(Icons.home, 'Home', '/home', textColor, iconColor, context),
-        _drawerItem(Icons.monitor_heart, 'Real Time Monitor', '/real-time-monitor', textColor, iconColor, context),
-        _drawerItem(Icons.mood, 'Track Symptoms', '/symptom-tracking', textColor, iconColor, context),
-        _drawerItem(Icons.chat, 'Chats', '/patient/communication', textColor, iconColor, context),
-        _drawerItem(Icons.schedule, 'Book Appointments', '/appointments/book', textColor, iconColor, context),
-        _drawerItem(Icons.calendar_today, 'My Appointments', '/appointments/list', textColor, iconColor, context),
+        _drawerTile(context, Icons.home, 'Home', '/home'),
+        _drawerTile(context, Icons.monitor_heart, 'Real Time Monitor', '/real-time-monitor'),
+        _drawerTile(context, Icons.mood, 'Track Symptoms', '/symptom-tracking'),
+        _drawerTile(context, Icons.chat, 'Chats', '/patient/communication'),
+        _drawerTile(context, Icons.schedule, 'Book Appointments', '/appointments/book'),
+        _drawerTile(context, Icons.calendar_today, 'My Appointments', '/appointments/list'),
       ];
     }
   }
 
-  Widget _drawerItem(IconData icon, String title, String route, Color textColor, Color iconColor, BuildContext context) {
+  Widget _drawerTile(BuildContext context, IconData icon, String title, String route) {
     return ListTile(
-      leading: Icon(icon, color: iconColor),
-      title: Text(title, style: TextStyle(color: textColor)),
+      leading: Icon(icon),
+      title: Text(title),
       onTap: () => Navigator.pushNamed(context, route),
     );
   }
