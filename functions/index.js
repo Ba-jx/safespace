@@ -1,3 +1,6 @@
+import 'dart:math';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 const { onDocumentCreated, onDocumentUpdated, onDocumentDeleted } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const logger = require("firebase-functions/logger");
@@ -295,44 +298,40 @@ exports.notifyDoctorOnRescheduleRequest = onDocumentUpdated({
   await createNotification(doctorId, title, body);
 });
 
-// ✅ Patient Credentials on Creation
-exports.sendPatientCredentialsOnCreation = onDocumentCreated({
-  secrets: ["SENDGRID_API_KEY"],
-  document: "users/{userId}",
-  region: "us-central1"
-}, async (event) => {
-  const user = event.data.data();
-  const userId = event.params.userId;
+/// Generates a random password
+String generateRandomPassword({int length = 10}) {
+  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  final rand = Random.secure();
+  return List.generate(length, (index) => chars[rand.nextInt(chars.length)]).join();
+}
 
-  if (!user || user.role !== 'patient' || !user.generatedPassword || !user.email) return;
-
-  const emailMsg = {
-    to: user.email,
-    from: {
-      email: "safe3space@gmail.com",
-      name: "Safe Space Team"
-    },
-    subject: "Your Safe Space Login Credentials",
-    text: `Hello ${user.name || "there"},\n\nYou have been registered to the Safe Space app.\n\nLogin Email: ${user.email}\nPassword: ${user.generatedPassword}\n\nPlease log in and change your password immediately for your security.`,
-    html: `
-      <p>Hello ${user.name || "there"},</p>
-      <p>You have been registered to the <strong>Safe Space</strong> app.</p>
-      <p><strong>Login Email:</strong> ${user.email}<br/>
-         <strong>Password:</strong> ${user.generatedPassword}</p>
-      <p>Please log in and <strong>change your password immediately</strong> for security.</p>
-      <p>Regards,<br/>Safe Space Team</p>
-    `
-  };
-
+/// Creates a new patient with Firebase Auth + Firestore and triggers email
+Future<void> createPatientWithCredentials({
+  required String email,
+  required String name,
+  required String doctorId,
+}) async {
   try {
-    await sgMail.send(emailMsg);
-    logger.info(`📧 Credentials email sent to ${user.email}`);
-  } catch (e) {
-    logger.error(`❌ Failed to send credentials email to ${user.email}`, e);
-  }
+    final password = generateRandomPassword();
 
-  // Delete password field after email
-  await db.collection("users").doc(userId).update({
-    generatedPassword: FieldValue.delete()
-  });
-});
+    // 1. Create user in Firebase Auth
+    final userCredential = await FirebaseAuth.instance
+        .createUserWithEmailAndPassword(email: email, password: password);
+
+    final uid = userCredential.user!.uid;
+
+    // 2. Save patient details in Firestore, including generatedPassword
+    await FirebaseFirestore.instance.collection('users').doc(uid).set({
+      'email': email,
+      'name': name,
+      'role': 'patient',
+      'doctorId': doctorId,
+      'generatedPassword': password, // ✅ Required for triggering email
+    });
+
+    print('✅ Patient created successfully and credentials saved.');
+  } catch (e) {
+    print('❌ Error creating patient: $e');
+    rethrow;
+  }
+}
