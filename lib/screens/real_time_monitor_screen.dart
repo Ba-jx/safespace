@@ -51,9 +51,9 @@ class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
   Future<void> fetchData() async {
     try {
       final responses = await Future.wait([
-        http.get(Uri.parse('$baseUrl?token=$authToken&v0')), // heart rate
-        http.get(Uri.parse('$baseUrl?token=$authToken&v1')), // oxygen
-        http.get(Uri.parse('$baseUrl?token=$authToken&v2')), // temperature
+        http.get(Uri.parse('$baseUrl?token=$authToken&v0')),
+        http.get(Uri.parse('$baseUrl?token=$authToken&v1')),
+        http.get(Uri.parse('$baseUrl?token=$authToken&v2')),
       ]);
 
       if (responses.every((res) => res.statusCode == 200)) {
@@ -87,14 +87,10 @@ class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
               'patientId': patientId,
             });
 
-            debugPrint('Saved reading #$_fetchCounter to Firestore');
-
             _lastHeartRate = bpm;
             _lastOxygenLevel = spo2;
             _lastTemperature = temp;
           }
-        } else {
-          debugPrint('Skipped save — no change or not nth fetch');
         }
       }
     } catch (e) {
@@ -140,7 +136,9 @@ class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
                   'Last updated: ${_formatTimestamp(lastUpdated)}',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey[700],
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey[400]
+                        : Colors.grey[700],
                   ),
                 ),
               ),
@@ -156,15 +154,36 @@ class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
     required String value,
     required Color color,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Card(
-      elevation: 3,
+      color: isDark ? const Color(0xFF2C2840) : Colors.white,
+      elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        leading: Icon(icon, size: 36, color: color),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-        trailing: Text(
-          value,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+        child: Row(
+          children: [
+            Icon(icon, size: 32, color: color),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
+            ),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : Colors.black,
+              ),
+            ),
+          ],
         ),
       ),
     );
