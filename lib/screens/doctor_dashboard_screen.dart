@@ -9,14 +9,14 @@ class DoctorDashboardScreen extends StatelessWidget {
     return Scaffold(
       drawer: const CustomDrawer(),
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80), // Taller AppBar
+        preferredSize: const Size.fromHeight(80),
         child: AppBar(
           title: const Text(
             'Doctor Dashboard',
             style: TextStyle(
-              fontSize: 26,              // Bigger font
-              fontWeight: FontWeight.bold, // Bold text
-              letterSpacing: 1.2,        // Optional spacing
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
             ),
           ),
           centerTitle: true,
@@ -92,15 +92,18 @@ class _DashboardTile extends StatelessWidget {
               ),
           ],
         ),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16), // 👈 Bigger padding
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 40, color: theme.colorScheme.primary),
-            const SizedBox(height: 12),
+            Icon(icon, size: 50, color: theme.colorScheme.primary), // 👈 Bigger icon
+            const SizedBox(height: 16),
             Text(
               label,
-              style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+              style: theme.textTheme.titleMedium?.copyWith( // 👈 Bolder, larger text
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
               textAlign: TextAlign.center,
             ),
           ],
