@@ -53,21 +53,31 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? Colors.black : const Color(0xFFF5F5FF),
+      backgroundColor: isDark ? const Color(0xFF1C152D) : const Color(0xFFF5F5FF),
       body: Center(
         child: FadeTransition(
           opacity: _fadeAnimation,
-          child: AnimatedBuilder(
-            animation: _colorAnimation,
-            builder: (context, child) => Text(
-              'Safe Space',
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: _colorAnimation.value,
-                letterSpacing: 1.5,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Image.asset(
+                'assets/images/safe_space_logo1.png',
+                height: 180,
               ),
-            ),
+              const SizedBox(height: 20),
+              AnimatedBuilder(
+                animation: _colorAnimation,
+                builder: (context, child) => Text(
+                  'Safe Space',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: _colorAnimation.value,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
