@@ -40,10 +40,12 @@ class PatientDetailScreen extends StatelessWidget {
             const Divider(),
            ElevatedButton.icon(
   onPressed: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) =>  VitalsChartScreen()),
-    );
+ Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => VitalsChartScreen(patientId: patientId),
+                  ),
+                );
   },
   icon: const Icon(Icons.show_chart, size: 18),
  label:  Text(
