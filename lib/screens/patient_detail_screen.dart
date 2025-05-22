@@ -46,13 +46,14 @@ class PatientDetailScreen extends StatelessWidget {
     );
   },
   icon: const Icon(Icons.show_chart, size: 18),
-  label: const Text(
-    'View Vitals Chart',
-    style: TextStyle(
-      fontWeight: FontWeight.bold,
-      color: Color(0xFF3E3E3E), // Dark grey text
-    ),
+ label: const Text(
+  'View Vitals Chart',
+  style: TextStyle(
+    fontWeight: FontWeight.bold,
+    color: Color(0xFF3E3E3E), // Dark grey
   ),
+),
+
   style: ElevatedButton.styleFrom(
     backgroundColor: const Color(0xFFB9A6E7), // Soft purple
     foregroundColor: Colors.black87,
