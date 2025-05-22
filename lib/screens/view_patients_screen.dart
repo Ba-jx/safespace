@@ -26,7 +26,7 @@ class _ViewPatientsScreenState extends State<ViewPatientsScreen> {
           children: [
             TextField(
               decoration: const InputDecoration(
-                hintText: 'Search by name or email',
+                hintText: 'Search by Name or Email',
                 prefixIcon: Icon(Icons.search),
                 border: OutlineInputBorder(),
               ),
