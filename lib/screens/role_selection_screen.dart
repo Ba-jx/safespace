@@ -65,8 +65,8 @@ class RoleSelectionScreen extends StatelessWidget {
                   icon: const Icon(Icons.medical_services),
                   label: const Text('Doctor Login'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFB9A6E8),
-                    foregroundColor: Colors.white,
+                  backgroundColor: isDark ? const Color(0xFF5A4E8C) : const Color(0xFFDDD6F7),
+                    foregroundColor: isDark ? Colors.white : const Color(0xFF333366),
                     minimumSize: const Size.fromHeight(48),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
