@@ -162,7 +162,7 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: Image.asset(
-                            'assets/images/patient_login_illustration.png',
+                            'assets/images/safe_space_logo1.png',
                             height: 260,
                             fit: BoxFit.contain,
                           ),
@@ -210,7 +210,7 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
                         ElevatedButton(
                           onPressed: _login,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFB9A6E8), // updated to match RoleSelection
+                            backgroundColor: const Color(0xFFB9A6E8), 
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(30),
