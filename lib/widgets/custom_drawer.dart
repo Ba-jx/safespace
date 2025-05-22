@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
+import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
 
 class CustomDrawer extends StatelessWidget {
@@ -43,10 +42,11 @@ class CustomDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final headerColor = isDark ? const Color(0xFF6C4DB0) : const Color(0xFFD1C4E9); // Match app bar color
 
     return Drawer(
-      backgroundColor: isDark ? const Color(0xFF1A1729) : const Color(0xFFF9F7FC),
       child: FutureBuilder<Map<String, dynamic>?>(
         future: _getUserData(),
         builder: (context, snapshot) {
@@ -59,18 +59,11 @@ class CustomDrawer extends StatelessWidget {
           final String role = userData['role'] ?? '';
           final isDoctor = role == 'doctor';
 
-         return ListView(
+          return ListView(
             padding: EdgeInsets.zero,
             children: [
-              Container(
-                height: 140,
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF7A5ACD) : const Color(0xFFB39DDB),
-                  borderRadius: const BorderRadius.only(
-                    bottomRight: Radius.circular(24),
-                  ),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+              DrawerHeader(
+                decoration: BoxDecoration(color: headerColor),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -82,8 +75,64 @@ class CustomDrawer extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
-              ..._buildNavigationItems(context, isDoctor),
+              if (isDoctor) ...[
+                ListTile(
+                  leading: const Icon(Icons.dashboard),
+                  title: const Text('Dashboard'),
+                  onTap: () => Navigator.pushNamed(context, '/doctor/dashboard'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.people),
+                  title: const Text('View Patients'),
+                  onTap: () => Navigator.pushNamed(context, '/doctor/patients'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.calendar_today),
+                  title: const Text('Appointments'),
+                  onTap: () => Navigator.pushNamed(context, '/doctor/appointments'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.calendar_month),
+                  title: const Text('Calendar'),
+                  onTap: () => Navigator.pushNamed(context, '/doctor/calendar'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.chat),
+                  title: const Text('Chats'),
+                  onTap: () => Navigator.pushNamed(context, '/doctor/communication'),
+                ),
+              ] else ...[
+                ListTile(
+                  leading: const Icon(Icons.home),
+                  title: const Text('Home'),
+                  onTap: () => Navigator.pushNamed(context, '/home'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.monitor_heart),
+                  title: const Text('Real Time Monitor'),
+                  onTap: () => Navigator.pushNamed(context, '/real-time-monitor'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.mood),
+                  title: const Text('Track Symptoms'),
+                  onTap: () => Navigator.pushNamed(context, '/symptom-tracking'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.chat),
+                  title: const Text('Chats'),
+                  onTap: () => Navigator.pushNamed(context, '/patient/communication'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.schedule),
+                  title: const Text('Book Appointments'),
+                  onTap: () => Navigator.pushNamed(context, '/appointments/book'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.calendar_today),
+                  title: const Text('My Appointments'),
+                  onTap: () => Navigator.pushNamed(context, '/appointments/list'),
+                ),
+              ],
               const Divider(),
               ListTile(
                 leading: const Icon(Icons.logout),
@@ -94,35 +143,6 @@ class CustomDrawer extends StatelessWidget {
           );
         },
       ),
-    );
-  }
-
-  List<Widget> _buildNavigationItems(BuildContext context, bool isDoctor) {
-    if (isDoctor) {
-      return [
-        _drawerTile(context, Icons.dashboard, 'Dashboard', '/doctor/dashboard'),
-        _drawerTile(context, Icons.people, 'View Patients', '/doctor/patients'),
-        _drawerTile(context, Icons.calendar_today, 'Appointments', '/doctor/appointments'),
-        _drawerTile(context, Icons.calendar_month, 'Calendar', '/doctor/calendar'),
-        _drawerTile(context, Icons.chat, 'Chats', '/doctor/communication'),
-      ];
-    } else {
-      return [
-        _drawerTile(context, Icons.home, 'Home', '/home'),
-        _drawerTile(context, Icons.monitor_heart, 'Real Time Monitor', '/real-time-monitor'),
-        _drawerTile(context, Icons.mood, 'Track Symptoms', '/symptom-tracking'),
-        _drawerTile(context, Icons.chat, 'Chats', '/patient/communication'),
-        _drawerTile(context, Icons.schedule, 'Book Appointments', '/appointments/book'),
-        _drawerTile(context, Icons.calendar_today, 'My Appointments', '/appointments/list'),
-      ];
-    }
-  }
-
-  Widget _drawerTile(BuildContext context, IconData icon, String title, String route) {
-    return ListTile(
-      leading: Icon(icon),
-      title: Text(title),
-      onTap: () => Navigator.pushNamed(context, route),
     );
   }
 }
