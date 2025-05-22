@@ -72,7 +72,9 @@ exports.sendUnreadNotificationDigest = onSchedule({
       },
       replyTo: doctor.email,
       subject: "You Have Unread Notifications from Safe Space",
-      text: `Hello ${patient.name || "there"},\n\nYou have ${unreadCount} unread notification(s). Please open the Safe Space app to review them.`,
+      text: `Hello ${patient.name || "there"},
+
+You have ${unreadCount} unread notification(s). Please open the Safe Space app to review them.`,
       html: `<p>Hello ${patient.name || "there"},</p><p>You have <strong>${unreadCount}</strong> unread notification(s).</p><p>Open Safe Space to review them.</p>`
     };
 
@@ -166,7 +168,9 @@ exports.sendAppointmentConfirmationEmail = onDocumentCreated({
     },
     replyTo: doctor.email,
     subject: "Your Appointment is Confirmed",
-    text: `Hello ${user.name || "there"},\n\nYour appointment is confirmed for ${apptTime}.`,
+    text: `Hello ${user.name || "there"},
+
+Your appointment is confirmed for ${apptTime}.`,
     html: `<p>Hello ${user.name || "there"},</p><p>Your appointment is confirmed for <strong>${apptTime}</strong>.</p>`
   };
 
@@ -178,7 +182,7 @@ exports.sendAppointmentConfirmationEmail = onDocumentCreated({
   }
 });
 
-// ✅ Patient Credentials on Creation (Updated to log and double-check password field)
+// ✅ Patient Credentials on Creation
 exports.sendPatientCredentialsOnCreation = onDocumentCreated({
   secrets: ["SENDGRID_API_KEY"],
   document: "users/{userId}",
@@ -201,7 +205,14 @@ exports.sendPatientCredentialsOnCreation = onDocumentCreated({
       name: "Safe Space Team"
     },
     subject: "Your Safe Space Login Credentials",
-    text: `Hello ${user.name || "there"},\n\nYou have been registered to the Safe Space app.\n\nLogin Email: ${user.email}\nPassword: ${user.generatedPassword}\n\nPlease log in and change your password immediately for your security.`,
+    text: `Hello ${user.name || "there"},
+
+You have been registered to the Safe Space app.
+
+Login Email: ${user.email}
+Password: ${user.generatedPassword}
+
+Please log in and change your password immediately for your security.`,
     html: `
       <p>Hello ${user.name || "there"},</p>
       <p>You have been registered to the <strong>Safe Space</strong> app.</p>
