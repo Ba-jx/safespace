@@ -19,9 +19,11 @@ class RoleSelectionScreen extends StatelessWidget {
               children: [
                 Image.asset(
                   'assets/images/safe_space_logo1.png',
-                  height: 200,
+                  height: 300, // 🔍 Increased height
+                  width: 300,  // 🔍 Optional: Add width to ensure consistency
+                  fit: BoxFit.contain,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
                 Text(
                   'Welcome to Safe Space',
                   style: TextStyle(
