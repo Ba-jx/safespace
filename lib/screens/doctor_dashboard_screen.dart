@@ -25,8 +25,8 @@ class DoctorDashboardScreen extends StatelessWidget {
         padding: const EdgeInsets.only(right: 16),
         child: Image.asset(
           'assets/images/safe_space_logo1.png', // Make sure the image exists here
-          height: 60,
-          width: 60,
+          height: 100,
+          width: 100,
         ),
       ),
     ],
