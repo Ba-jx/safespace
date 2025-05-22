@@ -38,27 +38,33 @@ class PatientDetailScreen extends StatelessWidget {
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const Divider(),
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => VitalsChartScreen(patientId: patientId),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.show_chart),
-              label: const Text('View Vitals Chart'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF7A6EDB), // updated theme color
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                elevation: 3,
-              ),
-            ),
+           ElevatedButton.icon(
+  onPressed: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const VitalsChartScreen()),
+    );
+  },
+  icon: const Icon(Icons.show_chart, size: 18),
+  label: const Text(
+    'View Vitals Chart',
+    style: TextStyle(
+      fontWeight: FontWeight.bold,
+      color: Color(0xFF3E3E3E), // Dark grey text
+    ),
+  ),
+  style: ElevatedButton.styleFrom(
+    backgroundColor: const Color(0xFFB9A6E7), // Soft purple
+    foregroundColor: Colors.black87,
+    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(24),
+    ),
+    elevation: 6,
+    shadowColor: Colors.grey.shade400,
+  ),
+),
+
             const SizedBox(height: 10),
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
