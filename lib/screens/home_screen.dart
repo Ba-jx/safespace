@@ -11,12 +11,6 @@ class HomeScreen extends StatelessWidget {
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80),
         child: AppBar(
-          leading: Builder(
-            builder: (context) => IconButton(
-              icon: const Icon(Icons.menu, size: 30),
-              onPressed: () => Scaffold.of(context).openDrawer(),
-            ),
-          ),
           title: const Text(
             'Your Safe Space',
             style: TextStyle(
@@ -26,7 +20,12 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
           centerTitle: true,
-          actions: [],
+          leading: Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(Icons.menu, size: 30),
+              onPressed: () => Scaffold.of(context).openDrawer(),
+            ),
+          ),
         ),
       ),
       body: Padding(
@@ -35,7 +34,6 @@ class HomeScreen extends StatelessWidget {
           crossAxisCount: 2,
           crossAxisSpacing: 20,
           mainAxisSpacing: 20,
-            childAspectRatio: 0.9,
           children: [
             _DashboardTile(
               icon: Icons.monitor_heart,
@@ -100,17 +98,17 @@ class _DashboardTile extends StatelessWidget {
               ),
           ],
         ),
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 44, color: theme.colorScheme.primary),
-            const SizedBox(height: 14),
+            Icon(icon, size: 40, color: theme.colorScheme.primary),
+            const SizedBox(height: 12),
             Text(
               label,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
               ),
               textAlign: TextAlign.center,
             ),
