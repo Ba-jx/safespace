@@ -178,7 +178,7 @@ exports.sendAppointmentConfirmationEmail = onDocumentCreated({
   }
 });
 
-// ✅ Patient Credentials on Creation
+// ✅ Patient Credentials on Creation (Updated to log and double-check password field)
 exports.sendPatientCredentialsOnCreation = onDocumentCreated({
   secrets: ["SENDGRID_API_KEY"],
   document: "users/{userId}",
@@ -187,7 +187,12 @@ exports.sendPatientCredentialsOnCreation = onDocumentCreated({
   const user = event.data.data();
   const userId = event.params.userId;
 
-  if (!user || user.role !== 'patient' || !user.generatedPassword || !user.email) return;
+  logger.info(`🟡 Triggered sendPatientCredentialsOnCreation for user: ${userId}`);
+
+  if (!user || user.role !== 'patient' || !user.generatedPassword || !user.email) {
+    logger.warn(`⚠️ Skipping credential email — Missing fields for user: ${userId}`);
+    return;
+  }
 
   const emailMsg = {
     to: user.email,
