@@ -20,7 +20,7 @@ class RoleSelectionScreen extends StatelessWidget {
                 Image.asset(
                   'assets/images/safe_space_logo1.png',
                   height: 300, 
-                  width: 300,
+                  width: 350,
                   fit: BoxFit.contain,
                 ),
                 const SizedBox(height: 16),
