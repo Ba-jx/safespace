@@ -117,8 +117,7 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: isDark ? Colors.black : const Color(0xFFF5F5FF),
@@ -159,7 +158,7 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
                           borderRadius: BorderRadius.circular(8),
                           child: Image.asset(
                             'assets/images/safe_space_logo1.png',
-                            height: 260,
+                            height: 300, // Increased height
                             fit: BoxFit.contain,
                           ),
                         ),
@@ -213,7 +212,7 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 16),
                           ),
-                          child: const Icon(Icons.arrow_forward),
+                          child: const Text('Login'),
                         ),
                       ],
                     ),
