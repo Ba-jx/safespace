@@ -206,7 +206,7 @@ class _DoctorLoginScreenState extends State<DoctorLoginScreen> {
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 16),
                           ),
-                          child: const Text('Login'),
+                          child: const Text('Login',style: TextStyle(fontWeight: FontWeight.bold),),
                         ),
                       ],
                     ),
