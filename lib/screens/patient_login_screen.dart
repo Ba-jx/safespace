@@ -212,7 +212,7 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 16),
                           ),
-                          child: const Text('Login',style: TextStyle(fontWeight: FontWeight.bold),),
+                          child: const Text('Login',style: TextStyle(fontWeight: FontWeight.bold,fontSize: 18,),),
                         ),
                       ],
                     ),
