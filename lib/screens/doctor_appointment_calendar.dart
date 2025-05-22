@@ -385,14 +385,26 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final appointments = _getAppointmentsForDay(_selectedDay ?? _focusedDay);
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Appointments Calendar'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12.0),
+Widget build(BuildContext context) {
+  final appointments = _getAppointmentsForDay(_selectedDay ?? _focusedDay);
+
+  return Scaffold(
+    appBar: AppBar(
+      title: const Text('Appointments Calendar'),
+    ),
+    floatingActionButton: (_selectedDay ?? _focusedDay).isBefore(DateTime.now())
+        ? null
+        : FloatingActionButton(
+            onPressed: _showAppointmentDialog,
+            backgroundColor: Colors.purple,
+            child: const Icon(Icons.add),
+          ),
+    body: Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 12.0, right: 16.0),
+          child: Align(
+            alignment: Alignment.centerRight,
             child: ElevatedButton.icon(
               onPressed: () {
                 setState(() {
@@ -401,116 +413,98 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                 });
               },
               style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.purple,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
-                  elevation: 4,
-                ),
-                icon: const Icon(Icons.calendar_today, size: 18),
-                label: const Text('Today', style: TextStyle(fontWeight: FontWeight.w500)),
-              ),
-          ),
-        ],
-      ),
-      floatingActionButton:
-          (_selectedDay ?? _focusedDay).isBefore(DateTime.now())
-              ? null
-              : FloatingActionButton(
-                onPressed: _showAppointmentDialog,
                 backgroundColor: Colors.purple,
-                child: const Icon(Icons.add),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
+                elevation: 4,
               ),
-      body: Column(
-        children: [
-          TableCalendar(
-            firstDay: DateTime.utc(2024, 1, 1),
-            lastDay: DateTime.utc(2030, 12, 31),
-            focusedDay: _focusedDay,
-            selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-            onDaySelected: (selectedDay, focusedDay) async {
-              if (_isDateFullyBooked(selectedDay)) return;
-              setState(() {
-                _selectedDay = selectedDay;
-                _focusedDay = focusedDay;
-              });
-              await _fetchAppointments();
+              icon: const Icon(Icons.calendar_today, size: 18),
+              label: const Text('Today', style: TextStyle(fontWeight: FontWeight.w500)),
+            ),
+          ),
+        ),
+        TableCalendar(
+          firstDay: DateTime.utc(2024, 1, 1),
+          lastDay: DateTime.utc(2030, 12, 31),
+          focusedDay: _focusedDay,
+          selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+          onDaySelected: (selectedDay, focusedDay) async {
+            if (_isDateFullyBooked(selectedDay)) return;
+            setState(() {
+              _selectedDay = selectedDay;
+              _focusedDay = focusedDay;
+            });
+            await _fetchAppointments();
+          },
+          enabledDayPredicate: (day) => !_isDateFullyBooked(day),
+          eventLoader: _getAppointmentsForDay,
+          availableCalendarFormats: const {CalendarFormat.month: 'Month'},
+          headerStyle: const HeaderStyle(formatButtonVisible: false),
+          calendarBuilders: CalendarBuilders(
+            markerBuilder: (context, date, events) {
+              final statuses = events
+                  .map((e) => (e as Map<String, dynamic>)['status'] ?? '')
+                  .toSet();
+              return Positioned(
+                bottom: 1,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: statuses.map((status) {
+                    Color color;
+                    switch (status) {
+                      case 'confirmed':
+                        color = Colors.green;
+                        break;
+                      case 'rescheduled':
+                        color = Colors.blue;
+                        break;
+                      default:
+                        color = Colors.grey;
+                    }
+                    return Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                      ),
+                    );
+                  }).toList(),
+                ),
+              );
             },
-            enabledDayPredicate: (day) => !_isDateFullyBooked(day),
-            eventLoader: _getAppointmentsForDay,
-            availableCalendarFormats: const {CalendarFormat.month: 'Month'},
-            headerStyle: const HeaderStyle(formatButtonVisible: false),
-            calendarBuilders: CalendarBuilders(
-              markerBuilder: (context, date, events) {
-                final statuses =
-                    events
-                        .map((e) => (e as Map<String, dynamic>)['status'] ?? '')
-                        .toSet();
-                return Positioned(
-                  bottom: 1,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children:
-                        statuses.map((status) {
-                          Color color;
-                          switch (status) {
-                            case 'confirmed':
-                              color = Colors.green;
-                              break;
-                            case 'rescheduled':
-                              color = Colors.blue;
-                              break;
-                            default:
-                              color = Colors.grey;
-                          }
-                          return Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 1.5),
-                            width: 6,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              color: color,
-                              shape: BoxShape.circle,
-                            ),
-                          );
-                        }).toList(),
-                  ),
-                );
-              },
-            ),
-            calendarStyle: const CalendarStyle(
-              markerDecoration: BoxDecoration(shape: BoxShape.circle),
-            ),
           ),
-          const SizedBox(height: 16),
-          Expanded(
-            child:
-                appointments.isEmpty
-                    ? const Center(child: Text('No appointments on this day.'))
-                    : ListView(
-                      children:
-                          appointments.map((appt) {
-                            final name = appt['patientName'] ?? 'Unknown';
-                            final note = appt['note'] ?? '';
-                            final time =
-                                (appt['dateTime'] as Timestamp).toDate();
-                            final status = appt['status'] ?? 'unknown';
+          calendarStyle: const CalendarStyle(
+            markerDecoration: BoxDecoration(shape: BoxShape.circle),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Expanded(
+          child: appointments.isEmpty
+              ? const Center(child: Text('No appointments on this day.'))
+              : ListView(
+                  children: appointments.map((appt) {
+                    final name = appt['patientName'] ?? 'Unknown';
+                    final note = appt['note'] ?? '';
+                    final time = (appt['dateTime'] as Timestamp).toDate();
+                    final status = appt['status'] ?? 'unknown';
 
-                            return ListTile(
-                              title: Text(name),
-                              subtitle: Text(
-                                '${TimeOfDay.fromDateTime(time).format(context)} - $note  •  ${status.toUpperCase()}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              onTap:
-                                  () => _showAppointmentDialog(existing: appt),
-                            );
-                          }).toList(),
-                    ),
-          ),
-        ],
-      ),
-    );
-  }
+                    return ListTile(
+                      title: Text(name),
+                      subtitle: Text(
+                        '${TimeOfDay.fromDateTime(time).format(context)} - $note  •  ${status.toUpperCase()}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      onTap: () => _showAppointmentDialog(existing: appt),
+                    );
+                  }).toList(),
+                ),
+        ),
+      ],
+    ),
+  );
 }
