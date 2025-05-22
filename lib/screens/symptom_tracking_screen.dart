@@ -338,31 +338,34 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children:
-                    ['😄', '🙂', '😐', '😟', '😢'].map((mood) {
-                      final selected = _selectedMood == mood;
-                      return GestureDetector(
-                        onTap: () => setState(() => _selectedMood = mood),
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: selected ? Colors.deepPurple.shade100 : null,
-                            border: Border.all(
-                              color: selected ? Colors.deepPurple : Colors.grey,
-                              width: selected ? 2 : 1,
-                            ),
-                          ),
-                          child: Text(
-                            mood,
-                            style: const TextStyle(fontSize: 32),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-              ),
+         Row(
+  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+  children: ['😄', '🙂', '😐', '😟', '😢'].map((mood) {
+    final selected = _selectedMood == mood;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedMood = mood),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: selected
+              ? isDark
+                  ? const Color(0xFFD3C8F2)
+                  : const Color(0xFF6C4DB0)
+              : null,
+          border: Border.all(
+            color: selected ? Colors.deepPurple : Colors.grey,
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Text(
+          mood,
+          style: const TextStyle(fontSize: 32),
+        ),
+      ),
+    );
+  }).toList(),
+),
               const SizedBox(height: 16),
               TextField(
                 controller: _noteController,
