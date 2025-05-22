@@ -59,25 +59,26 @@ class CustomDrawer extends StatelessWidget {
           final String role = userData['role'] ?? '';
           final isDoctor = role == 'doctor';
 
-          return ListView(
+         return ListView(
             padding: EdgeInsets.zero,
             children: [
               Container(
-                padding: const EdgeInsets.all(32),
+                height: 140,
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF6C4DB0) : const Color(0xFFD1B3FF),
+                  color: isDark ? const Color(0xFF7A5ACD) : const Color(0xFFB39DDB),
                   borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(16),
-                    bottomRight: Radius.circular(16),
+                    bottomRight: Radius.circular(24),
                   ),
                 ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text('Safe Space', style: TextStyle(fontSize: 20, color: Colors.white)),
-                    const SizedBox(height: 4),
+                    const Text('Safe Space', style: TextStyle(color: Colors.white, fontSize: 20)),
+                    const SizedBox(height: 8),
                     Text('Welcome, $name',
-                        style: const TextStyle(fontSize: 16, color: Colors.white70)),
+                        style: const TextStyle(color: Colors.white, fontSize: 16)),
                   ],
                 ),
               ),
