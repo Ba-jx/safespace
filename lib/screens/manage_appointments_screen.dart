@@ -47,6 +47,8 @@ class _ManageAppointmentsScreenState extends State<ManageAppointmentsScreen> {
   @override
   Widget build(BuildContext context) {
     final currentDoctorId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF2F2A43) : Colors.white;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Manage Appointments')),
@@ -115,7 +117,11 @@ class _ManageAppointmentsScreenState extends State<ManageAppointmentsScreen> {
                     final patientName = data['patientName'] ?? 'Unknown';
 
                     return Card(
+                      color: cardColor,
                       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       child: ListTile(
                         title: Text(patientName),
                         subtitle: Column(
