@@ -8,20 +8,31 @@ class DoctorDashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: const CustomDrawer(),
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80),
-        child: AppBar(
-          title: const Text(
-            'Doctor Dashboard',
-            style: TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
-            ),
-          ),
-          centerTitle: true,
+  appBar: PreferredSize(
+  preferredSize: const Size.fromHeight(80),
+  child: AppBar(
+    title: const Text(
+      'Doctor Dashboard',
+      style: TextStyle(
+        fontSize: 26,
+        fontWeight: FontWeight.bold,
+        letterSpacing: 1.2,
+      ),
+    ),
+    centerTitle: true,
+    actions: [
+      Padding(
+        padding: const EdgeInsets.only(right: 16),
+        child: Image.asset(
+          'assets/safe_space_logo1.png', // Make sure the image exists here
+          height: 40,
+          width: 40,
         ),
       ),
+    ],
+  ),
+),
+
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: GridView.count(
