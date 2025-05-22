@@ -92,17 +92,17 @@ class _DashboardTile extends StatelessWidget {
               ),
           ],
         ),
-        padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16), // 👈 Bigger padding
+        padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 50, color: theme.colorScheme.primary), // 👈 Bigger icon
+            Icon(icon, size: 50, color: theme.colorScheme.primary),
             const SizedBox(height: 16),
             Text(
               label,
-              style: theme.textTheme.titleMedium?.copyWith( // 👈 Bolder, larger text
+              style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                fontSize: 18,
+                fontSize: 16, // 👈 Reduced for better fit
               ),
               textAlign: TextAlign.center,
             ),
