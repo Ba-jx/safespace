@@ -32,7 +32,7 @@ class RoleSelectionScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 40),
                 ElevatedButton.icon(
-                  onPressed: () => Navigator.pushNamed(context, '/patient/login'),
+                  onPressed: () => Navigator.pushNamed(context, '/login'),
                   icon: const Icon(Icons.person_outline),
                   label: const Text('Patient Login'),
                   style: ElevatedButton.styleFrom(
