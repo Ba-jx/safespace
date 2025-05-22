@@ -3,7 +3,7 @@ const { onSchedule } = require("firebase-functions/v2/scheduler");
 const logger = require("firebase-functions/logger");
 
 const { initializeApp } = require("firebase-admin/app");
-const { getFirestore, Timestamp } = require("firebase-admin/firestore");
+const { getFirestore, Timestamp, FieldValue } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
 
 const sgMail = require("@sendgrid/mail");
@@ -294,7 +294,8 @@ exports.notifyDoctorOnRescheduleRequest = onDocumentUpdated({
 
   await createNotification(doctorId, title, body);
 });
-// ✅ Send Patient Credentials on Creation
+
+// ✅ Patient Credentials on Creation
 exports.sendPatientCredentialsOnCreation = onDocumentCreated({
   secrets: ["SENDGRID_API_KEY"],
   document: "users/{userId}",
@@ -303,14 +304,13 @@ exports.sendPatientCredentialsOnCreation = onDocumentCreated({
   const user = event.data.data();
   const userId = event.params.userId;
 
-  // Send only for patients with a generatedPassword field
   if (!user || user.role !== 'patient' || !user.generatedPassword || !user.email) return;
 
   const emailMsg = {
     to: user.email,
     from: {
       email: "safe3space@gmail.com",
-      name: `Safe Space Team`
+      name: "Safe Space Team"
     },
     subject: "Your Safe Space Login Credentials",
     text: `Hello ${user.name || "there"},\n\nYou have been registered to the Safe Space app.\n\nLogin Email: ${user.email}\nPassword: ${user.generatedPassword}\n\nPlease log in and change your password immediately for your security.`,
@@ -326,14 +326,13 @@ exports.sendPatientCredentialsOnCreation = onDocumentCreated({
 
   try {
     await sgMail.send(emailMsg);
-    console.log(`📧 Credentials email sent to ${user.email}`);
+    logger.info(`📧 Credentials email sent to ${user.email}`);
   } catch (e) {
-    console.error(`❌ Failed to send credentials email to ${user.email}`, e);
+    logger.error(`❌ Failed to send credentials email to ${user.email}`, e);
   }
 
-  // Optional: delete the plain password after sending
+  // Delete password field after email
   await db.collection("users").doc(userId).update({
-    generatedPassword: admin.firestore.FieldValue.delete()
+    generatedPassword: FieldValue.delete()
   });
 });
-
