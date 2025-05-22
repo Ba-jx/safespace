@@ -8,7 +8,7 @@ class DoctorDashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: const CustomDrawer(),
-  appBar: PreferredSize(
+appBar: PreferredSize(
   preferredSize: const Size.fromHeight(80),
   child: AppBar(
     title: const Text(
@@ -22,16 +22,21 @@ class DoctorDashboardScreen extends StatelessWidget {
     centerTitle: true,
     actions: [
       Padding(
-        padding: const EdgeInsets.only(right: 16),
-        child: Image.asset(
-          'assets/images/safe_space_logo1.png', // Make sure the image exists here
-          height: 100,
-          width: 100,
+        padding: const EdgeInsets.only(right: 12),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8), // Rounded corners (optional)
+          child: Image.asset(
+            'assets/images/safe_space_logo1.png', // Updated enhanced logo
+            height: 40,
+            width: 40,
+            fit: BoxFit.contain,
+          ),
         ),
       ),
     ],
   ),
 ),
+
 
       body: Padding(
         padding: const EdgeInsets.all(20),
