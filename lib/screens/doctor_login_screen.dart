@@ -63,14 +63,12 @@ class _DoctorLoginScreenState extends State<DoctorLoginScreen> {
 
   Future<void> _onFinalLogin(User user) async {
     final uid = user.uid;
-
     final fcmToken = await FirebaseMessaging.instance.getToken();
     if (fcmToken != null) {
       await FirebaseFirestore.instance.collection('users').doc(uid).update({
         'fcmToken': fcmToken,
       });
     }
-
     Navigator.pushReplacementNamed(context, '/doctor/dashboard');
   }
 
@@ -114,7 +112,7 @@ class _DoctorLoginScreenState extends State<DoctorLoginScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? Colors.black : const Color(0xFFF5F5FF),
+      backgroundColor: isDark ? const Color(0xFF1C152D) : const Color(0xFFF5F5FF),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -133,7 +131,10 @@ class _DoctorLoginScreenState extends State<DoctorLoginScreen> {
                     children: [
                       Text(
                         'Email Verification Required',
-                        style: TextStyle(fontSize: 18, color: isDark ? Colors.white : const Color(0xFF5A4E8C)),
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: isDark ? Colors.white : const Color(0xFF5A4E8C),
+                        ),
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton(
@@ -152,7 +153,7 @@ class _DoctorLoginScreenState extends State<DoctorLoginScreen> {
                           borderRadius: BorderRadius.circular(8),
                           child: Image.asset(
                             'assets/images/safe_space_logo1.png',
-                            height: 300, // increased from 200
+                            height: 300,
                             fit: BoxFit.contain,
                           ),
                         ),
@@ -162,9 +163,11 @@ class _DoctorLoginScreenState extends State<DoctorLoginScreen> {
                           keyboardType: TextInputType.emailAddress,
                           style: TextStyle(color: isDark ? Colors.white : Colors.black),
                           decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF7A6EDB)),
+                            prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFFD4C2F2)),
                             hintText: 'Doctor Email',
-                            hintStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.black54),
+                            hintStyle: TextStyle(
+                              color: isDark ? Colors.grey[300] : Colors.black54,
+                            ),
                             border: const OutlineInputBorder(),
                           ),
                           validator: (value) =>
@@ -176,9 +179,11 @@ class _DoctorLoginScreenState extends State<DoctorLoginScreen> {
                           obscureText: true,
                           style: TextStyle(color: isDark ? Colors.white : Colors.black),
                           decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF7A6EDB)),
+                            prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFFD4C2F2)),
                             hintText: 'Password',
-                            hintStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.black54),
+                            hintStyle: TextStyle(
+                              color: isDark ? Colors.grey[300] : Colors.black54,
+                            ),
                             border: const OutlineInputBorder(),
                           ),
                           validator: (value) =>
@@ -191,7 +196,7 @@ class _DoctorLoginScreenState extends State<DoctorLoginScreen> {
                             onPressed: _resetPassword,
                             child: const Text(
                               'Forgot Password?',
-                              style: TextStyle(color: Color(0xFF7A6EDB)),
+                              style: TextStyle(color: Color(0xFFB9A6E8)),
                             ),
                           ),
                         ),
@@ -199,14 +204,17 @@ class _DoctorLoginScreenState extends State<DoctorLoginScreen> {
                         ElevatedButton(
                           onPressed: _login,
                           style: ElevatedButton.styleFrom(
-                             backgroundColor: const Color(0xFFB9A6E8),
-    foregroundColor: const Color(0xFF333366),
+                            backgroundColor: const Color(0xFF8C6DE8),
+                            foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(30),
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 16),
                           ),
-                          child: const Text('Login',style: TextStyle(fontWeight: FontWeight.bold,fontSize: 18,),),
+                          child: const Text(
+                            'Login',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                          ),
                         ),
                       ],
                     ),
