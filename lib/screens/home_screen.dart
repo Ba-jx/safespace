@@ -8,9 +8,26 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: const CustomDrawer(),
-      appBar: AppBar(
-        title: const Text('Your Safe Space'),
-        centerTitle: true,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(80),
+        child: AppBar(
+          leading: Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(Icons.menu, size: 30),
+              onPressed: () => Scaffold.of(context).openDrawer(),
+            ),
+          ),
+          title: const Text(
+            'Your Safe Space',
+            style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+            ),
+          ),
+          centerTitle: true,
+          actions: [],
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(20),
@@ -82,15 +99,18 @@ class _DashboardTile extends StatelessWidget {
               ),
           ],
         ),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 40, color: theme.colorScheme.primary),
-            const SizedBox(height: 12),
+            Icon(icon, size: 44, color: theme.colorScheme.primary),
+            const SizedBox(height: 14),
             Text(
               label,
-              style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
               textAlign: TextAlign.center,
             ),
           ],
