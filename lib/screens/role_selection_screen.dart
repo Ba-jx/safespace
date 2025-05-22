@@ -19,11 +19,11 @@ class RoleSelectionScreen extends StatelessWidget {
               children: [
                 Image.asset(
                   'assets/images/safe_space_logo1.png',
-                  height: 420, // ⬆️ Made the logo much bigger
-                  width: 420,
+                  height: 430, 
+                  width: 430,
                   fit: BoxFit.contain,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 15),
                 Text(
                   'Welcome to Safe Space',
                   style: TextStyle(
@@ -32,7 +32,7 @@ class RoleSelectionScreen extends StatelessWidget {
                     color: isDark ? Colors.white : const Color(0xFF5A4E8C),
                   ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 30),
                 ElevatedButton.icon(
                   onPressed: () => Navigator.pushNamed(context, '/login'),
                   icon: const Icon(Icons.person_outline),
