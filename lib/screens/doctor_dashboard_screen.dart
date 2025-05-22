@@ -22,40 +22,58 @@ class DoctorDashboardScreen extends StatelessWidget {
           centerTitle: true,
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: GridView.count(
-          crossAxisCount: 2,
-          crossAxisSpacing: 20,
-          mainAxisSpacing: 20,
-          children: [
-            _DashboardTile(
-              icon: Icons.people,
-              label: 'View Patients',
-              onTap: () => Navigator.pushNamed(context, '/doctor/patients'),
+      body: Column(
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: GridView.count(
+                crossAxisCount: 2,
+                crossAxisSpacing: 20,
+                mainAxisSpacing: 20,
+                childAspectRatio: 1,
+                children: const [
+                  _DashboardTile(
+                    icon: Icons.people,
+                    label: 'View Patients',
+                    route: '/doctor/patients',
+                  ),
+                  _DashboardTile(
+                    icon: Icons.person_add,
+                    label: 'Create Patient',
+                    route: '/doctor/create-patient',
+                  ),
+                  _DashboardTile(
+                    icon: Icons.calendar_today,
+                    label: 'Manage Appointments',
+                    route: '/doctor/appointments',
+                  ),
+                  _DashboardTile(
+                    icon: Icons.calendar_month,
+                    label: 'Calendar',
+                    route: '/doctor/calendar',
+                  ),
+                  _DashboardTile(
+                    icon: Icons.chat,
+                    label: 'Communicate',
+                    route: '/doctor/communication',
+                  ),
+                ],
+              ),
             ),
-            _DashboardTile(
-              icon: Icons.person_add,
-              label: 'Create Patient',
-              onTap: () => Navigator.pushNamed(context, '/doctor/create-patient'),
+          ),
+          const Padding(
+            padding: EdgeInsets.only(bottom: 16),
+            child: Text(
+              'Safe Space – Here for You ❤️',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey,
+              ),
             ),
-            _DashboardTile(
-              icon: Icons.calendar_today,
-              label: 'Manage Appointments',
-              onTap: () => Navigator.pushNamed(context, '/doctor/appointments'),
-            ),
-            _DashboardTile(
-              icon: Icons.calendar_month,
-              label: 'Calendar',
-              onTap: () => Navigator.pushNamed(context, '/doctor/calendar'),
-            ),
-            _DashboardTile(
-              icon: Icons.chat,
-              label: 'Communicate',
-              onTap: () => Navigator.pushNamed(context, '/doctor/communication'),
-            ),
-          ],
-        ),
+          )
+        ],
       ),
     );
   }
@@ -64,12 +82,12 @@ class DoctorDashboardScreen extends StatelessWidget {
 class _DashboardTile extends StatelessWidget {
   final IconData icon;
   final String label;
-  final VoidCallback onTap;
+  final String route;
 
   const _DashboardTile({
     required this.icon,
     required this.label,
-    required this.onTap,
+    required this.route,
   });
 
   @override
@@ -78,7 +96,7 @@ class _DashboardTile extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return GestureDetector(
-      onTap: onTap,
+      onTap: () => Navigator.pushNamed(context, route),
       child: Container(
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF2A2640) : Colors.white,
@@ -102,7 +120,7 @@ class _DashboardTile extends StatelessWidget {
               label,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                fontSize: 14, // 👈 Reduced for better fit
+                fontSize: 16,
               ),
               textAlign: TextAlign.center,
             ),
