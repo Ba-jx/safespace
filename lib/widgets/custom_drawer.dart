@@ -63,7 +63,7 @@ class CustomDrawer extends StatelessWidget {
             padding: EdgeInsets.zero,
             children: [
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(32),
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFF6C4DB0) : const Color(0xFFD1B3FF),
                   borderRadius: const BorderRadius.only(
