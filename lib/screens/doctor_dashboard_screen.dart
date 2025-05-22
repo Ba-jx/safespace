@@ -102,7 +102,7 @@ class _DashboardTile extends StatelessWidget {
               label,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                fontSize: 16, // 👈 Reduced for better fit
+                fontSize: 14, // 👈 Reduced for better fit
               ),
               textAlign: TextAlign.center,
             ),
