@@ -108,11 +108,11 @@ class _DoctorCreatesPatientScreenState extends State<DoctorCreatesPatientScreen>
                     : null,
               ),
               const SizedBox(height: 24),
-   ElevatedButton(
+ ElevatedButton(
   onPressed: _isLoading ? null : _createPatientAccount,
   style: ElevatedButton.styleFrom(
-    backgroundColor: Theme.of(context).colorScheme.primary,
-    foregroundColor: Colors.white,
+    backgroundColor: Theme.of(context).colorScheme.secondaryContainer, // soft purple
+    foregroundColor: Colors.grey.shade900, // dark grey for the text
     textStyle: const TextStyle(
       fontSize: 16,
       fontWeight: FontWeight.bold,
@@ -125,10 +125,11 @@ class _DoctorCreatesPatientScreenState extends State<DoctorCreatesPatientScreen>
   ),
   child: _isLoading
       ? const CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+          valueColor: AlwaysStoppedAnimation<Color>(Colors.grey),
         )
       : const Text('Create Account'),
 ),
+
 
             ],
           ),
