@@ -156,18 +156,31 @@ class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
     required String value,
     required Color color,
   }) {
-    return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        leading: Icon(icon, size: 36, color: color),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-        trailing: Text(
-          value,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
+   return Card(
+  color: Theme.of(context).brightness == Brightness.dark
+      ? const Color(0xFF2D2840) // lighter than current dark mode background
+      : Colors.white,
+  elevation: 3,
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  child: ListTile(
+    leading: Icon(icon, size: 36, color: color),
+    title: Text(
+      title,
+      style: TextStyle(
+        fontWeight: FontWeight.w600,
+        color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
       ),
-    );
+    ),
+    trailing: Text(
+      value,
+      style: TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+      ),
+    ),
+  ),
+);
   }
 
   String _formatTimestamp(DateTime timestamp) {
