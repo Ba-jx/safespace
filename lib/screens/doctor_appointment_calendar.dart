@@ -405,7 +405,7 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
                 foregroundColor: Colors.white,
               ),
               icon: const Icon(Icons.calendar_today, size: 18),
-              label: const Text('Current Week'),
+              label: const Text('Today'),
             ),
           ),
         ],
