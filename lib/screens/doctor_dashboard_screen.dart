@@ -22,58 +22,41 @@ class DoctorDashboardScreen extends StatelessWidget {
           centerTitle: true,
         ),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: GridView.count(
-                crossAxisCount: 2,
-                crossAxisSpacing: 20,
-                mainAxisSpacing: 20,
-                childAspectRatio: 1,
-                children: const [
-                  _DashboardTile(
-                    icon: Icons.people,
-                    label: 'View Patients',
-                    route: '/doctor/patients',
-                  ),
-                  _DashboardTile(
-                    icon: Icons.person_add,
-                    label: 'Create Patient',
-                    route: '/doctor/create-patient',
-                  ),
-                  _DashboardTile(
-                    icon: Icons.calendar_today,
-                    label: 'Manage Appointments',
-                    route: '/doctor/appointments',
-                  ),
-                  _DashboardTile(
-                    icon: Icons.calendar_month,
-                    label: 'Calendar',
-                    route: '/doctor/calendar',
-                  ),
-                  _DashboardTile(
-                    icon: Icons.chat,
-                    label: 'Communicate',
-                    route: '/doctor/communication',
-                  ),
-                ],
-              ),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: GridView.count(
+          crossAxisCount: 2,
+          crossAxisSpacing: 20,
+          mainAxisSpacing: 20,
+          childAspectRatio: 0.95, // 👈 Slightly taller tiles
+          children: const [
+            _DashboardTile(
+              icon: Icons.people,
+              label: 'View Patients',
+              route: '/doctor/patients',
             ),
-          ),
-          const Padding(
-            padding: EdgeInsets.only(bottom: 16),
-            child: Text(
-              'Safe Space – Here for You ❤️',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey,
-              ),
+            _DashboardTile(
+              icon: Icons.person_add,
+              label: 'Create Patient',
+              route: '/doctor/create-patient',
             ),
-          )
-        ],
+            _DashboardTile(
+              icon: Icons.calendar_today,
+              label: 'Manage Appointments',
+              route: '/doctor/appointments',
+            ),
+            _DashboardTile(
+              icon: Icons.calendar_month,
+              label: 'Calendar',
+              route: '/doctor/calendar',
+            ),
+            _DashboardTile(
+              icon: Icons.chat,
+              label: 'Communicate',
+              route: '/doctor/communication',
+            ),
+          ],
+        ),
       ),
     );
   }
