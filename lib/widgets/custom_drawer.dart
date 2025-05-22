@@ -67,8 +67,8 @@ class CustomDrawer extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFF6C4DB0) : const Color(0xFFD1B3FF),
                   borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(16),
-                    bottomRight: Radius.circular(16),
+                    bottomLeft: Radius.circular(32),
+                    bottomRight: Radius.circular(32),
                   ),
                 ),
                 child: Column(
