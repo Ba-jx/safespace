@@ -28,7 +28,7 @@ class DoctorDashboardScreen extends StatelessWidget {
           crossAxisCount: 2,
           crossAxisSpacing: 20,
           mainAxisSpacing: 20,
-          childAspectRatio: 0.95, // 👈 Slightly taller tiles
+          childAspectRatio: 0.9, // 👈 Slightly taller tiles
           children: const [
             _DashboardTile(
               icon: Icons.people,
