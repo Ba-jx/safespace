@@ -212,7 +212,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: isDark
                     ? const Color(0xFFD6C8FA)
-                    : const Color(0xFF7A6EDB),
+                    : const Color(0xFF6C4DB0),
                 foregroundColor: isDark ? Colors.black : Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                 shape: RoundedRectangleBorder(
