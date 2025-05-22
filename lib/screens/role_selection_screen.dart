@@ -23,7 +23,7 @@ class RoleSelectionScreen extends StatelessWidget {
                   width: 420,
                   fit: BoxFit.contain,
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 20),
                 Text(
                   'Welcome to Safe Space',
                   style: TextStyle(
