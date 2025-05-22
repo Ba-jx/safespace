@@ -137,12 +137,15 @@ class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
               Padding(
                 padding: const EdgeInsets.only(top: 24.0),
                 child: Text(
-                  'Last updated: ${_formatTimestamp(lastUpdated)}',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[700],
-                  ),
-                ),
+  'Last updated: ${_formatTimestamp(lastUpdated)}',
+  style: TextStyle(
+    fontSize: 14,
+    color: Theme.of(context).brightness == Brightness.dark
+        ? Colors.white
+        : Colors.grey[700],
+  ),
+),
+
               ),
           ],
         ),
@@ -158,7 +161,7 @@ class _RealTimeMonitorScreenState extends State<RealTimeMonitorScreen> {
   }) {
    return Card(
   color: Theme.of(context).brightness == Brightness.dark
-      ? const Color(0xFF2D2840) // lighter than current dark mode background
+      ? const Color(0xFF2D2840) 
       : Colors.white,
   elevation: 3,
   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
