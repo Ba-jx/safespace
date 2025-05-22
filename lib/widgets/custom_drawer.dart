@@ -44,7 +44,7 @@ class CustomDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final headerColor = isDark ? const Color(0xFF6C4DB0) : const color: Color(0xFFEADCF1); // Match app bar color
+    final headerColor = isDark ? const Color(0xFF6C4DB0) : const Color(0xFFEADCF1); // Match app bar color
 
     return Drawer(
       child: FutureBuilder<Map<String, dynamic>?>(
