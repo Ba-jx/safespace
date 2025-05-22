@@ -90,7 +90,7 @@ class VitalsChartScreen extends StatelessWidget {
           Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           Container(
-            height: 250,
+            height: 200,
             decoration: BoxDecoration(
               border: Border.all(color: Colors.grey),
               borderRadius: BorderRadius.circular(8),
@@ -107,7 +107,7 @@ class VitalsChartScreen extends StatelessWidget {
         Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         SizedBox(
-          height: 250,
+          height: 200,
           child: LineChart(
             LineChartData(
               titlesData: FlTitlesData(show: false),
