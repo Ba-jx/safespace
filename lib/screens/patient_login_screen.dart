@@ -120,7 +120,7 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFF5F5FF),
+      backgroundColor: isDark ? const Color(0xFF1C152D) : const Color(0xFFF5F5FF),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -170,10 +170,10 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
                           keyboardType: TextInputType.emailAddress,
                           style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                           decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFFB9A6E8)),
+                            prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFFD4C2F2)),
                             hintText: 'Patient Email',
                             hintStyle:
-                                TextStyle(color: isDark ? Colors.grey[400] : Colors.black54),
+                                TextStyle(color: isDark ? Colors.grey[300] : Colors.black54),
                             border: const OutlineInputBorder(),
                           ),
                           validator: (value) =>
@@ -185,10 +185,10 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
                           obscureText: true,
                           style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                           decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFFB9A6E8)),
+                            prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFFD4C2F2)),
                             hintText: 'Password',
                             hintStyle:
-                                TextStyle(color: isDark ? Colors.grey[400] : Colors.black54),
+                                TextStyle(color: isDark ? Colors.grey[300] : Colors.black54),
                             border: const OutlineInputBorder(),
                           ),
                           validator: (value) =>
@@ -209,7 +209,7 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
                         ElevatedButton(
                           onPressed: _login,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF7B5AD8),
+                            backgroundColor: const Color(0xFF8C6DE8),
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(30),
