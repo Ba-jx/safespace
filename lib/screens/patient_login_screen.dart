@@ -120,7 +120,7 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? Colors.black : const Color(0xFFF5F5FF),
+      backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFF5F5FF),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -139,7 +139,9 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
                     children: [
                       Text(
                         'Email Verification Required',
-                        style: TextStyle(fontSize: 18, color: isDark ? Colors.white : const Color(0xFF5A4E8C)),
+                        style: TextStyle(
+                            fontSize: 18,
+                            color: isDark ? Colors.white : const Color(0xFF5A4E8C)),
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton(
@@ -158,7 +160,7 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
                           borderRadius: BorderRadius.circular(8),
                           child: Image.asset(
                             'assets/images/safe_space_logo1.png',
-                            height: 300, // Increased height
+                            height: 300,
                             fit: BoxFit.contain,
                           ),
                         ),
@@ -168,9 +170,10 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
                           keyboardType: TextInputType.emailAddress,
                           style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                           decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF7A6EDB)),
+                            prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFFB9A6E8)),
                             hintText: 'Patient Email',
-                            hintStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.black54),
+                            hintStyle:
+                                TextStyle(color: isDark ? Colors.grey[400] : Colors.black54),
                             border: const OutlineInputBorder(),
                           ),
                           validator: (value) =>
@@ -182,9 +185,10 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
                           obscureText: true,
                           style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                           decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF7A6EDB)),
+                            prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFFB9A6E8)),
                             hintText: 'Password',
-                            hintStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.black54),
+                            hintStyle:
+                                TextStyle(color: isDark ? Colors.grey[400] : Colors.black54),
                             border: const OutlineInputBorder(),
                           ),
                           validator: (value) =>
@@ -197,7 +201,7 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
                             onPressed: _resetPassword,
                             child: const Text(
                               'Forgot Password?',
-                              style: TextStyle(color: Color(0xFF7A6EDB)),
+                              style: TextStyle(color: Color(0xFFB9A6E8)),
                             ),
                           ),
                         ),
@@ -205,14 +209,17 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
                         ElevatedButton(
                           onPressed: _login,
                           style: ElevatedButton.styleFrom(
-                             backgroundColor: const Color(0xFFB9A6E8),
-    foregroundColor: const Color(0xFF333366),
+                            backgroundColor: const Color(0xFF7B5AD8),
+                            foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(30),
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 16),
                           ),
-                          child: const Text('Login',style: TextStyle(fontWeight: FontWeight.bold,fontSize: 18,),),
+                          child: const Text(
+                            'Login',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                          ),
                         ),
                       ],
                     ),
