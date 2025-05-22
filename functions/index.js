@@ -1,6 +1,3 @@
-import 'dart:math';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 const { onDocumentCreated, onDocumentUpdated, onDocumentDeleted } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const logger = require("firebase-functions/logger");
@@ -297,6 +294,10 @@ exports.notifyDoctorOnRescheduleRequest = onDocumentUpdated({
 
   await createNotification(doctorId, title, body);
 });
+
+import 'dart:math';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 /// Generates a random password
 String generateRandomPassword({int length = 10}) {
