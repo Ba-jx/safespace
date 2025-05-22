@@ -29,6 +29,8 @@ class PatientDetailScreen extends StatelessWidget {
             Text(email, style: Text(email, style:  TextStyle(fontSize: 16,    color: Theme.of(context).brightness == Brightness.dark
         ? Colors.grey[300]
         : Colors.black54,
+                                                             ),
+                                    ),
             const SizedBox(height: 20),
             const Text(
               'Mood & Vitals History',
