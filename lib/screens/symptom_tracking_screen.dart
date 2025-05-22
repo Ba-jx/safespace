@@ -212,7 +212,6 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
 
   @override
   Widget build(BuildContext context) {
-     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(title: const Text('Symptom Tracking')),
       body: SingleChildScrollView(
@@ -339,34 +338,31 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
-         Row(
-  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-  children: ['😄', '🙂', '😐', '😟', '😢'].map((mood) {
-    final selected = _selectedMood == mood;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedMood = mood),
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: selected
-              ? isDark
-                  ? const Color(0xFFD3C8F2)
-                  : const Color(0xFF6C4DB0)
-              : null,
-          border: Border.all(
-            color: selected ? Colors.deepPurple : Colors.grey,
-            width: selected ? 2 : 1,
-          ),
-        ),
-        child: Text(
-          mood,
-          style: const TextStyle(fontSize: 32),
-        ),
-      ),
-    );
-  }).toList(),
-),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children:
+                    ['😄', '🙂', '😐', '😟', '😢'].map((mood) {
+                      final selected = _selectedMood == mood;
+                      return GestureDetector(
+                        onTap: () => setState(() => _selectedMood = mood),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: selected ? Colors.deepPurple.shade100 : null,
+                            border: Border.all(
+                              color: selected ? Colors.deepPurple : Colors.grey,
+                              width: selected ? 2 : 1,
+                            ),
+                          ),
+                          child: Text(
+                            mood,
+                            style: const TextStyle(fontSize: 32),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+              ),
               const SizedBox(height: 16),
               TextField(
                 controller: _noteController,
@@ -385,18 +381,47 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
               ),
               const SizedBox(height: 24),
               Center(
-                child: TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const MoodHistoryScreen(),
-                      ),
-                    );
-                  },
-                  child: const Text('View All Mood History'),
-                ),
-              ),
+  child: ElevatedButton(
+    onPressed: _saveMood,
+    style: ElevatedButton.styleFrom(
+      backgroundColor: Theme.of(context).brightness == Brightness.dark
+          ? const Color(0xFFB9A6E8)
+          : const Color(0xFF6C4DB0),
+      foregroundColor: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(30),
+      ),
+    ),
+    child: const Text(
+      'Save Mood',
+      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+    ),
+  ),
+),
+const SizedBox(height: 24),
+Center(
+  child: TextButton(
+    onPressed: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const MoodHistoryScreen(),
+        ),
+      );
+    },
+    style: TextButton.styleFrom(
+      foregroundColor: Theme.of(context).brightness == Brightness.dark
+          ? const Color(0xFFB9A6E8)
+          : const Color(0xFF6C4DB0),
+    ),
+    child: const Text(
+      'View All Mood History',
+      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+    ),
+  ),
+),
+
             ],
           ),
         ),
