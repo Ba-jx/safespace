@@ -122,6 +122,14 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? Colors.black : const Color(0xFFF5F5FF),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : const Color(0xFF5A4E8C)),
+          onPressed: () => Navigator.pushReplacementNamed(context, '/role-selection'),
+        ),
+      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -174,7 +182,7 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
                           style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                           decoration: InputDecoration(
                             prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF7A6EDB)),
-                            hintText: 'Email',
+                            hintText: 'Patient Email',
                             hintStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.black54),
                             border: const OutlineInputBorder(),
                           ),
@@ -210,7 +218,7 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
                         ElevatedButton(
                           onPressed: _login,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFB9A6E8), 
+                            backgroundColor: const Color(0xFFB9A6E8),
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(30),
