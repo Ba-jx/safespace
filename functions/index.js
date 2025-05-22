@@ -98,7 +98,7 @@ exports.sendUnreadNotificationDigest = onSchedule({
 
 // ✅ Daily Symptom Reminder
 exports.sendDailySymptomReminder = onSchedule({
-  schedule: "0 16 * * *", // 4:00 PM Asia/Amman
+  schedule: "0 16 * * *",
   timeZone: "Asia/Amman",
   region: "us-central1"
 }, async () => {
@@ -182,157 +182,43 @@ exports.sendAppointmentConfirmationEmail = onDocumentCreated({
   }
 });
 
-// ✅ Appointment Updated
-exports.notifyAppointmentChanged = onDocumentUpdated({
-  document: "users/{userId}/appointments/{appointmentId}",
-  region: "us-central1",
+// ✅ Send Credentials to Patient on Creation
+exports.sendPatientCredentialsOnCreation = onDocumentCreated({
+  secrets: ["SENDGRID_API_KEY"],
+  document: "users/{userId}",
+  region: "us-central1"
 }, async (event) => {
-  const before = event.data.before.data();
-  const after = event.data.after.data();
+  const user = event.data.data();
   const userId = event.params.userId;
 
-  if (after.status === "rescheduled") return;
+  if (!user || user.role !== 'patient' || !user.generatedPassword || !user.email) return;
 
-  const userDoc = await db.collection("users").doc(userId).get();
-  const fcmToken = userDoc.exists && userDoc.data().fcmToken;
+  const emailMsg = {
+    to: user.email,
+    from: {
+      email: "safe3space@gmail.com",
+      name: "Safe Space Team"
+    },
+    subject: "Your Safe Space Login Credentials",
+    text: `Hello ${user.name || "there"},\n\nYou have been registered to the Safe Space app.\n\nLogin Email: ${user.email}\nPassword: ${user.generatedPassword}\n\nPlease log in and change your password immediately for your security.`,
+    html: `
+      <p>Hello ${user.name || "there"},</p>
+      <p>You have been registered to the <strong>Safe Space</strong> app.</p>
+      <p><strong>Login Email:</strong> ${user.email}<br/>
+         <strong>Password:</strong> ${user.generatedPassword}</p>
+      <p>Please log in and <strong>change your password immediately</strong> for security.</p>
+      <p>Regards,<br/>Safe Space Team</p>
+    `
+  };
 
-  const formattedDate = after.dateTime.toDate().toLocaleString("en-US", {
-    timeZone: "Asia/Amman",
-    weekday: "long", year: "numeric", month: "long", day: "numeric",
-    hour: "2-digit", minute: "2-digit"
-  });
-
-  let title = "", body = "";
-
-  if (before.status !== after.status) {
-    if (after.status.toLowerCase() === "cancelled") {
-      title = "Appointment Canceled";
-      body = "Your appointment has been cancelled.";
-    } else {
-      title = "Appointment Status Updated";
-      body = `Your appointment status changed to "${after.status}".`;
-    }
-  } else if (
-    before.note !== after.note ||
-    before.dateTime.toMillis() !== after.dateTime.toMillis()
-  ) {
-    title = "Appointment Updated";
-    body = `Your appointment has been updated to ${formattedDate}.`;
-  }
-
-  if (title && body) {
-    await createNotification(userId, title, body);
-    if (fcmToken) {
-      await messaging.send({
-        token: fcmToken,
-        data: { title, body, type: "appointment_patient" }
-      });
-    }
-  }
-});
-
-// ✅ Appointment Deleted
-exports.notifyAppointmentDeleted = onDocumentDeleted({
-  document: "users/{userId}/appointments/{appointmentId}",
-  region: "us-central1",
-}, async (event) => {
-  const userId = event.params.userId;
-
-  const userDoc = await db.collection("users").doc(userId).get();
-  const user = userDoc.data();
-  if (!user?.fcmToken) return;
-
-  const title = "Appointment Deleted";
-  const body = "Your appointment has been removed from the system.";
-
-  await createNotification(userId, title, body);
-  await messaging.send({
-    token: user.fcmToken,
-    data: { title, body, type: "appointment_patient" }
-  });
-});
-
-// ✅ Reschedule Request to Doctor
-exports.notifyDoctorOnRescheduleRequest = onDocumentUpdated({
-  document: "users/{patientId}/appointments/{appointmentId}",
-  region: "us-central1",
-}, async (event) => {
-  const before = event.data.before.data();
-  const after = event.data.after.data();
-
-  const isRescheduled = after.status === "rescheduled";
-  const isChanged = before.dateTime.toMillis() !== after.dateTime.toMillis() || before.note !== after.note;
-
-  if (!isRescheduled || !isChanged) return;
-
-  const patientId = event.params.patientId;
-  const patientDoc = await db.collection("users").doc(patientId).get();
-  const patientData = patientDoc.data();
-
-  if (!patientData || !patientData.doctorId) return;
-
-  const doctorId = patientData.doctorId;
-  const doctorDoc = await db.collection("users").doc(doctorId).get();
-  const doctorData = doctorDoc.data();
-
-  if (!doctorData || !doctorData.fcmToken) return;
-
-  const appointmentTime = after.dateTime.toDate?.() || new Date(after.dateTime);
-  const formattedTime = appointmentTime.toLocaleString("en-US", {
-    timeZone: "Asia/Amman",
-    weekday: "long", year: "numeric", month: "short", day: "numeric",
-    hour: "2-digit", minute: "2-digit",
-  });
-
-  const title = "Reschedule Request";
-  const body = `${patientData.name || "A patient"} requested to reschedule their appointment to ${formattedTime}.`;
-
-  await messaging.send({
-    token: doctorData.fcmToken,
-    data: { title, body, type: "appointment_doctor" }
-  });
-
-  await createNotification(doctorId, title, body);
-});
-
-import 'dart:math';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-
-/// Generates a random password
-String generateRandomPassword({int length = 10}) {
-  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  final rand = Random.secure();
-  return List.generate(length, (index) => chars[rand.nextInt(chars.length)]).join();
-}
-
-/// Creates a new patient with Firebase Auth + Firestore and triggers email
-Future<void> createPatientWithCredentials({
-  required String email,
-  required String name,
-  required String doctorId,
-}) async {
   try {
-    final password = generateRandomPassword();
-
-    // 1. Create user in Firebase Auth
-    final userCredential = await FirebaseAuth.instance
-        .createUserWithEmailAndPassword(email: email, password: password);
-
-    final uid = userCredential.user!.uid;
-
-    // 2. Save patient details in Firestore, including generatedPassword
-    await FirebaseFirestore.instance.collection('users').doc(uid).set({
-      'email': email,
-      'name': name,
-      'role': 'patient',
-      'doctorId': doctorId,
-      'generatedPassword': password, // ✅ Required for triggering email
-    });
-
-    print('✅ Patient created successfully and credentials saved.');
+    await sgMail.send(emailMsg);
+    logger.info(`📧 Credentials email sent to ${user.email}`);
   } catch (e) {
-    print('❌ Error creating patient: $e');
-    rethrow;
+    logger.error(`❌ Failed to send credentials email to ${user.email}`, e);
   }
-}
+
+  await db.collection("users").doc(userId).update({
+    generatedPassword: FieldValue.delete()
+  });
+});
