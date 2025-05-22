@@ -149,18 +149,6 @@ class _DoctorLoginScreenState extends State<DoctorLoginScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         const SizedBox(height: 8),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            'Login',
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? Colors.white : const Color(0xFF5A4E8C),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: Image.asset(
