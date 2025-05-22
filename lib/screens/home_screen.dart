@@ -35,6 +35,7 @@ class HomeScreen extends StatelessWidget {
           crossAxisCount: 2,
           crossAxisSpacing: 20,
           mainAxisSpacing: 20,
+            childAspectRatio: 0.9,
           children: [
             _DashboardTile(
               icon: Icons.monitor_heart,
