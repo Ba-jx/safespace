@@ -45,7 +45,7 @@ class _DoctorCreatesPatientScreenState extends State<DoctorCreatesPatientScreen>
         'role': 'patient',
         'doctorId': doctorId,
         'hashedPassword': hashedPassword,
-        'generatedPassword': _passwordController.text.trim(), // ✅ Required for email
+        'generatedPassword': _passwordController.text.trim(),
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -55,4 +55,69 @@ class _DoctorCreatesPatientScreenState extends State<DoctorCreatesPatientScreen>
       _formKey.currentState!.reset();
       _nameController.clear();
       _emailController.clear();
-      _passwordController.clear(_
+      _passwordController.clear();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to create account: $e')),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Create Patient Account')),
+      body: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            children: [
+              const Text(
+                'Enter Patient Details',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 24),
+              TextFormField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                    labelText: 'Patient Name', border: OutlineInputBorder()),
+                validator: (value) =>
+                    value == null || value.isEmpty ? 'Enter a name' : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _emailController,
+                decoration: const InputDecoration(
+                    labelText: 'Email', border: OutlineInputBorder()),
+                keyboardType: TextInputType.emailAddress,
+                validator: (value) => value == null || !value.contains('@')
+                    ? 'Enter valid email'
+                    : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _passwordController,
+                decoration: const InputDecoration(
+                    labelText: 'Password', border: OutlineInputBorder()),
+                obscureText: true,
+                validator: (value) => value == null || value.length < 6
+                    ? 'Password too short'
+                    : null,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: _isLoading ? null : _createPatientAccount,
+                child: _isLoading
+                    ? const CircularProgressIndicator()
+                    : const Text('Create Account'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
