@@ -38,6 +38,9 @@ class _MoodHistoryScreenState extends State<MoodHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF2F2A43) : Colors.white;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Mood History')),
       body: _moodEntries.isEmpty
@@ -50,17 +53,24 @@ class _MoodHistoryScreenState extends State<MoodHistoryScreen> {
                 final note = entry['note'] ?? '';
                 final timestamp = (entry['timestamp'] as Timestamp?)?.toDate();
 
-                return ListTile(
-                  leading: Text(
-                    mood,
-                    style: const TextStyle(fontSize: 28),
+                return Card(
+                  color: cardColor,
+                  margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  title: Text(
-                    timestamp != null
-                        ? '${timestamp.year}-${timestamp.month.toString().padLeft(2, '0')}-${timestamp.day.toString().padLeft(2, '0')}'
-                        : 'Unknown date',
+                  child: ListTile(
+                    leading: Text(
+                      mood,
+                      style: const TextStyle(fontSize: 28),
+                    ),
+                    title: Text(
+                      timestamp != null
+                          ? '${timestamp.year}-${timestamp.month.toString().padLeft(2, '0')}-${timestamp.day.toString().padLeft(2, '0')}'
+                          : 'Unknown date',
+                    ),
+                    subtitle: note.isNotEmpty ? Text(note) : null,
                   ),
-                  subtitle: note.isNotEmpty ? Text(note) : null,
                 );
               },
             ),
