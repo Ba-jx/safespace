@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
 
 class CustomDrawer extends StatelessWidget {
@@ -42,9 +42,8 @@ class CustomDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final headerColor = isDark ? const Color(0xFF6C4DB0) : const Color(0xFFEADCF1); // Match app bar color
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final headerColor = isDark ? const Color(0xFF6C4DB0) : const Color(0xFFEADCF1);
 
     return Drawer(
       child: FutureBuilder<Map<String, dynamic>?>(
@@ -62,16 +61,28 @@ class CustomDrawer extends StatelessWidget {
           return ListView(
             padding: EdgeInsets.zero,
             children: [
-              DrawerHeader(
-                decoration: BoxDecoration(color: headerColor),
+              Container(
+                height: 120,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                decoration: BoxDecoration(
+                  color: headerColor,
+                  borderRadius: const BorderRadius.only(
+                    bottomRight: Radius.circular(16),
+                  ),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    const Text('Safe Space', style: TextStyle(color: Colors.white, fontSize: 20)),
-                    const SizedBox(height: 8),
-                    Text('Welcome, $name',
-                        style: const TextStyle(color: Colors.white, fontSize: 16)),
+                    const Text(
+                      'Safe Space',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Welcome, $name',
+                      style: const TextStyle(fontSize: 14, color: Colors.white),
+                    ),
                   ],
                 ),
               ),
