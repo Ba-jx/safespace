@@ -57,27 +57,17 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       body: Center(
         child: FadeTransition(
           opacity: _fadeAnimation,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Image.asset(
-                'assets/images/safe_space_logo1.png',
-                height: 180,
+          child: AnimatedBuilder(
+            animation: _colorAnimation,
+            builder: (context, child) => Text(
+              'Safe Space',
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                color: _colorAnimation.value,
+                letterSpacing: 1.5,
               ),
-              const SizedBox(height: 20),
-              AnimatedBuilder(
-                animation: _colorAnimation,
-                builder: (context, child) => Text(
-                  'Safe Space',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: _colorAnimation.value,
-                    letterSpacing: 1.5,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
