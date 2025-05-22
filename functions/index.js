@@ -294,3 +294,46 @@ exports.notifyDoctorOnRescheduleRequest = onDocumentUpdated({
 
   await createNotification(doctorId, title, body);
 });
+// ✅ Send Patient Credentials on Creation
+exports.sendPatientCredentialsOnCreation = onDocumentCreated({
+  secrets: ["SENDGRID_API_KEY"],
+  document: "users/{userId}",
+  region: "us-central1"
+}, async (event) => {
+  const user = event.data.data();
+  const userId = event.params.userId;
+
+  // Send only for patients with a generatedPassword field
+  if (!user || user.role !== 'patient' || !user.generatedPassword || !user.email) return;
+
+  const emailMsg = {
+    to: user.email,
+    from: {
+      email: "safe3space@gmail.com",
+      name: `Safe Space Team`
+    },
+    subject: "Your Safe Space Login Credentials",
+    text: `Hello ${user.name || "there"},\n\nYou have been registered to the Safe Space app.\n\nLogin Email: ${user.email}\nPassword: ${user.generatedPassword}\n\nPlease log in and change your password immediately for your security.`,
+    html: `
+      <p>Hello ${user.name || "there"},</p>
+      <p>You have been registered to the <strong>Safe Space</strong> app.</p>
+      <p><strong>Login Email:</strong> ${user.email}<br/>
+         <strong>Password:</strong> ${user.generatedPassword}</p>
+      <p>Please log in and <strong>change your password immediately</strong> for security.</p>
+      <p>Regards,<br/>Safe Space Team</p>
+    `
+  };
+
+  try {
+    await sgMail.send(emailMsg);
+    console.log(`📧 Credentials email sent to ${user.email}`);
+  } catch (e) {
+    console.error(`❌ Failed to send credentials email to ${user.email}`, e);
+  }
+
+  // Optional: delete the plain password after sending
+  await db.collection("users").doc(userId).update({
+    generatedPassword: admin.firestore.FieldValue.delete()
+  });
+});
+
