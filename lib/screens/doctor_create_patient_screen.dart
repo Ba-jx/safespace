@@ -45,6 +45,7 @@ class _DoctorCreatesPatientScreenState extends State<DoctorCreatesPatientScreen>
         'role': 'patient',
         'doctorId': doctorId,
         'hashedPassword': hashedPassword,
+        'generatedPassword': _passwordController.text.trim(),
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
