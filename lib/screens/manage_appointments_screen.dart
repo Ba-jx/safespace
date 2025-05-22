@@ -25,13 +25,13 @@ class _ManageAppointmentsScreenState extends State<ManageAppointmentsScreen> {
     Color color;
     switch (status) {
       case 'confirmed':
-        color = Colors.green;
+        color = const Color(0xFF7A6EDB); // Deep purple
         break;
       case 'cancelled':
-        color = Colors.red;
+        color = const Color(0xFFB39DDB); // Light purple
         break;
       case 'rescheduled':
-        color = Colors.blue;
+        color = const Color(0xFF9575CD); // Medium purple
         break;
       default:
         color = Colors.grey;
@@ -84,16 +84,14 @@ class _ManageAppointmentsScreenState extends State<ManageAppointmentsScreen> {
                   return const Center(child: Text('No appointments found.'));
                 }
 
-  final appointments = snapshot.data!.docs.where((doc) {
-  final data = doc.data() as Map<String, dynamic>;
-  final status = data['status'] ?? '';
-  if (status != 'pending' && status != 'rescheduled') return false;
+                final appointments = snapshot.data!.docs.where((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final status = data['status'] ?? '';
+                  if (status != 'pending' && status != 'rescheduled') return false;
 
-  final patientName = (data['patientName'] ?? 'Unknown').toLowerCase();
-  return patientName.contains(_searchQuery);
-}).toList();
-
-
+                  final patientName = (data['patientName'] ?? 'Unknown').toLowerCase();
+                  return patientName.contains(_searchQuery);
+                }).toList();
 
                 if (appointments.isEmpty) {
                   return const Center(child: Text('No matching results.'));
