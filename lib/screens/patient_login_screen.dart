@@ -205,8 +205,8 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
                         ElevatedButton(
                           onPressed: _login,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFB9A6E8),
-                            foregroundColor: Colors.white,
+                             backgroundColor: const Color(0xFFB9A6E8),
+    foregroundColor: const Color(0xFF333366),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(30),
                             ),
