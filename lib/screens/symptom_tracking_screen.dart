@@ -34,13 +34,15 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
-    final snapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('symptom_logs')
-        .get();
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .collection('symptom_logs')
+            .get();
 
     final Map<DateTime, List<Map<String, dynamic>>> newEvents = {};
+
     for (var doc in snapshot.docs) {
       final data = doc.data();
       final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
@@ -50,7 +52,9 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
       }
     }
 
-    setState(() => _events = newEvents);
+    setState(() {
+      _events = newEvents;
+    });
   }
 
   Future<void> _prefillTodayMood() async {
@@ -60,13 +64,17 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
     final today = DateTime.now();
     final todayStart = DateTime(today.year, today.month, today.day);
 
-    final snapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('symptom_logs')
-        .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(todayStart))
-        .limit(1)
-        .get();
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .collection('symptom_logs')
+            .where(
+              'timestamp',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(todayStart),
+            )
+            .limit(1)
+            .get();
 
     if (snapshot.docs.isNotEmpty) {
       final data = snapshot.docs.first.data();
@@ -81,30 +89,35 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
-    final today = DateTime.now();
+    final todayStart = DateTime.now();
     final logsRef = FirebaseFirestore.instance
         .collection('users')
         .doc(uid)
         .collection('symptom_logs');
 
-    final snapshot = await logsRef
-        .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(
-          DateTime(today.year, today.month, today.day),
-        ))
-        .limit(1)
-        .get();
+    final snapshot =
+        await logsRef
+            .where(
+              'timestamp',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(
+                DateTime(todayStart.year, todayStart.month, todayStart.day),
+              ),
+            )
+            .limit(1)
+            .get();
 
     try {
       if (snapshot.docs.isNotEmpty) {
-        await logsRef.doc(snapshot.docs.first.id).update({
+        final docId = snapshot.docs.first.id;
+        await logsRef.doc(docId).update({
           'mood': _selectedMood,
           'note': _noteController.text.trim(),
           'timestamp': FieldValue.serverTimestamp(),
           'edited': true,
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Mood entry updated!')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('✅ Mood entry updated!')));
       } else {
         await logsRef.add({
           'mood': _selectedMood,
@@ -116,9 +129,9 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error saving mood: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error saving mood: $e')));
     }
 
     _noteController.clear();
@@ -136,22 +149,24 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
-    final snapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('symptom_logs')
-        .get();
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .collection('symptom_logs')
+            .get();
 
-    final moodsToday = snapshot.docs
-        .where((doc) {
-          final timestamp = (doc['timestamp'] as Timestamp?)?.toDate();
-          return timestamp != null &&
-              timestamp.year == day.year &&
-              timestamp.month == day.month &&
-              timestamp.day == day.day;
-        })
-        .map((doc) => doc['mood'] as String)
-        .toList();
+    final moodsToday =
+        snapshot.docs
+            .where((doc) {
+              final timestamp = (doc['timestamp'] as Timestamp?)?.toDate();
+              return timestamp != null &&
+                  timestamp.year == day.year &&
+                  timestamp.month == day.month &&
+                  timestamp.day == day.day;
+            })
+            .map((doc) => doc['mood'] as String)
+            .toList();
 
     if (moodsToday.isEmpty) {
       setState(() {
@@ -166,7 +181,8 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
       moodCounts[mood] = (moodCounts[mood] ?? 0) + 1;
     }
 
-    final mostCommonMood = moodCounts.entries.reduce((a, b) => a.value > b.value ? a : b).key;
+    final mostCommonMood =
+        moodCounts.entries.reduce((a, b) => a.value > b.value ? a : b).key;
 
     setState(() {
       _summaryMood = mostCommonMood;
@@ -196,8 +212,6 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
       appBar: AppBar(title: const Text('Symptom Tracking')),
       body: SingleChildScrollView(
@@ -207,122 +221,155 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (_summaryMood != null) ...[
-                const Text('Mood Summary', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text(
+                  'Mood Summary',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 8),
                 Text(_summaryMood!, style: const TextStyle(fontSize: 48)),
                 Text(_summaryLabel),
                 const SizedBox(height: 16),
               ],
-              TableCalendar(
-                firstDay: DateTime.utc(2020, 1, 1),
-                lastDay: DateTime.utc(2030, 12, 31),
-                focusedDay: _focusedDay,
-                calendarFormat: CalendarFormat.week,
-                selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                onDaySelected: (selected, focused) async {
-                  setState(() {
-                    _focusedDay = focused;
-                    _selectedDay = selected;
-                  });
-                  await _calculateMoodSummary(selected);
-                },
-                eventLoader: (day) {
-                  final key = DateTime(day.year, day.month, day.day);
-                  return _events[key] ?? [];
-                },
-                headerStyle: const HeaderStyle(
-                  formatButtonVisible: false,
-                  titleCentered: true,
-                  leftChevronVisible: false,
-                  rightChevronVisible: false,
-                ),
-                calendarBuilders: CalendarBuilders(
-                  headerTitleBuilder: (context, day) {
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.chevron_left, color: Colors.deepPurple),
-                          onPressed: () => setState(() => _focusedDay = _focusedDay.subtract(const Duration(days: 7))),
-                        ),
-                        Text(
-                          '${day.month}/${day.year}',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : null,
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.today, color: Colors.deepPurple),
-                              tooltip: 'Today',
-                              onPressed: () => setState(() {
-                                _focusedDay = DateTime.now();
-                                _selectedDay = DateTime.now();
-                              }),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.chevron_right, color: Colors.deepPurple),
-                              onPressed: () => setState(() => _focusedDay = _focusedDay.add(const Duration(days: 7))),
-                            ),
-                          ],
-                        ),
-                      ],
-                    );
+              SizedBox(
+                height: 140,
+                child: TableCalendar(
+                  firstDay: DateTime.utc(2020, 1, 1),
+                  lastDay: DateTime.utc(2030, 12, 31),
+                  focusedDay: _focusedDay,
+                  calendarFormat: CalendarFormat.week,
+                  selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                  onDaySelected: (selected, focused) async {
+                    setState(() {
+                      _focusedDay = focused;
+                      _selectedDay = selected;
+                    });
+                    await _calculateMoodSummary(selected);
                   },
-                  markerBuilder: (context, date, events) {
-                    if (events.isNotEmpty) {
-                      return Positioned(
-                        bottom: 1,
-                        child: Container(
-                          width: 6,
-                          height: 6,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.deepPurple,
+                  eventLoader: (day) {
+                    final key = DateTime(day.year, day.month, day.day);
+                    return _events[key] ?? [];
+                  },
+                  headerStyle: const HeaderStyle(
+                    formatButtonVisible: false,
+                    titleCentered: true,
+                    leftChevronVisible: false,
+                    rightChevronVisible: false,
+                  ),
+                  calendarBuilders: CalendarBuilders(
+                    headerTitleBuilder: (context, day) {
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          IconButton(
+                            icon: const Icon(
+                              Icons.chevron_left,
+                              color: Colors.deepPurple,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _focusedDay = _focusedDay.subtract(
+                                  const Duration(days: 7),
+                                );
+                              });
+                            },
                           ),
-                        ),
+                          Text(
+                            '${day.month}/${day.year}',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.today,
+                                  color: Colors.deepPurple,
+                                ),
+                                tooltip: 'Today',
+                                onPressed: () {
+                                  setState(() {
+                                    _focusedDay = DateTime.now();
+                                    _selectedDay = DateTime.now();
+                                  });
+                                },
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.chevron_right,
+                                  color: Colors.deepPurple,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _focusedDay = _focusedDay.add(
+                                      const Duration(days: 7),
+                                    );
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                        ],
                       );
-                    }
-                    return const SizedBox.shrink();
-                  },
+                    },
+                    markerBuilder: (context, date, events) {
+                      if (events.isNotEmpty) {
+                        return Positioned(
+                          bottom: 1,
+                          child: Container(
+                            width: 6,
+                            height: 6,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.deepPurple,
+                            ),
+                          ),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
-              Text("Record Today's Mood", style: Theme.of(context).textTheme.titleMedium),
+              const Text(
+                "Record Today's Mood",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: ['😄', '🙂', '😐', '😟', '😢'].map((mood) {
-                  final selected = _selectedMood == mood;
-                  return GestureDetector(
-                    onTap: () => setState(() => _selectedMood = mood),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: selected ? Colors.deepPurple.shade100 : null,
-                        border: Border.all(
-                          color: selected ? Colors.deepPurple : Colors.grey,
-                          width: selected ? 2 : 1,
+                children:
+                    ['😄', '🙂', '😐', '😟', '😢'].map((mood) {
+                      final selected = _selectedMood == mood;
+                      return GestureDetector(
+                        onTap: () => setState(() => _selectedMood = mood),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: selected ? Colors.deepPurple.shade100 : null,
+                            border: Border.all(
+                              color: selected ? Colors.deepPurple : Colors.grey,
+                              width: selected ? 2 : 1,
+                            ),
+                          ),
+                          child: Text(
+                            mood,
+                            style: const TextStyle(fontSize: 32),
+                          ),
                         ),
-                      ),
-                      child: Text(mood, style: const TextStyle(fontSize: 32)),
-                    ),
-                  );
-                }).toList(),
+                      );
+                    }).toList(),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: _noteController,
                 maxLines: 2,
-                style: TextStyle(color: isDark ? Colors.white : null),
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Notes (optional)',
-                  labelStyle: TextStyle(color: isDark ? Colors.grey[300] : null),
-                  border: const OutlineInputBorder(),
+                  border: OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 16),
@@ -336,7 +383,12 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
               Center(
                 child: TextButton(
                   onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => const MoodHistoryScreen()));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const MoodHistoryScreen(),
+                      ),
+                    );
                   },
                   child: const Text('View All Mood History'),
                 ),
