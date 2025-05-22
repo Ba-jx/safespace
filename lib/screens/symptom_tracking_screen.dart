@@ -374,13 +374,6 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
               ),
               const SizedBox(height: 16),
               Center(
-                child: ElevatedButton(
-                  onPressed: _saveMood,
-                  child: const Text('Save Mood'),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Center(
   child: ElevatedButton(
     onPressed: _saveMood,
     style: ElevatedButton.styleFrom(
