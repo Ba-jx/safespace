@@ -26,7 +26,12 @@ class PatientDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(email, style: const TextStyle(fontSize: 16, color: Colors.black54)),
+            Text(email, style: const TextStyle(fontSize: 16,    color: Theme.of(context).brightness == Brightness.dark
+        ? Colors.grey[300]
+        : Colors.black54,
+  ),
+),
+       
             const SizedBox(height: 20),
             const Text(
               'Mood & Vitals History',
