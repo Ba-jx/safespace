@@ -61,11 +61,7 @@ exports.sendUnreadNotificationDigest = onSchedule({
 
     await messaging.send({
       token: patient.fcmToken,
-      data: {
-        title,
-        body,
-        type: "appointment_patient"
-      }
+      data: { title, body, type: "appointment_patient" }
     });
 
     const emailMsg = {
@@ -182,7 +178,7 @@ exports.sendAppointmentConfirmationEmail = onDocumentCreated({
   }
 });
 
-// ✅ Send Credentials to Patient on Creation
+// ✅ Patient Credentials on Creation
 exports.sendPatientCredentialsOnCreation = onDocumentCreated({
   secrets: ["SENDGRID_API_KEY"],
   document: "users/{userId}",
