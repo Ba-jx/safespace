@@ -26,7 +26,7 @@ class PatientDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(email, style: const TextStyle(fontSize: 16,    color: Theme.of(context).brightness == Brightness.dark
+            Text(email, style:  TextStyle(fontSize: 16,    color: Theme.of(context).brightness == Brightness.dark
         ? Colors.grey[300]
         : Colors.black54,
   ),
