@@ -92,26 +92,32 @@ class _DoctorAppointmentCalendarState extends State<DoctorAppointmentCalendar> {
     TimeOfDay? selectedTime;
     List<TimeOfDay> availableSlots = [];
 
-    Future<void> computeAvailableSlots(DateTime date) async {
-      final allAppointments =
-          _getAppointmentsForDay(date).map((appt) {
-            return (appt['dateTime'] as Timestamp).toDate();
-          }).toList();
+Future<void> computeAvailableSlots(DateTime date) async {
+  final allAppointments = _getAppointmentsForDay(date).map((appt) {
+    return (appt['dateTime'] as Timestamp).toDate();
+  }).toList();
 
-      availableSlots = [];
-      for (int hour = 9; hour < 17; hour++) {
-        final slot = DateTime(date.year, date.month, date.day, hour);
-        final hasConflict = allAppointments.any(
-          (appt) =>
-              (slot.difference(appt).inMinutes).abs() < 60 &&
-              (existing == null ||
-                  (existing['dateTime'] as Timestamp).toDate() != appt),
-        );
-        if (!hasConflict) {
-          availableSlots.add(TimeOfDay(hour: hour, minute: 0));
-        }
-      }
+  final now = DateTime.now();
+  availableSlots = [];
+
+  for (int hour = 9; hour < 17; hour++) {
+    final slot = DateTime(date.year, date.month, date.day, hour);
+    
+    final isToday = date.year == now.year &&
+                    date.month == now.month &&
+                    date.day == now.day;
+                    
+    final hasConflict = allAppointments.any((appt) =>
+      (slot.difference(appt).inMinutes).abs() < 60 &&
+      (existing == null || (existing['dateTime'] as Timestamp).toDate() != appt)
+    );
+
+    if (!hasConflict && (!isToday || slot.isAfter(now))) {
+      availableSlots.add(TimeOfDay(hour: hour, minute: 0));
     }
+  }
+}
+
 
     await computeAvailableSlots(selectedDate);
     if (existing != null) {
