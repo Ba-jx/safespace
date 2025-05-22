@@ -212,6 +212,7 @@ class _SymptomTrackingScreenState extends State<SymptomTrackingScreen> {
 
   @override
   Widget build(BuildContext context) {
+     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(title: const Text('Symptom Tracking')),
       body: SingleChildScrollView(
