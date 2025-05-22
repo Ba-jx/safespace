@@ -88,7 +88,6 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
     for (int hour = 9; hour < 17; hour++) {
       final slot = DateTime(day.year, day.month, day.day, hour);
 
-      // Only allow future time slots for today
       if (day.year == now.year && day.month == now.month && day.day == now.day) {
         if (slot.isBefore(now.add(const Duration(minutes: 1)))) continue;
       }
@@ -171,6 +170,8 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
         ? selectedTime!.format(context)
         : 'Select Time';
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Book Appointment')),
       body: Padding(
@@ -208,9 +209,26 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _isSubmitting ? null : _submitAppointment,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isDark
+                    ? const Color(0xFFD6C8FA)
+                    : const Color(0xFF7A6EDB),
+                foregroundColor: isDark ? Colors.black : Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+              ),
               child: _isSubmitting
-                  ? const CircularProgressIndicator()
-                  : const Text('Book Appointment'),
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text(
+                      'Book Appointment',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
             ),
           ],
         ),
