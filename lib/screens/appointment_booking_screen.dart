@@ -81,11 +81,18 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
   }
 
   void _computeAvailableSlots(DateTime day) {
+    final now = DateTime.now();
     final booked = _doctorAppointments[DateTime(day.year, day.month, day.day)] ?? [];
     availableSlots = [];
 
     for (int hour = 9; hour < 17; hour++) {
       final slot = DateTime(day.year, day.month, day.day, hour);
+
+      // Only allow future time slots for today
+      if (day.year == now.year && day.month == now.month && day.day == now.day) {
+        if (slot.isBefore(now.add(const Duration(minutes: 1)))) continue;
+      }
+
       final hasConflict = booked.any((appt) => (slot.difference(appt).inMinutes).abs() < 60);
       if (!hasConflict) {
         availableSlots.add(TimeOfDay(hour: hour, minute: 0));
@@ -126,15 +133,14 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
       final userDoc = await docRef.get();
       final patientName = userDoc.data()?['name'];
 
-await docRef.collection('appointments').add({
-  'dateTime': Timestamp.fromDate(dateTime),
-  'note': _noteController.text.trim(),
-  'createdAt': Timestamp.now(),
-  'doctorId': doctorId,
-  'patientName': patientName,
-  'status': 'pending',
-});
-
+      await docRef.collection('appointments').add({
+        'dateTime': Timestamp.fromDate(dateTime),
+        'note': _noteController.text.trim(),
+        'createdAt': Timestamp.now(),
+        'doctorId': doctorId,
+        'patientName': patientName,
+        'status': 'pending',
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Appointment booked successfully')),
@@ -146,7 +152,7 @@ await docRef.collection('appointments').add({
         _noteController.clear();
       });
 
-      await _fetchDoctorAppointments(); // Refresh after booking
+      await _fetchDoctorAppointments();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error booking appointment: $e')),
