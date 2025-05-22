@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -56,18 +57,24 @@ class VitalsChartScreen extends StatelessWidget {
                     title: 'Heart Rate (BPM)',
                     spots: heartRatePoints,
                     color: Colors.redAccent,
+                    minY: 40,
+                    maxY: 180,
                   ),
                   const SizedBox(height: 30),
                   _buildVitalsChart(
                     title: 'Oxygen Level (%)',
                     spots: oxygenPoints,
                     color: Colors.blueAccent,
+                    minY: 85,
+                    maxY: 100,
                   ),
                   const SizedBox(height: 30),
                   _buildVitalsChart(
                     title: 'Temperature (°C)',
                     spots: tempPoints,
                     color: Colors.orange,
+                    minY: 34,
+                    maxY: 41,
                   ),
                 ],
               ),
@@ -82,6 +89,8 @@ class VitalsChartScreen extends StatelessWidget {
     required String title,
     required List<FlSpot> spots,
     required Color color,
+    double? minY,
+    double? maxY,
   }) {
     if (spots.isEmpty) {
       return Column(
@@ -120,7 +129,8 @@ class VitalsChartScreen extends StatelessWidget {
                   dotData: FlDotData(show: false),
                 ),
               ],
-              minY: 0,
+              minY: minY,
+              maxY: maxY,
             ),
           ),
         ),
