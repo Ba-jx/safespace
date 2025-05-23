@@ -289,7 +289,8 @@ exports.notifyDoctorOfDrasticRecording = onDocumentCreated({
     return;
   }
 
-  await messaging.send(doctor.fcmToken, {
+  await messaging.send({
+    token:doctor.fcmToken,
     data: { title, body, type: "monitor" }
   });
 
