@@ -9,7 +9,7 @@ class RoleSelectionScreen extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF1A1729) : const Color(0xFFF9F7FC),
+      backgroundColor: isDark ? const Color(0xFF1A1729) : const Color(0xFFF5F3F8),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
