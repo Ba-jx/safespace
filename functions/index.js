@@ -307,6 +307,9 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
   const after = event.data.after.data();
   const userId = event.params.userId;
 
+  logger.info(`📅 Appointment update triggered for user: ${userId}`);
+  logger.info(`📋 After data: ${JSON.stringify(after)}`);
+
   if (after.status === "rescheduled") return;
 
   const userDoc = await db.collection("users").doc(userId).get();
@@ -338,17 +341,22 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
   }
 
   if (title && body) {
-    // Notify the patient
+    // Notify patient
     await createNotification(userId, title, body);
+    logger.info(`🔔 Notification created for patient: ${userId}`);
+
     if (fcmToken) {
       await messaging.send({
         token: fcmToken,
         data: { title, body, type: "appointment_patient" }
       });
+      logger.info(`📨 FCM sent to patient: ${userId}`);
     }
 
-    // Notify the doctor only if status is now "pending"
-    if (after.status.toLowerCase() === "pending" && after.doctorId) {
+    // Notify doctor ONLY if status is "pending"
+    if (after.status?.toLowerCase() === "pending" && after.doctorId) {
+      logger.info(`📨 Notifying doctor: ${after.doctorId}`);
+
       const doctorDoc = await db.collection("users").doc(after.doctorId).get();
       const doctor = doctorDoc.data();
       const doctorToken = doctor?.fcmToken;
@@ -363,7 +371,14 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
         });
 
         await createNotification(after.doctorId, doctorTitle, doctorBody);
+        logger.info(`✅ FCM + notification sent to doctor: ${after.doctorId}`);
+      } else {
+        logger.warn(`⚠️ No FCM token for doctor: ${after.doctorId}`);
       }
+    } else {
+      logger.info(`ℹ️ No doctor notification needed (status: ${after.status}, doctorId: ${after.doctorId})`);
     }
+  } else {
+    logger.info("ℹ️ No relevant appointment changes detected. No notifications sent.");
   }
 });
