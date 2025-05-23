@@ -341,7 +341,7 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
   }
 
   if (title && body) {
-    // Notify patient
+    // Notify the patient
     await createNotification(userId, title, body);
     logger.info(`🔔 Notification created for patient: ${userId}`);
 
@@ -353,13 +353,18 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
       logger.info(`📨 FCM sent to patient: ${userId}`);
     }
 
-    // Notify doctor ONLY if status is "pending"
+    // 🔍 DEBUG: Check doctor notification condition
+    logger.info(`🧪 DEBUG: status=${after.status}, doctorId=${after.doctorId}`);
+
+    // Notify the doctor only if status is "pending"
     if (after.status?.toLowerCase() === "pending" && after.doctorId) {
-      logger.info(`📨 Notifying doctor: ${after.doctorId}`);
+      logger.info(`📨 Sending FCM to doctor: ${after.doctorId}`);
 
       const doctorDoc = await db.collection("users").doc(after.doctorId).get();
       const doctor = doctorDoc.data();
       const doctorToken = doctor?.fcmToken;
+
+      logger.info(`🎯 Doctor FCM: ${doctorToken}`);
 
       if (doctorToken) {
         const doctorTitle = `New Appointment Request`;
@@ -373,12 +378,13 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
         await createNotification(after.doctorId, doctorTitle, doctorBody);
         logger.info(`✅ FCM + notification sent to doctor: ${after.doctorId}`);
       } else {
-        logger.warn(`⚠️ No FCM token for doctor: ${after.doctorId}`);
+        logger.warn(`⚠️ Doctor has no FCM token: ${after.doctorId}`);
       }
     } else {
-      logger.info(`ℹ️ No doctor notification needed (status: ${after.status}, doctorId: ${after.doctorId})`);
+      logger.info(`ℹ️ Doctor not notified (status: ${after.status}, doctorId: ${after.doctorId})`);
     }
   } else {
-    logger.info("ℹ️ No relevant appointment changes detected. No notifications sent.");
+    logger.info("ℹ️ No meaningful changes in appointment. No notifications sent.");
   }
 });
+
