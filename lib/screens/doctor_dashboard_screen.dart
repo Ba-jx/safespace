@@ -46,7 +46,7 @@ appBar: PreferredSize(
             ),
             _DashboardTile(
               icon: Icons.person_add,
-              label: 'Create Patient',
+              label: 'Register Patient',
               route: '/doctor/create-patient',
             ),
             _DashboardTile(
