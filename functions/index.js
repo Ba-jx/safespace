@@ -310,7 +310,8 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
   if (after.status === "rescheduled") return;
 
   const userDoc = await db.collection("users").doc(userId).get();
-  const fcmToken = userDoc.exists && userDoc.data().fcmToken;
+  const patient = userDoc.data();
+  const fcmToken = patient?.fcmToken;
 
   const formattedDate = after.dateTime.toDate().toLocaleString("en-US", {
     timeZone: "Asia/Amman",
@@ -337,12 +338,32 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
   }
 
   if (title && body) {
+    // Notify the patient
     await createNotification(userId, title, body);
     if (fcmToken) {
       await messaging.send({
         token: fcmToken,
         data: { title, body, type: "appointment_patient" }
       });
+    }
+
+    // Notify the doctor only if status is now "pending"
+    if (after.status.toLowerCase() === "pending" && after.doctorId) {
+      const doctorDoc = await db.collection("users").doc(after.doctorId).get();
+      const doctor = doctorDoc.data();
+      const doctorToken = doctor?.fcmToken;
+
+      if (doctorToken) {
+        const doctorTitle = `New Appointment Request`;
+        const doctorBody = `You have a new pending appointment from ${patient?.name || "a patient"} for ${formattedDate}.`;
+
+        await messaging.send({
+          token: doctorToken,
+          data: { title: doctorTitle, body: doctorBody, type: "appointment_doctor" }
+        });
+
+        await createNotification(after.doctorId, doctorTitle, doctorBody);
+      }
     }
   }
 });
