@@ -53,7 +53,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF1C152D) : const Color(0xFFF5F5FF),
+      backgroundColor: isDark ? const Color(0xFF1C152D) : const Color(0xFFF5F3F8),
       body: Center(
         child: FadeTransition(
           opacity: _fadeAnimation,
