@@ -234,3 +234,66 @@ Please log in and change your password immediately for your security.`,
     generatedPassword: FieldValue.delete()
   });
 });
+// ✅ Drastic Recording Alert
+exports.notifyDoctorOfDrasticRecording = onDocumentCreated({
+  document: "users/{patientId}/readings/{readingId}",
+  region: "us-central1",
+}, async (event) => {
+  logger.info(`📅 New reading created for patient ${event.params.patientId}`);
+
+  const data = event.data.data();
+  const patientId = event.params.patientId;
+
+  const { heartRate, temperature, spo2, timestamp } = data;
+
+  const isHeartRateDrastic = heartRate < 50 || heartRate > 120;
+  const isTempDrastic = temperature < 27 || temperature > 37.5;
+  const isSpo2Drastic = spo2 < 90;
+
+  if (!(isHeartRateDrastic || isTempDrastic || isSpo2Drastic)) {
+    logger.info(`🔽 No drastic change for patient ${patientId}`);
+    return;
+  }
+
+  const patientDoc = await db.collection("users").doc(patientId).get();
+  const patient = patientDoc.data();
+  if (!patient || !patient.doctorId) return;
+
+  const doctorDoc = await db.collection("users").doc(patient.doctorId).get();
+  const doctor = doctorDoc.data();
+  if (!doctor || !doctor.fcmToken) return;
+
+  const recordedTime = (timestamp?.toDate?.() || new Date()).toLocaleString("en-US", {
+    timeZone: "Asia/Amman",
+    weekday: "short", year: "numeric", month: "short", day: "numeric",
+    hour: "2-digit", minute: "2-digit"
+  });
+
+  const title = "⚠ Drastic Change in Patient's Vital Signs";
+  let body = `${patient.name || "A patient"} has abnormal readings at ${recordedTime}: `;
+  if (isHeartRateDrastic) body += `Heart Rate: ${heartRate} bpm. `;
+  if (isTempDrastic) body += `Temperature: ${temperature}°C. `;
+  if (isSpo2Drastic) body += `SpO₂: ${spo2}%.`;
+
+  const tenSecondsAgo = Timestamp.fromMillis(Date.now() - 10 * 1000);
+  const recentNotif = await db.collection("users")
+    .doc(patient.doctorId)
+    .collection("notifications")
+    .where("title", "==", title)
+    .where("timestamp", ">=", tenSecondsAgo)
+    .limit(1)
+    .get();
+
+  if (!recentNotif.empty) {
+    logger.info(`⏱ Skipped duplicate alert to doctor ${patient.doctorId}`);
+    return;
+  }
+
+  await messaging.send(doctor.fcmToken, {
+    data: { title, body, type: "monitor" }
+  });
+
+  await createNotification(patient.doctorId, title, body);
+  logger.info(`🚨 Drastic change notification sent to doctor ${patient.doctorId}`);
+});
+
