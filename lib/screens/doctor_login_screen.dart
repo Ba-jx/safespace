@@ -112,7 +112,7 @@ class _DoctorLoginScreenState extends State<DoctorLoginScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF1C152D) : const Color(0xFFF5F5FF),
+      backgroundColor: isDark ? const Color(0xFF1C152D) : const Color(0xFFF5F3F8),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
