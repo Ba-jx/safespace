@@ -387,4 +387,45 @@ exports.notifyAppointmentChanged = onDocumentUpdated({
     logger.info("ℹ️ No meaningful changes in appointment. No notifications sent.");
   }
 });
+exports.notifyAppointmentCreated = onDocumentCreated({
+  document: "users/{userId}/appointments/{appointmentId}",
+  region: "us-central1"
+}, async (event) => {
+  const data = event.data.data();
+  const userId = event.params.userId;
+
+  logger.info(`📅 Appointment created for user: ${userId}`);
+  logger.info(`📋 Created data: ${JSON.stringify(data)}`);
+
+  if (data.status?.toLowerCase() !== "pending" || !data.doctorId) {
+    logger.info(`ℹ️ Not notifying doctor: status=${data.status}, doctorId=${data.doctorId}`);
+    return;
+  }
+
+  const userDoc = await db.collection("users").doc(userId).get();
+  const patient = userDoc.data();
+  const doctorDoc = await db.collection("users").doc(data.doctorId).get();
+  const doctor = doctorDoc.data();
+  const doctorToken = doctor?.fcmToken;
+
+  const formattedDate = data.dateTime.toDate().toLocaleString("en-US", {
+    timeZone: "Asia/Amman",
+    weekday: "long", year: "numeric", month: "long", day: "numeric",
+    hour: "2-digit", minute: "2-digit"
+  });
+
+  const title = `New Appointment Request`;
+  const body = `You have a new pending appointment from ${patient?.name || "a patient"} for ${formattedDate}.`;
+
+  if (doctorToken) {
+    await messaging.send({
+      token: doctorToken,
+      data: { title, body, type: "appointment_doctor" }
+    });
+    await createNotification(data.doctorId, title, body);
+    logger.info(`✅ Doctor notified of new appointment: ${data.doctorId}`);
+  } else {
+    logger.warn(`⚠️ Doctor has no FCM token: ${data.doctorId}`);
+  }
+});
 
