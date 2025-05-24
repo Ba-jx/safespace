@@ -1,0 +1,9 @@
+# Arduino/PlatformIO build files
+*.bin
+*.elf
+*.hex
+*.pio
+build/
+.pio/
+*.d
+*.o
