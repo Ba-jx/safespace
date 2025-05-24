@@ -38,9 +38,4 @@ See `libraries.txt` for installation.
    char auth[] = "YOUR_BLYNK_AUTH_TOKEN";
    ---
 
-## 📷 Wiring Diagram
-
-Below is the wiring diagram for the ESP32-based Safe Space device setup:
-
-![Wiring Diagram](./wiring_diagram.png)
 
