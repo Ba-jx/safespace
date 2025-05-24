@@ -1,0 +1,8 @@
+WiFi.h
+BluetoothSerial.h
+Wire.h
+LiquidCrystal_I2C.h
+Adafruit_GFX.h
+Adafruit_SSD1306.h
+DFRobot_MAX30102.h
+BlynkSimpleEsp32.h
