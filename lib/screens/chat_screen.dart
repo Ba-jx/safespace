@@ -211,14 +211,25 @@ class _ChatScreenState extends State<ChatScreen> {
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(color: Colors.grey[300]!),
                     ),
-                    child: TextField(
-                      controller: _controller,
-                      decoration: const InputDecoration(
-                        hintText: 'Type your message...',
-                        border: InputBorder.none,
-                      ),
-                      onSubmitted: (_) => _sendMessage(),
-                    ),
+                   child: TextField(
+  controller: _controller,
+  style: TextStyle(
+    color: Theme.of(context).brightness == Brightness.dark
+        ? Colors.white
+        : Colors.black,
+  ),
+  decoration: InputDecoration(
+    hintText: 'Type your message...',
+    hintStyle: TextStyle(
+      color: Theme.of(context).brightness == Brightness.dark
+          ? Colors.white54
+          : Colors.black45,
+    ),
+    border: InputBorder.none,
+  ),
+  onSubmitted: (_) => _sendMessage(),
+),
+
                   ),
                 ),
                 const SizedBox(width: 8),
