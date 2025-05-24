@@ -216,14 +216,14 @@ class _ChatScreenState extends State<ChatScreen> {
   style: TextStyle(
     color: Theme.of(context).brightness == Brightness.dark
         ? Colors.black
-        : Colors.white,
+        : Colors.black,
   ),
   decoration: InputDecoration(
     hintText: 'Type your message...',
     hintStyle: TextStyle(
       color: Theme.of(context).brightness == Brightness.dark
           ? Colors.black45
-          : Colors.white54,
+          : Colors.black45,
     ),
     border: InputBorder.none,
   ),
