@@ -30,12 +30,15 @@ import 'screens/manage_appointments_screen.dart';
 import 'screens/doctor_create_patient_screen.dart';
 import 'screens/doctor_appointment_calendar.dart';
 
-final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  print("⏪ Background message: ${message.notification?.title} - ${message.notification?.body}");
+  print(
+    "⏪ Background message: ${message.notification?.title} - ${message.notification?.body}",
+  );
 }
 
 void main() async {
@@ -43,8 +46,11 @@ void main() async {
   await Firebase.initializeApp();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
-  const InitializationSettings initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
+  const AndroidInitializationSettings initializationSettingsAndroid =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+  const InitializationSettings initializationSettings = InitializationSettings(
+    android: initializationSettingsAndroid,
+  );
   await flutterLocalNotificationsPlugin.initialize(initializationSettings);
 
   runApp(const SafeSpaceApp());
@@ -81,57 +87,57 @@ class _MaterialAppWithFCMState extends State<MaterialAppWithFCM> {
   }
 
   Future<void> _initializeFCM() async {
-  final fcm = FirebaseMessaging.instance;
-  await fcm.requestPermission(alert: true, badge: true, sound: true);
+    final fcm = FirebaseMessaging.instance;
+    await fcm.requestPermission(alert: true, badge: true, sound: true);
 
-  // Foreground handler with fallback
-  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-    final notification = message.notification;
-    final data = message.data;
+    // Foreground handler with fallback
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      final notification = message.notification;
+      final data = message.data;
 
-    final title = notification?.title ?? data['title'];
-    final body = notification?.body ?? data['body'];
+      final title = notification?.title ?? data['title'];
+      final body = notification?.body ?? data['body'];
 
-    if (title != null && body != null) {
-      flutterLocalNotificationsPlugin.show(
-        notification.hashCode,
-        title,
-        body,
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'default_channel',
-            'Notifications',
-            channelDescription: 'General app notifications',
-            importance: Importance.max,
-            priority: Priority.high,
+      if (title != null && body != null) {
+        flutterLocalNotificationsPlugin.show(
+          notification.hashCode,
+          title,
+          body,
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              'default_channel',
+              'Notifications',
+              channelDescription: 'General app notifications',
+              importance: Importance.max,
+              priority: Priority.high,
+            ),
           ),
-        ),
-      );
+        );
+      }
+
+      print('🔔 Foreground Notification: $title - $body');
+    });
+
+    // Tapped from background
+    FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageNavigation);
+
+    // Tapped from terminated
+    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+    if (initialMessage != null) {
+      _handleMessageNavigation(initialMessage);
     }
 
-    print('🔔 Foreground Notification: $title - $body');
-  });
+    final token = await fcm.getToken();
+    final user = FirebaseAuth.instance.currentUser;
+    print("📱 FCM Token: $token");
 
-  // Tapped from background
-  FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageNavigation);
-
-  // Tapped from terminated
-  final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
-  if (initialMessage != null) {
-    _handleMessageNavigation(initialMessage);
+    if (user != null && token != null) {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update(
+        {'fcmToken': token},
+      );
+    }
   }
 
-  final token = await fcm.getToken();
-  final user = FirebaseAuth.instance.currentUser;
-  print("📱 FCM Token: $token");
-
-  if (user != null && token != null) {
-    await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-      'fcmToken': token,
-    });
-  }
-}
-  
   void _handleMessageNavigation(RemoteMessage message) {
     final data = message.data;
     final type = data['type'];
