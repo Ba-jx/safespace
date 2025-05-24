@@ -1,16 +1,32 @@
-# safespace
+# Safe Space
 
-A new Flutter project.
+Safe Space is a health monitoring and support platform for PTSD patients. It includes:
 
-## Getting Started
+- 📱 A Flutter-based mobile app for patients
+- 🧑‍⚕️ A doctor-facing dashboard
+- 🧠 A wearable ESP32 device that monitors vitals
 
-This project is a starting point for a Flutter application.
+---
 
-A few resources to get you started if this is your first Flutter project:
+## 📱 Mobile App
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+Located in the `lib/`, `android/`, and `ios/` folders.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+---
+
+## 🔧 ESP32 Device Firmware
+
+Firmware for the wearable device is available in the [`device_firmware/`](./device_firmware/) folder.
+
+It reads:
+- Heart Rate & SpO2 via MAX30102
+- Temperature via DS18B20
+- Sends alerts using Bluetooth & Blynk
+
+Setup instructions and wiring diagrams are inside that folder.
+
+---
+
+## ☁️ Backend
+
+Firebase Cloud Functions and Firestore-based backend logic is located in the `functions/` folder.
