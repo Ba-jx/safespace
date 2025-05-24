@@ -46,7 +46,14 @@ dependencies:
   crypto: ^3.0.3
   
   http: ^0.13.5
+  
+ dev_dependencies:
+  flutter_launcher_icons: ^0.13.1
 
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/app_icon.png"
 
 
   # The following adds the Cupertino Icons font to your application.
