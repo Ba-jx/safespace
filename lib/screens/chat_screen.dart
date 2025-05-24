@@ -215,15 +215,15 @@ class _ChatScreenState extends State<ChatScreen> {
   controller: _controller,
   style: TextStyle(
     color: Theme.of(context).brightness == Brightness.dark
-        ? Colors.white
-        : Colors.black,
+        ? Colors.black
+        : Colors.white,
   ),
   decoration: InputDecoration(
     hintText: 'Type your message...',
     hintStyle: TextStyle(
       color: Theme.of(context).brightness == Brightness.dark
-          ? Colors.white54
-          : Colors.black45,
+          ? Colors.black45
+          : Colors.white54,
     ),
     border: InputBorder.none,
   ),
