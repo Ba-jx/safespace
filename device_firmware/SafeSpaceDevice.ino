@@ -78,7 +78,7 @@ void showOLEDFingerRequest() {
   display.setTextSize(2);
   display.setTextColor(WHITE);
   display.setCursor(10, 25);
-  display.println("Put Finger!");
+  display.println("...");
   display.display();
 }
 
