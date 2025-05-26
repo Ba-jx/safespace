@@ -16,6 +16,7 @@ class _DoctorCreatesPatientScreenState extends State<DoctorCreatesPatientScreen>
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _doctorPasswordController = TextEditingController(); // <-- New
 
   bool _isLoading = false;
 
@@ -25,8 +26,11 @@ class _DoctorCreatesPatientScreenState extends State<DoctorCreatesPatientScreen>
     setState(() => _isLoading = true);
 
     try {
-      final doctorId = FirebaseAuth.instance.currentUser!.uid;
+      final currentDoctor = FirebaseAuth.instance.currentUser!;
+      final doctorEmail = currentDoctor.email!;
+      final doctorPassword = _doctorPasswordController.text.trim(); // <-- Get doctor password
 
+      // Create patient account
       final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
@@ -36,6 +40,7 @@ class _DoctorCreatesPatientScreenState extends State<DoctorCreatesPatientScreen>
           .convert(utf8.encode(_passwordController.text.trim()))
           .toString();
 
+      // Store patient details in Firestore
       await FirebaseFirestore.instance
           .collection('users')
           .doc(userCredential.user!.uid)
@@ -43,10 +48,19 @@ class _DoctorCreatesPatientScreenState extends State<DoctorCreatesPatientScreen>
         'name': _nameController.text.trim(),
         'email': _emailController.text.trim(),
         'role': 'patient',
-        'doctorId': doctorId,
+        'doctorId': currentDoctor.uid,
         'hashedPassword': hashedPassword,
         'generatedPassword': _passwordController.text.trim(),
       });
+
+      // Sign out patient
+      await FirebaseAuth.instance.signOut();
+
+      // Sign doctor back in
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: doctorEmail,
+        password: doctorPassword,
+      );
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Patient account created successfully')),
@@ -56,6 +70,7 @@ class _DoctorCreatesPatientScreenState extends State<DoctorCreatesPatientScreen>
       _nameController.clear();
       _emailController.clear();
       _passwordController.clear();
+      _doctorPasswordController.clear();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to create account: $e')),
@@ -101,41 +116,49 @@ class _DoctorCreatesPatientScreenState extends State<DoctorCreatesPatientScreen>
               TextFormField(
                 controller: _passwordController,
                 decoration: const InputDecoration(
-                    labelText: 'Password', border: OutlineInputBorder()),
+                    labelText: 'Patient Password', border: OutlineInputBorder()),
                 obscureText: true,
                 validator: (value) => value == null || value.length < 6
                     ? 'Password too short'
                     : null,
               ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _doctorPasswordController,
+                decoration: const InputDecoration(
+                    labelText: 'Your Password (Doctor)',
+                    border: OutlineInputBorder()),
+                obscureText: true,
+                validator: (value) => value == null || value.length < 6
+                    ? 'Enter your password to confirm'
+                    : null,
+              ),
               const SizedBox(height: 24),
-ElevatedButton(
-  onPressed: _isLoading ? null : _createPatientAccount,
-  style: ElevatedButton.styleFrom(
-    backgroundColor: Theme.of(context).brightness == Brightness.dark
-        ? const Color(0xFFE1D7FB) // Light lavender for dark mode
-        : const Color(0xFF7654B9), // Purple for light mode
-    foregroundColor: Theme.of(context).brightness == Brightness.dark
-        ? Colors.black87
-        : Colors.white, // White text on purple in light mode
-    textStyle: const TextStyle(
-      fontSize: 16,
-      fontWeight: FontWeight.bold,
-    ),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(30),
-    ),
-    padding: const EdgeInsets.symmetric(vertical: 16),
-    elevation: 4,
-  ),
-  child: _isLoading
-      ? const CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-        )
-      : const Text('Create Account'),
-),
-
-
-
+              ElevatedButton(
+                onPressed: _isLoading ? null : _createPatientAccount,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFFE1D7FB)
+                      : const Color(0xFF7654B9),
+                  foregroundColor: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.black87
+                      : Colors.white,
+                  textStyle: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  elevation: 4,
+                ),
+                child: _isLoading
+                    ? const CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      )
+                    : const Text('Create Account'),
+              ),
             ],
           ),
         ),
