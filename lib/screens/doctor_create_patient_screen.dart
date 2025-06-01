@@ -121,14 +121,18 @@ class _DoctorCreatesPatientScreenState extends State<DoctorCreatesPatientScreen>
                 obscureText: true,
                 validator: (value) {
                   if (value == null || value.isEmpty) return 'Enter a password';
-                  if (value.length < 8) return 'Must be at least 8 characters';
-                  if (!RegExp(r'[A-Z]').hasMatch(value)) return 'Include an uppercase letter';
-                  if (!RegExp(r'[a-z]').hasMatch(value)) return 'Include a lowercase letter';
-                  if (!RegExp(r'\d').hasMatch(value)) return 'Include a number';
+
+                  List<String> errors = [];
+
+                  if (value.length < 8) errors.add('• At least 8 characters');
+                  if (!RegExp(r'[A-Z]').hasMatch(value)) errors.add('• One uppercase letter');
+                  if (!RegExp(r'[a-z]').hasMatch(value)) errors.add('• One lowercase letter');
+                  if (!RegExp(r'\d').hasMatch(value)) errors.add('• One number');
                   if (!RegExp(r'[!@#\$&*~%^()\-_=+{}[\]|;:"<>,.?]').hasMatch(value)) {
-                    return 'Include a special character';
+                    errors.add('• One special character');
                   }
-                  return null;
+
+                  return errors.isEmpty ? null : 'Password must include:\n${errors.join('\n')}';
                 },
               ),
               const SizedBox(height: 16),
