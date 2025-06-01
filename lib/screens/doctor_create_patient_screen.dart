@@ -16,7 +16,7 @@ class _DoctorCreatesPatientScreenState extends State<DoctorCreatesPatientScreen>
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _doctorPasswordController = TextEditingController(); // <-- New
+  final _doctorPasswordController = TextEditingController();
 
   bool _isLoading = false;
 
@@ -28,9 +28,8 @@ class _DoctorCreatesPatientScreenState extends State<DoctorCreatesPatientScreen>
     try {
       final currentDoctor = FirebaseAuth.instance.currentUser!;
       final doctorEmail = currentDoctor.email!;
-      final doctorPassword = _doctorPasswordController.text.trim(); // <-- Get doctor password
+      final doctorPassword = _doctorPasswordController.text.trim();
 
-      // Create patient account
       final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
@@ -40,7 +39,6 @@ class _DoctorCreatesPatientScreenState extends State<DoctorCreatesPatientScreen>
           .convert(utf8.encode(_passwordController.text.trim()))
           .toString();
 
-      // Store patient details in Firestore
       await FirebaseFirestore.instance
           .collection('users')
           .doc(userCredential.user!.uid)
@@ -53,10 +51,8 @@ class _DoctorCreatesPatientScreenState extends State<DoctorCreatesPatientScreen>
         'generatedPassword': _passwordController.text.trim(),
       });
 
-      // Sign out patient
       await FirebaseAuth.instance.signOut();
 
-      // Sign doctor back in
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: doctorEmail,
         password: doctorPassword,
@@ -98,7 +94,9 @@ class _DoctorCreatesPatientScreenState extends State<DoctorCreatesPatientScreen>
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(
-                    labelText: 'Patient Name', border: OutlineInputBorder()),
+                  labelText: 'Patient Name',
+                  border: OutlineInputBorder(),
+                ),
                 validator: (value) =>
                     value == null || value.isEmpty ? 'Enter a name' : null,
               ),
@@ -106,28 +104,40 @@ class _DoctorCreatesPatientScreenState extends State<DoctorCreatesPatientScreen>
               TextFormField(
                 controller: _emailController,
                 decoration: const InputDecoration(
-                    labelText: 'Email', border: OutlineInputBorder()),
+                  labelText: 'Email',
+                  border: OutlineInputBorder(),
+                ),
                 keyboardType: TextInputType.emailAddress,
-                validator: (value) => value == null || !value.contains('@')
-                    ? 'Enter valid email'
-                    : null,
+                validator: (value) =>
+                    value == null || !value.contains('@') ? 'Enter valid email' : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _passwordController,
                 decoration: const InputDecoration(
-                    labelText: 'Patient Password', border: OutlineInputBorder()),
+                  labelText: 'Patient Password',
+                  border: OutlineInputBorder(),
+                ),
                 obscureText: true,
-                validator: (value) => value == null || value.length < 6
-                    ? 'Password too short'
-                    : null,
+                validator: (value) {
+                  if (value == null || value.isEmpty) return 'Enter a password';
+                  if (value.length < 8) return 'Must be at least 8 characters';
+                  if (!RegExp(r'[A-Z]').hasMatch(value)) return 'Include an uppercase letter';
+                  if (!RegExp(r'[a-z]').hasMatch(value)) return 'Include a lowercase letter';
+                  if (!RegExp(r'\d').hasMatch(value)) return 'Include a number';
+                  if (!RegExp(r'[!@#\$&*~%^()\-_=+{}[\]|;:"<>,.?]').hasMatch(value)) {
+                    return 'Include a special character';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _doctorPasswordController,
                 decoration: const InputDecoration(
-                    labelText: 'Your Password (Doctor)',
-                    border: OutlineInputBorder()),
+                  labelText: 'Your Password (Doctor)',
+                  border: OutlineInputBorder(),
+                ),
                 obscureText: true,
                 validator: (value) => value == null || value.length < 6
                     ? 'Enter your password to confirm'
