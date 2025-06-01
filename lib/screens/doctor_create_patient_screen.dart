@@ -108,8 +108,13 @@ class _DoctorCreatesPatientScreenState extends State<DoctorCreatesPatientScreen>
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.emailAddress,
-                validator: (value) =>
-                    value == null || !value.contains('@') ? 'Enter valid email' : null,
+                validator: (value) {
+                  if (value == null || value.isEmpty) return 'Enter an email';
+                  final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                  return emailRegex.hasMatch(value)
+                      ? null
+                      : 'Enter a valid email address';
+                },
               ),
               const SizedBox(height: 16),
               TextFormField(
